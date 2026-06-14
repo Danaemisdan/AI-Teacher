@@ -220,7 +220,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
       });
 
       const jsonText = jsonResponse.choices[0].message.content || '[]';
-      const match = jsonText.match(/\[(.*?)\]/s);
+      const match = jsonText.match(/\[([\s\S]*?)\]/);
       let parsedIds: string[] = [];
       if (match) {
           try {
