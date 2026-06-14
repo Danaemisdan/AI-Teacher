@@ -53,9 +53,24 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   const initWebLLM = async () => {
       try {
           // Play the hardcoded welcome tour instantly
-          speak("Welcome to Nexmart... the smart way of shopping. I am your AI assistant. Feel free to browse the store while I download my neural core...", false);
+          // Note: Browsers block autoplay. If it fails, it will catch and silently fail, 
+          // which is why we must wrap it or handle the interaction securely.
+          const playWelcome = async () => {
+              try {
+                  await speak("Welcome to Nexmart... the smart way of shopping. I am your AI assistant. Feel free to browse the store while I download my neural core...", false);
+              } catch(err) {
+                  console.warn("Autoplay blocked. User needs to interact with page first.");
+              }
+          };
+          playWelcome();
 
           setAiProgress('Initializing Neural Core (0%)...');
+          
+          if (!navigator.gpu) {
+              setAiProgress('WebGPU is not enabled in Safari! Please use Chrome or enable WebGPU in Safari Advanced Settings.');
+              return;
+          }
+
           workerRef.current = new Worker(new URL('@/lib/worker.ts', import.meta.url), { type: 'module' });
           
           // Fallback to the ultra-tiny SmolLM2 (360M) on mobile devices to prevent WebGPU OOM crashes
@@ -79,7 +94,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           speak("My neural core is online. I am ready to help you shop!", false);
       } catch (e) {
           console.error("Failed to init WebLLM", e);
-          setAiProgress('Failed to boot AI Engine.');
+          setAiProgress('Failed to boot AI Engine. Browser might be out of memory.');
       }
   };
 
