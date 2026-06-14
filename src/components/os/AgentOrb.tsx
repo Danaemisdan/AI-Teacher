@@ -54,7 +54,8 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
               'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
               { 
                   initProgressCallback: (progress) => {
-                      setAiProgress(`Booting OS: ${Math.round(progress.progress * 100)}%`);
+                      // Use the detailed text which shows exact Megabytes downloaded and shader compilation steps
+                      setAiProgress(`System: ${progress.text}`);
                   }
               }
           );
