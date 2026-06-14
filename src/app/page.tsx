@@ -26,40 +26,7 @@ export default function Home() {
 
     return (
         <div className="h-screen w-full relative overflow-hidden font-sans bg-[#f8f9fa] transition-colors duration-1000">
-            {/* Splash Screen Overlay */}
-            <AnimatePresence>
-                {!isAiReady && (
-                    <motion.div 
-                        key="splash"
-                        exit={{ opacity: 0, filter: "blur(20px)" }}
-                        transition={{ duration: 1, ease: "easeInOut" }}
-                        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white"
-                    >
-                        <div className="relative z-10 flex flex-col items-center justify-center w-full h-full">
-                            {/* Large centered logo */}
-                            <motion.img 
-                                initial={{ scale: 0.95, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                transition={{ duration: 1 }}
-                                src="/splash-logo.png" 
-                                alt="Nexmart OS" 
-                                className="w-[400px] max-w-[80vw] object-contain drop-shadow-2xl" 
-                            />
-                            
-                            {/* Minimal loader at the bottom */}
-                            <motion.div 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.5 }}
-                                className="absolute bottom-16 flex flex-col items-center gap-3"
-                            >
-                                <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-                                <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase">{aiProgress}</span>
-                            </motion.div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Removed Splash Screen so the UI is instantly visible and usable while AI loads in background */}
 
             {/* The Subtle Background Flares (Glassmorphic) */}
             <div className="absolute top-0 left-0 w-[500px] h-full bg-[radial-gradient(ellipse_at_left,_var(--tw-gradient-stops))] from-blue-200/40 via-purple-100/20 to-transparent pointer-events-none blur-3xl opacity-70" />

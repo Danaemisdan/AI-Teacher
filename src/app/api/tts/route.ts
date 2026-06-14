@@ -18,8 +18,8 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const text = searchParams.get('text');
-    // Using a hyper-natural male voice by default (ChristopherNeural is fantastic)
-    const voice = searchParams.get('voice') || "en-US-ChristopherNeural";
+    // Using a hyper-natural sweet female voice
+    const voice = searchParams.get('voice') || "en-US-AriaNeural";
 
     if (!text) {
         return NextResponse.json({ error: "Text is required" }, { status: 400 });

@@ -24,6 +24,11 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   const workerRef = useRef<Worker | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<any>(null);
+  
+  // Instant Audio Queue State
+  const audioQueue = useRef<string[]>([]);
+  const isPlayingAudio = useRef(false);
+  const isLlmDone = useRef(true);
 
   const isWorking = workflowState === 'RESEARCHING' || workflowState === 'NEGOTIATING';
   const isTalking = workflowState === 'TALKING';
@@ -47,6 +52,9 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
 
   const initWebLLM = async () => {
       try {
+          // Play the hardcoded welcome tour instantly
+          speak("Welcome to Nexmart... the smart way of shopping. I am your AI assistant. Feel free to browse the store while I download my neural core...", false);
+
           setAiProgress('Initializing Neural Core (0%)...');
           workerRef.current = new Worker(new URL('@/lib/worker.ts', import.meta.url), { type: 'module' });
           const newEngine = await CreateWebWorkerMLCEngine(
@@ -116,7 +124,11 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   };
 
   const handleOrbClick = () => {
-      if (!engine) return; // Wait for ready
+      if (!engine) {
+          // Graceful fallback while booting
+          speak("I'm still loading my neural core! Take a look around the store while I finish.", false);
+          return;
+      }
       if (isWorking) return;
       
       if (isTalking) {
@@ -131,22 +143,51 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
       }
   };
 
-  const speak = async (text: string) => {
+  const processAudioQueue = async () => {
+      if (isPlayingAudio.current || audioQueue.current.length === 0) {
+          // If queue is empty and LLM is done, return to listening state
+          if (!isPlayingAudio.current && isLlmDone.current && (workflowState === 'TALKING' || workflowState === 'RESEARCHING')) {
+               startListening();
+          }
+          return;
+      }
+      
+      isPlayingAudio.current = true;
+      const text = audioQueue.current.shift()!;
+      
       try {
           if (audioRef.current) {
-              // Instant native streaming - zero delay
               const url = '/api/tts?text=' + encodeURIComponent(text);
               audioRef.current.src = url;
-              audioRef.current.play();
               setWorkflowState('TALKING');
               
               audioRef.current.onended = () => {
-                  startListening(); // Conversational loop
-              }
+                  isPlayingAudio.current = false;
+                  processAudioQueue();
+              };
+              await audioRef.current.play();
           }
       } catch(e) {
           console.error("Audio playback error:", e);
-          startListening();
+          isPlayingAudio.current = false;
+          processAudioQueue();
+      }
+  };
+
+  const speak = async (text: string, queue = true) => {
+      if (!queue) {
+          try {
+              if (audioRef.current) {
+                  const url = '/api/tts?text=' + encodeURIComponent(text);
+                  audioRef.current.src = url;
+                  setWorkflowState('TALKING');
+                  audioRef.current.onended = () => { setWorkflowState('IDLE'); };
+                  audioRef.current.play();
+              }
+          } catch(e) { console.error(e); }
+      } else {
+          audioQueue.current.push(text);
+          processAudioQueue();
       }
   };
 
@@ -199,16 +240,37 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           stream: true
       });
 
+      isLlmDone.current = false;
+      audioQueue.current = [];
+      isPlayingAudio.current = false;
+
       let fullResponse = "";
+      let sentenceBuffer = "";
+      
       for await (const chunk of stream) {
           const text = chunk.choices[0]?.delta?.content || "";
           fullResponse += text;
+          sentenceBuffer += text;
           setAgentMessage(fullResponse);
+
+          // Chunk instantly on sentence boundaries for zero-lag voice
+          if (/[.!?]\s/.test(sentenceBuffer) || (/[.!?]$/.test(sentenceBuffer) && text.trim() === "")) {
+              const sentenceToSpeak = sentenceBuffer.trim();
+              if (sentenceToSpeak) {
+                  speak(sentenceToSpeak, true);
+              }
+              sentenceBuffer = "";
+          }
       }
       
+      if (sentenceBuffer.trim()) {
+          speak(sentenceBuffer.trim(), true);
+      }
+      
+      isLlmDone.current = true;
+      processAudioQueue(); // Trigger if not already running
+      
       setChatHistory([...newHistory, { role: "assistant" as const, content: fullResponse }]);
-
-      speak(fullResponse);
 
       setWorkflowState('NEGOTIATING');
       
