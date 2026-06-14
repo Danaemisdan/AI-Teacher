@@ -9,10 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.71",
     "@mlc-ai/web-llm": "^0.2.84",
     "@radix-ui/react-slot": "^1.2.5",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "ai": "^6.0.205",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
