@@ -20,7 +20,6 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   const [agentMessage, setAgentMessage] = useState('');
   const [userTranscript, setUserTranscript] = useState('');
   const [chatHistory, setChatHistory] = useState<any[]>([]);
-  const [isCloudMode, setIsCloudMode] = useState(false);
   
   const workerRef = useRef<Worker | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -37,7 +36,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
 
   useEffect(() => {
     audioRef.current = new Audio();
-    if (!engine && !isCloudMode && !workerRef.current) {
+    if (!engine && !workerRef.current) {
         initWebLLM();
     }
     
@@ -68,10 +67,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           setAiProgress('Initializing Neural Core (0%)...');
           
           if (!navigator.gpu) {
-              console.warn('WebGPU not enabled, falling back to Cloud API');
-              setIsCloudMode(true);
-              setIsAiReady(true);
-              speak("My neural core is online in the cloud. I am ready to help you shop!", false);
+              setAiProgress('WebGPU is not enabled in Safari! Please use Chrome or enable WebGPU in Safari Advanced Settings.');
               return;
           }
 
@@ -98,10 +94,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           speak("My neural core is online. I am ready to help you shop!", false);
       } catch (e) {
           console.error("Failed to init WebLLM", e);
-          console.warn("Falling back to Cloud API due to crash");
-          setIsCloudMode(true);
-          setIsAiReady(true);
-          speak("Local engine failed, but cloud fallback is active. I am ready to help you shop!", false);
+          setAiProgress('Failed to boot AI Engine. Browser might be out of memory.');
       }
   };
 
@@ -154,7 +147,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   };
 
   const handleOrbClick = () => {
-      if (!engine && !isCloudMode) {
+      if (!engine) {
           // Graceful fallback while booting
           speak("I'm still loading my neural core! Take a look around the store while I finish.", false);
           return;
@@ -222,7 +215,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   };
 
   const handleSemanticTask = async (userMessage: string) => {
-    if ((!engine && !isCloudMode) || !userMessage.trim()) return;
+    if (!engine || !userMessage.trim()) return;
     
     setCurrentTask(userMessage);
     setInput('');
@@ -256,40 +249,26 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
 
       const userChat = { role: "user" as const, content: userMessage };
       const newHistory = [...chatHistory, userChat];
-      const systemMessage = { role: "system" as const, content: `You are Nexmart OS, an ultra-intelligent, highly capable conversational AI shopping assistant.
+      
+      const stream = await engine.chat.completions.create({
+          messages: [
+              { role: "system", content: `You are Nexmart OS, an ultra-intelligent, highly capable conversational AI shopping assistant.
               You must act like a futuristic, helpful companion.
               If the user asks about products, recommend items creatively from this inventory:\n${inventoryContext}\n
               If the user asks a general question (like 'what is glassmorphism?' or 'how are you?'), answer it intelligently and naturally.
-              ALWAYS respond in exactly 1 or 2 concise, natural sentences. DO NOT use markdown, lists, or emojis. Just pure, conversational text.` };
-      
-      let fullResponse = "";
+              ALWAYS respond in exactly 1 or 2 concise, natural sentences. DO NOT use markdown, lists, or emojis. Just pure, conversational text.` },
+              ...newHistory
+          ],
+          temperature: 0.7,
+          stream: true
+      });
 
-      if (isCloudMode) {
-          const res = await fetch('/api/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ messages: [systemMessage, ...newHistory] })
-          });
-          if (!res.ok) throw new Error("Cloud API Error");
-          const reader = res.body?.getReader();
-          const decoder = new TextDecoder();
-          while (true) {
-              const { done, value } = await reader!.read();
-              if (done) break;
-              fullResponse += decoder.decode(value, { stream: true });
-              setAgentMessage(fullResponse);
-          }
-      } else {
-          const stream = await engine!.chat.completions.create({
-              messages: [systemMessage, ...newHistory],
-              temperature: 0.7,
-              stream: true
-          });
-          for await (const chunk of stream) {
-              const text = chunk.choices[0]?.delta?.content || "";
-              fullResponse += text;
-              setAgentMessage(fullResponse);
-          }
+      let fullResponse = "";
+      
+      for await (const chunk of stream) {
+          const text = chunk.choices[0]?.delta?.content || "";
+          fullResponse += text;
+          setAgentMessage(fullResponse);
       }
       
       setChatHistory([...newHistory, { role: "assistant" as const, content: fullResponse }]);
@@ -299,31 +278,21 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
 
       setWorkflowState('NEGOTIATING');
       
-      let parsedIds: string[] = [];
-      const extractSystemMsg = { role: "system" as const, content: `You are a strict data extractor. Return ONLY a valid JSON array of product IDs from this inventory that match the context of the conversation:\n${inventoryContext}\nExample output: ["t1", "t2"]\nCRITICAL: If the user is just saying "Hi", chatting generally, or not requesting products, YOU MUST RETURN AN EMPTY ARRAY []. Do not hallucinate.` };
-      const extractUserMsg = { role: "user" as const, content: `Conversation context: User said "${userMessage}", you replied "${fullResponse}". Now extract the product IDs as a JSON array.` };
+      const jsonResponse = await engine.chat.completions.create({
+          messages: [
+              { role: "system", content: `You are a strict data extractor. Return ONLY a valid JSON array of product IDs from this inventory that match the context of the conversation:\n${inventoryContext}\nExample output: ["t1", "t2"]\nCRITICAL: If the user is just saying "Hi", chatting generally, or not requesting products, YOU MUST RETURN AN EMPTY ARRAY []. Do not hallucinate.` },
+              { role: "user", content: `Conversation context: User said "${userMessage}", you replied "${fullResponse}". Now extract the product IDs as a JSON array.` }
+          ],
+          temperature: 0.1
+      });
 
-      if (isCloudMode) {
-          const res = await fetch('/api/chat', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ messages: [extractSystemMsg, extractUserMsg], isJson: true })
-          });
-          const data = await res.json();
-          const match = data.text.match(/\[([\s\S]*?)\]/);
-          if (match) {
-              try { parsedIds = JSON.parse(`[${match[1]}]`); } catch(e) {}
-          }
-      } else {
-          const jsonResponse = await engine!.chat.completions.create({
-              messages: [extractSystemMsg, extractUserMsg],
-              temperature: 0.1
-          });
-          const jsonText = jsonResponse.choices[0].message.content || '[]';
-          const match = jsonText.match(/\[([\s\S]*?)\]/);
-          if (match) {
-              try { parsedIds = JSON.parse(`[${match[1]}]`); } catch(e) {}
-          }
+      const jsonText = jsonResponse.choices[0].message.content || '[]';
+      const match = jsonText.match(/\[([\s\S]*?)\]/);
+      let parsedIds: string[] = [];
+      if (match) {
+          try {
+              parsedIds = JSON.parse(`[${match[1]}]`);
+          } catch(e) {}
       }
 
       const allInventory = [
