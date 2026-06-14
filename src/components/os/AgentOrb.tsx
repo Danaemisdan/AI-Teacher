@@ -51,7 +51,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           workerRef.current = new Worker(new URL('@/lib/worker.ts', import.meta.url), { type: 'module' });
           const newEngine = await CreateWebWorkerMLCEngine(
               workerRef.current,
-              'Llama-3.2-1B-Instruct-q4f32_1-MLC',
+              'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
               { 
                   initProgressCallback: (progress) => {
                       setAiProgress(`Booting OS: ${Math.round(progress.progress * 100)}%`);
