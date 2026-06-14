@@ -321,7 +321,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
     } catch (error) {
       console.error(error);
       setWorkflowState('IDLE');
-      setAgentMessage("Connection error.");
+      setAgentMessage(`Mobile Error: ${(error as any)?.message || 'WebGPU Memory Limit Exceeded on this device.'}`);
     }
   };
 

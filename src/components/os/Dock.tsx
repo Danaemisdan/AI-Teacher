@@ -22,7 +22,7 @@ function DockItem({ store, activeStore, setActiveStore }: any) {
     <div className="relative flex flex-col items-center group">
       <button
         onClick={() => setActiveStore(store.id)}
-        className={`w-14 h-14 relative flex items-center justify-center origin-bottom transition-all duration-300 drop-shadow-[0_8px_16px_rgba(0,0,0,0.15)] hover:drop-shadow-[0_12px_24px_rgba(0,0,0,0.25)] hover:scale-[1.15] hover:-translate-y-3 ${isActive ? '-translate-y-2 scale-110' : ''}`}
+        className={`w-10 h-10 md:w-14 md:h-14 relative flex items-center justify-center origin-bottom transition-all duration-300 drop-shadow-[0_8px_16px_rgba(0,0,0,0.15)] hover:drop-shadow-[0_12px_24px_rgba(0,0,0,0.25)] hover:scale-[1.15] hover:-translate-y-3 ${isActive ? '-translate-y-2 scale-110' : ''}`}
       >
         <img 
             src={store.iconUrl} 
@@ -48,12 +48,12 @@ export default function Dock({ activeStore, setActiveStore }: any) {
   const mouseX = useMotionValue(Infinity);
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[95vw] md:w-auto overflow-x-auto custom-scrollbar flex justify-center">
       <motion.div 
         onMouseMove={(e) => mouseX.set(e.pageX)}
         onMouseLeave={() => mouseX.set(Infinity)}
         // Ultra-clean light glass container to match the bright, flat aesthetic
-        className="flex items-end gap-4 px-5 py-3 bg-white/40 backdrop-blur-3xl border border-white/50 shadow-[0_20px_40px_rgba(0,0,0,0.1)] rounded-[2rem] h-[80px]"
+        className="flex items-end gap-2 md:gap-4 px-3 md:px-5 py-2 md:py-3 bg-white/40 backdrop-blur-3xl border border-white/50 shadow-[0_20px_40px_rgba(0,0,0,0.1)] rounded-[2rem] h-[60px] md:h-[80px]"
       >
         {stores.map((store) => (
           <DockItem 

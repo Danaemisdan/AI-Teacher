@@ -94,13 +94,13 @@ export default function AgenticGrid({ activeStore, workflowState, aiProducts }: 
                         )}
                     </div>
 
-                    {/* Delivery / Prime */}
-                    <div className="mt-1 flex items-center gap-1">
-                        <span className="text-[14px] font-bold text-[#00A8E1] italic">prime</span>
-                        <span className="text-xs text-[#565959]">Get it <span className="font-bold text-[#0F1111]">Tomorrow</span></span>
+                    {/* Delivery */}
+                    <div className="mt-1 flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded shadow-sm border border-emerald-100">In Stock</span>
+                        <span className="text-xs text-[#565959] font-medium">Fast Delivery</span>
                     </div>
-                    <div className="text-[12px] text-[#565959] mt-0.5 mb-3">
-                        FREE Delivery on $35 shipped by Amazon
+                    <div className="text-[12px] text-[#565959] mt-1 mb-3">
+                        Ships securely via Nexmart
                     </div>
 
                     {/* Add to Cart Button */}
