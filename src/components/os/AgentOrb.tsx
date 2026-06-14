@@ -245,37 +245,18 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           stream: true
       });
 
-      isLlmDone.current = false;
-      audioQueue.current = [];
-      isPlayingAudio.current = false;
-
       let fullResponse = "";
-      let sentenceBuffer = "";
       
       for await (const chunk of stream) {
           const text = chunk.choices[0]?.delta?.content || "";
           fullResponse += text;
-          sentenceBuffer += text;
           setAgentMessage(fullResponse);
-
-          // Chunk instantly on sentence boundaries for zero-lag voice
-          if (/[.!?]\s/.test(sentenceBuffer) || (/[.!?]$/.test(sentenceBuffer) && text.trim() === "")) {
-              const sentenceToSpeak = sentenceBuffer.trim();
-              if (sentenceToSpeak) {
-                  speak(sentenceToSpeak, true);
-              }
-              sentenceBuffer = "";
-          }
       }
-      
-      if (sentenceBuffer.trim()) {
-          speak(sentenceBuffer.trim(), true);
-      }
-      
-      isLlmDone.current = true;
-      processAudioQueue(); // Trigger if not already running
       
       setChatHistory([...newHistory, { role: "assistant" as const, content: fullResponse }]);
+      
+      // Play the full response at once to prevent awkward pauses between sentences
+      speak(fullResponse, false);
 
       setWorkflowState('NEGOTIATING');
       
@@ -334,8 +315,6 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   if (isWorking) agentState = "thinking";
   if (isTalking) agentState = "talking";
   if (isListening) agentState = "listening";
-
-  if (!engine) return null; // Don't render orb until engine is ready so splash screen takes full effect.
 
   return (
     <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
