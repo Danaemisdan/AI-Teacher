@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Keyboard, X, Plus, ArrowUp, Loader2 } from 'lucide-react';
 import { CreateWebWorkerMLCEngine, MLCEngineInterface } from '@mlc-ai/web-llm';
 import { AgentState, Orb } from "@/components/ui/orb";
+import WebGPUWarning from './WebGPUWarning';
 
 const suggestedPrompts = [
     "Show me top earners in home decor",
@@ -20,6 +21,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   const [agentMessage, setAgentMessage] = useState('');
   const [userTranscript, setUserTranscript] = useState('');
   const [chatHistory, setChatHistory] = useState<any[]>([]);
+  const [showGpuWarning, setShowGpuWarning] = useState(false);
   
   const workerRef = useRef<Worker | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -67,7 +69,8 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           setAiProgress('Initializing Neural Core (0%)...');
           
           if (!navigator.gpu) {
-              setAiProgress('WebGPU is not enabled in Safari! Please use Chrome or enable WebGPU in Safari Advanced Settings.');
+              setAiProgress('Hardware Access Denied');
+              setShowGpuWarning(true);
               return;
           }
 
@@ -335,7 +338,11 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   if (isListening) agentState = "listening";
 
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
+    <>
+      <AnimatePresence>
+          {showGpuWarning && <WebGPUWarning />}
+      </AnimatePresence>
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
       
       <div className="relative">
           <motion.div 
@@ -448,5 +455,6 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
         )}
       </AnimatePresence>
     </div>
+    </>
   );
 }
