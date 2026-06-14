@@ -57,9 +57,14 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
 
           setAiProgress('Initializing Neural Core (0%)...');
           workerRef.current = new Worker(new URL('@/lib/worker.ts', import.meta.url), { type: 'module' });
+          
+          // Fallback to the ultra-tiny SmolLM2 (360M) on mobile devices to prevent WebGPU OOM crashes
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          const modelToLoad = isMobile ? 'SmolLM2-360M-Instruct-q4f16_1-MLC' : 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+
           const newEngine = await CreateWebWorkerMLCEngine(
               workerRef.current,
-              'Qwen2.5-0.5B-Instruct-q4f16_1-MLC',
+              modelToLoad,
               { 
                   initProgressCallback: (progress) => {
                       // Use the detailed text which shows exact Megabytes downloaded and shader compilation steps
