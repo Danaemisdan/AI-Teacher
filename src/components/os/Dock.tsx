@@ -48,7 +48,7 @@ export default function Dock({ activeStore, setActiveStore }: any) {
   const mouseX = useMotionValue(Infinity);
 
   return (
-    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[95vw] md:w-auto overflow-x-auto custom-scrollbar flex justify-center">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full md:w-auto px-2 flex justify-center">
       <motion.div 
         onMouseMove={(e) => mouseX.set(e.pageX)}
         onMouseLeave={() => mouseX.set(Infinity)}

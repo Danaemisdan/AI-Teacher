@@ -45,6 +45,8 @@ export default function Home() {
                 setAiProducts={setAiProducts}
                 setIsAiReady={setIsAiReady}
                 setAiProgress={setAiProgress}
+                aiProgress={aiProgress}
+                isAiReady={isAiReady}
             />
 
             {/* Comprehensive Scrollable Amazon-like Screen (Products, Deals, Search) */}

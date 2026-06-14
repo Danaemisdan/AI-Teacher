@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Keyboard, X, Plus, ArrowUp } from 'lucide-react';
+import { Keyboard, X, Plus, ArrowUp, Loader2 } from 'lucide-react';
 import { CreateWebWorkerMLCEngine, MLCEngineInterface } from '@mlc-ai/web-llm';
 import { AgentState, Orb } from "@/components/ui/orb";
 
@@ -13,7 +13,7 @@ const suggestedPrompts = [
     "Show me new Shopify stores in fashion"
 ];
 
-export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTask, setAiProducts, setIsAiReady, setAiProgress }: any) {
+export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTask, setAiProducts, setIsAiReady, setAiProgress, aiProgress, isAiReady }: any) {
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [input, setInput] = useState('');
   const [engine, setEngine] = useState<MLCEngineInterface | null>(null);
@@ -74,6 +74,9 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           );
           setEngine(newEngine);
           setIsAiReady(true);
+          
+          // Announce when fully loaded
+          speak("My neural core is online. I am ready to help you shop!", false);
       } catch (e) {
           console.error("Failed to init WebLLM", e);
           setAiProgress('Failed to boot AI Engine.');
@@ -334,7 +337,15 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
             </div>
           </motion.div>
 
-          {!isWorking && !isListening && !isTalking && !showKeyboard && (
+          {/* Download Progress Pill */}
+          {!isAiReady && (
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white flex items-center gap-2 pointer-events-none">
+                  <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />
+                  <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">{aiProgress}</span>
+              </div>
+          )}
+
+          {!isWorking && !isListening && !isTalking && !showKeyboard && isAiReady && (
               <button 
                 onClick={() => setShowKeyboard(true)} 
                 className="absolute top-1/2 -right-16 -translate-y-1/2 bg-white/40 hover:bg-white/60 border border-white/40 p-3 rounded-full text-gray-700 transition-all backdrop-blur-2xl shadow-lg hover:shadow-xl"
