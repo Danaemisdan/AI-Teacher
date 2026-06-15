@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Chrome, Smartphone, Settings, Compass, LayoutPanelTop, Check, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Globe, Smartphone, Settings, Compass, LayoutPanelTop, Check, ArrowRight } from 'lucide-react';
 
 export default function WebGPUWarning() {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -33,7 +33,7 @@ export default function WebGPUWarning() {
                     <div className="bg-blue-600 text-white rounded-2xl p-5 shadow-[0_10px_30px_rgba(37,99,235,0.3)] relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-150 duration-700" />
                         <div className="flex items-center gap-3 mb-2 relative z-10">
-                            {isIOS ? <Smartphone className="w-6 h-6 text-blue-200" /> : <Chrome className="w-6 h-6 text-blue-200" />}
+                            {isIOS ? <Smartphone className="w-6 h-6 text-blue-200" /> : <Globe className="w-6 h-6 text-blue-200" />}
                             <h3 className="font-bold text-lg">{isIOS ? "Download Native App" : "Use Google Chrome"}</h3>
                         </div>
                         <p className="text-sm text-blue-100 relative z-10 mb-4">
