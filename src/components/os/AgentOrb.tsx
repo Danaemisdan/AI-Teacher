@@ -68,7 +68,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
 
           setAiProgress('Initializing Neural Core (0%)...');
           
-          if (!navigator.gpu) {
+          if (!(navigator as any).gpu) {
               setAiProgress('Hardware Access Denied');
               setShowGpuWarning(true);
               return;
