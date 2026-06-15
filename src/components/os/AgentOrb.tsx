@@ -86,14 +86,17 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
               { 
                   initProgressCallback: (p) => {
                       const percent = Math.round((p.progress || 0) * 100);
-                      let cleanText = p.text;
+                      let cleanText = 'Initializing';
+                      const lowerText = p.text.toLowerCase();
                       
-                      if (cleanText.includes('Start to fetch params')) cleanText = 'Downloading AI Weights';
-                      else if (cleanText.includes('Finish fetching')) cleanText = 'Compiling GPU Shaders';
-                      else if (cleanText.toLowerCase().includes('loading model')) cleanText = 'Loading Neural Network';
-                      
-                      // Strip out ugly brackets from default WebLLM logs if they exist
-                      cleanText = cleanText.replace(/\[.*?\]/g, '').trim();
+                      if (lowerText.includes('fetch') || lowerText.includes('download')) {
+                          const mbMatch = lowerText.match(/([0-9.]+mb) fetched/i);
+                          cleanText = mbMatch ? `Downloading AI Weights (${mbMatch[1].toUpperCase()})` : 'Downloading AI Weights';
+                      } else if (lowerText.includes('finish') || lowerText.includes('compil')) {
+                          cleanText = 'Compiling GPU Shaders';
+                      } else if (lowerText.includes('load')) {
+                          cleanText = 'Loading Neural Network';
+                      }
                       
                       setAiProgress(`${cleanText} • ${percent}%`);
                   }
