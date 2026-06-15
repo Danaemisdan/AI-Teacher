@@ -14,15 +14,6 @@ export default function WebGPUWarning() {
         return () => clearInterval(interval);
     }, []);
 
-    const handleChromeClick = () => {
-        const url = window.location.href.replace(/^https?:\/\//, '');
-        window.location.href = `googlechromes://${url}`;
-        
-        setTimeout(() => {
-            window.open('https://www.google.com/chrome/', '_blank');
-        }, 1500);
-    };
-
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl">
             <motion.div 
@@ -56,9 +47,14 @@ export default function WebGPUWarning() {
                                 App Store (Coming Soon) <ArrowRight className="w-4 h-4" />
                             </button>
                         ) : (
-                            <button onClick={handleChromeClick} className="bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 backdrop-blur-md cursor-pointer">
-                                Open in Chrome <ArrowRight className="w-4 h-4" />
-                            </button>
+                            <a 
+                                href="https://www.google.com/chrome/" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-xl text-sm font-bold flex items-center w-fit gap-2 backdrop-blur-md cursor-pointer"
+                            >
+                                Download Chrome <ArrowRight className="w-4 h-4" />
+                            </a>
                         )}
                     </div>
                 </div>
@@ -130,76 +126,126 @@ export default function WebGPUWarning() {
                             </ol>
                         </div>
                     ) : (
-                        /* Mac Safari Visual Graphic */
-                        <div className="flex-1 flex flex-col items-center justify-center space-y-6 relative">
+                        /* Mac Safari Visual Graphic - Full Sequence */
+                        <div className="flex-1 flex flex-col items-center justify-center space-y-6 relative h-48 w-full">
                             {/* Animated Mac Cursor */}
                             <motion.div
                                 className="absolute z-50 pointer-events-none"
                                 animate={{
-                                    x: [0, 200, 200, 30, 30, 0],
-                                    y: [80, 50, 50, 110, 110, 80],
-                                    scale: [1, 1, 0.8, 1, 0.8, 1],
-                                    opacity: [0, 1, 1, 1, 1, 0]
+                                    x: [0, 160, 170, 240, 240, 40, 40, -130, 0],
+                                    y: [-60, -60, -20, 20, 20, 100, 100, -20, -60],
+                                    scale: [1, 1, 0.85, 1, 0.85, 1, 0.85, 1, 0.85]
                                 }}
                                 transition={{
-                                    duration: 5,
+                                    duration: 10,
                                     repeat: Infinity,
-                                    repeatDelay: 0.5,
-                                    times: [0, 0.2, 0.3, 0.6, 0.7, 1]
+                                    times: [0, 0.1, 0.15, 0.3, 0.35, 0.55, 0.6, 0.8, 0.85]
                                 }}
                             >
-                                <MousePointer2 className="w-6 h-6 text-black fill-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                                <MousePointer2 className="w-6 h-6 text-black fill-white drop-shadow-[0_3px_8px_rgba(0,0,0,0.5)]" />
                             </motion.div>
 
-                            {/* Mac Safari Preferences Window Mockup */}
-                            <div className="w-full bg-[#2c2c2e] rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.3)] border border-black/20 text-white relative">
-                                {/* Toolbar */}
-                                <div className="bg-[#3a3a3c] px-4 py-2 flex items-center border-b border-black/30 relative">
-                                    <div className="flex gap-2 absolute left-4">
-                                        <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]"></div>
-                                        <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]"></div>
-                                        <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]"></div>
-                                    </div>
-                                    <div className="w-full text-xs font-bold text-center text-gray-300">Feature Flags</div>
-                                </div>
+                            {/* Container for the sequence */}
+                            <div className="w-full relative h-40 flex justify-center items-start pt-8">
                                 
-                                {/* Search Bar Area */}
-                                <div className="p-3 flex justify-end border-b border-black/20 bg-[#2c2c2e]">
-                                    <div className="bg-[#1c1c1e] border border-blue-500/80 rounded-md px-2 flex items-center gap-2 w-40 h-6 shadow-[0_0_0_2px_rgba(59,130,246,0.3)]">
-                                        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                        <motion.div 
-                                            className="text-xs text-white"
-                                            animate={{ opacity: [0, 1] }}
-                                            transition={{ duration: 0.1, repeat: Infinity, repeatType: "reverse", repeatDelay: 2.5 }}
+                                {/* Step 1: Menu Bar */}
+                                <motion.div 
+                                    className="absolute top-0 w-full bg-[#f5f5f7] rounded-xl overflow-visible shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-black/10 z-10"
+                                    animate={{ opacity: [1, 1, 0, 0, 0, 0, 1] }}
+                                    transition={{ duration: 10, repeat: Infinity, times: [0, 0.35, 0.4, 0.85, 0.9, 0.95, 1] }}
+                                >
+                                    <div className="bg-[#e8e8ed] px-3 py-1.5 flex items-center gap-4 text-[13px] font-medium text-black border-b border-black/10">
+                                        <span className="font-bold">Safari</span>
+                                        <span>File</span>
+                                        <span>Edit</span>
+                                        <span>View</span>
+                                        <motion.span 
+                                            animate={{ backgroundColor: ["transparent", "#2563eb", "#2563eb", "transparent"] }}
+                                            transition={{ duration: 10, repeat: Infinity, times: [0, 0.1, 0.35, 0.4] }}
+                                            className="px-2 py-0.5 rounded text-black"
                                         >
-                                            webGPU
+                                            Develop
+                                        </motion.span>
+                                        <span>Window</span>
+                                    </div>
+                                    
+                                    {/* Dropdown */}
+                                    <motion.div 
+                                        className="absolute bg-white/90 backdrop-blur p-2 w-48 ml-[140px] shadow-xl border border-black/5 rounded-b-lg"
+                                        animate={{ opacity: [0, 0, 1, 1, 0] }}
+                                        transition={{ duration: 10, repeat: Infinity, times: [0, 0.1, 0.15, 0.35, 0.4] }}
+                                    >
+                                        <motion.div 
+                                            className="px-3 py-1.5 text-[13px] rounded flex items-center justify-between"
+                                            animate={{ backgroundColor: ["transparent", "transparent", "#2563eb", "#2563eb"], color: ["#000", "#000", "#fff", "#fff"] }}
+                                            transition={{ duration: 10, repeat: Infinity, times: [0, 0.25, 0.3, 0.35] }}
+                                        >
+                                            <span>Feature Flags</span>
+                                            <ArrowRight className="w-3 h-3" />
+                                        </motion.div>
+                                    </motion.div>
+                                </motion.div>
+
+                                {/* Step 2: Feature Flags Window */}
+                                <motion.div 
+                                    className="absolute top-2 w-[110%] max-w-[320px] bg-[#2c2c2e] rounded-xl overflow-hidden shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-black/30 text-white z-20"
+                                    animate={{ opacity: [0, 0, 1, 1, 0, 0], scale: [0.95, 0.95, 1, 1, 0.95, 0.95] }}
+                                    transition={{ duration: 10, repeat: Infinity, times: [0, 0.35, 0.4, 0.85, 0.9, 1] }}
+                                >
+                                    <div className="bg-[#3a3a3c] px-4 py-2 flex items-center border-b border-black/30 relative">
+                                        <div className="flex gap-2 absolute left-4">
+                                            <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]"></div>
+                                            <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]"></div>
+                                            <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]"></div>
+                                        </div>
+                                        <div className="w-full text-xs font-bold text-center text-gray-300">Feature Flags</div>
+                                    </div>
+                                    
+                                    <div className="p-3 flex justify-end border-b border-black/20 bg-[#2c2c2e]">
+                                        <motion.div 
+                                            className="bg-[#1c1c1e] border rounded-md px-2 flex items-center gap-2 w-40 h-6"
+                                            animate={{ borderColor: ["rgba(255,255,255,0.1)", "rgba(59,130,246,0.8)", "rgba(255,255,255,0.1)"] }}
+                                            transition={{ duration: 10, repeat: Infinity, times: [0, 0.35, 0.6] }}
+                                        >
+                                            <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                            <motion.span 
+                                                className="text-xs text-white"
+                                                animate={{ textContent: ["", "", "", "w", "we", "web", "webG", "webGP", "webGPU", "webGPU", ""] }}
+                                                transition={{ duration: 10, repeat: Infinity, times: [0, 0.4, 0.42, 0.44, 0.46, 0.48, 0.5, 0.52, 0.54, 0.85, 0.9] }}
+                                            >
+                                                
+                                            </motion.span>
                                         </motion.div>
                                     </div>
-                                </div>
 
-                                {/* List Area */}
-                                <div className="p-4 bg-[#1e1e1e] h-32">
-                                    <div className="text-[10px] text-gray-500 font-bold mb-3 pl-1">DOM</div>
-                                    <div className="flex items-center justify-between hover:bg-white/5 p-1 rounded">
-                                        <div className="flex items-center gap-3">
-                                            {/* Animated Checkbox */}
-                                            <motion.div 
-                                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors duration-200 ${toggleState ? 'bg-[#007aff] border-[#007aff]' : 'bg-transparent border-gray-500'}`}
-                                            >
-                                                {toggleState && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
-                                            </motion.div>
-                                            <span className="text-sm font-medium text-gray-200">WebGPU</span>
+                                    <div className="p-4 bg-[#1e1e1e] h-24">
+                                        <div className="text-[10px] text-gray-500 font-bold mb-3 pl-1">DOM</div>
+                                        <div className="flex items-center justify-between p-1">
+                                            <div className="flex items-center gap-3">
+                                                <motion.div 
+                                                    className="w-3.5 h-3.5 rounded border flex items-center justify-center"
+                                                    animate={{ backgroundColor: ["transparent", "transparent", "#007aff", "#007aff"], borderColor: ["#6b7280", "#6b7280", "#007aff", "#007aff"] }}
+                                                    transition={{ duration: 10, repeat: Infinity, times: [0, 0.6, 0.62, 1] }}
+                                                >
+                                                    <motion.div
+                                                        animate={{ opacity: [0, 0, 1, 1] }}
+                                                        transition={{ duration: 10, repeat: Infinity, times: [0, 0.6, 0.62, 1] }}
+                                                    >
+                                                        <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />
+                                                    </motion.div>
+                                                </motion.div>
+                                                <span className="text-sm font-medium text-gray-200">WebGPU</span>
+                                            </div>
+                                            <span className="text-xs text-gray-500">Preview</span>
                                         </div>
-                                        <span className="text-xs text-gray-500">Preview</span>
                                     </div>
-                                </div>
+                                </motion.div>
                             </div>
 
-                            <ol className="text-sm font-medium text-gray-600 space-y-2 w-full ml-4 list-decimal relative z-10">
-                                <li>Open <strong>Safari Preferences</strong> (Cmd + ,)</li>
-                                <li>Go to the <strong>Feature Flags</strong> tab (far right)</li>
+                            <ol className="text-xs font-medium text-gray-600 space-y-1 w-full ml-4 list-decimal relative z-10 mt-8">
+                                <li>Click <strong>Develop</strong> in the Mac Menu Bar</li>
+                                <li>Select <strong>Feature Flags</strong></li>
                                 <li>Search for <strong>webGPU</strong> and check the box</li>
-                                <li>Refresh this page</li>
                             </ol>
                         </div>
                     )}
