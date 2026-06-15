@@ -66,9 +66,6 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           };
           playWelcome();
 
-          const initializeAi = async () => {
-          if (isAiReady || engine) return;
-          
           setAiProgress('Initializing Neural Core (0%)...');
           
           try {
@@ -81,7 +78,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
               return;
           }
 
-          try {workerRef.current = new Worker(new URL('@/lib/worker.ts', import.meta.url), { type: 'module' });
+          workerRef.current = new Worker(new URL('@/lib/worker.ts', import.meta.url), { type: 'module' });
           
           // Fallback to the ultra-tiny SmolLM2 (360M) on mobile devices to prevent WebGPU OOM crashes
           const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
