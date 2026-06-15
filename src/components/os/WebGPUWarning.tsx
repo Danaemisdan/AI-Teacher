@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Globe, Smartphone, Settings, Compass, LayoutPanelTop, Check, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Globe, Smartphone, Settings, Compass, LayoutPanelTop, Check, ArrowRight, MousePointer2, Pointer } from 'lucide-react';
 
 export default function WebGPUWarning() {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -9,9 +9,18 @@ export default function WebGPUWarning() {
     useEffect(() => {
         const interval = setInterval(() => {
             setToggleState(prev => !prev);
-        }, 2000);
+        }, 3000); // Synced with the finger animation
         return () => clearInterval(interval);
     }, []);
+
+    const handleChromeClick = () => {
+        const url = window.location.href.replace(/^https?:\/\//, '');
+        window.location.href = `googlechromes://${url}`;
+        
+        setTimeout(() => {
+            window.open('https://www.google.com/chrome/', '_blank');
+        }, 1500);
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl">
@@ -38,12 +47,18 @@ export default function WebGPUWarning() {
                         </div>
                         <p className="text-sm text-blue-100 relative z-10 mb-4">
                             {isIOS 
-                                ? "Our upcoming iOS App has hardware access enabled by default." 
+                                ? "Our upcoming iOS App has hardware access enabled by default. (iOS Chrome does not support WebGPU either)" 
                                 : "Chrome and Edge support hardware acceleration automatically."}
                         </p>
-                        <button className="bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 backdrop-blur-md">
-                            {isIOS ? "Join Waitlist" : "Download Chrome"} <ArrowRight className="w-4 h-4" />
-                        </button>
+                        {isIOS ? (
+                            <button className="bg-white/20 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 backdrop-blur-md opacity-50 cursor-not-allowed">
+                                App Store (Coming Soon) <ArrowRight className="w-4 h-4" />
+                            </button>
+                        ) : (
+                            <button onClick={handleChromeClick} className="bg-white/20 hover:bg-white/30 transition-colors px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 backdrop-blur-md cursor-pointer">
+                                Open in Chrome <ArrowRight className="w-4 h-4" />
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -56,8 +71,27 @@ export default function WebGPUWarning() {
 
                     {isIOS ? (
                         /* iOS Visual Graphic */
-                        <div className="flex-1 flex flex-col items-center justify-center space-y-6">
-                            <div className="w-full bg-[#f2f2f7] rounded-2xl p-4 shadow-inner border border-black/5 flex flex-col gap-3">
+                        <div className="flex-1 flex flex-col items-center justify-center space-y-6 relative">
+                            {/* Animated iOS Finger */}
+                            <motion.div
+                                className="absolute z-50 pointer-events-none"
+                                animate={{
+                                    x: [40, 240, 240, 40],
+                                    y: [80, 25, 25, 80],
+                                    scale: [1, 0.85, 1, 1],
+                                    opacity: [0, 1, 1, 0]
+                                }}
+                                transition={{
+                                    duration: 3,
+                                    repeat: Infinity,
+                                    repeatDelay: 0.5,
+                                    times: [0, 0.4, 0.6, 1]
+                                }}
+                            >
+                                <Pointer className="w-10 h-10 text-gray-800 fill-white drop-shadow-xl rotate-[-20deg]" />
+                            </motion.div>
+
+                            <div className="w-full bg-[#f2f2f7] rounded-2xl p-4 shadow-inner border border-black/5 flex flex-col gap-3 relative">
                                 {/* Simulated iOS Settings Row */}
                                 <div className="bg-white rounded-xl px-4 py-3 flex items-center justify-between shadow-sm">
                                     <div className="flex items-center gap-3">
@@ -87,7 +121,7 @@ export default function WebGPUWarning() {
                                     </motion.div>
                                 </div>
                             </div>
-                            <ol className="text-sm font-medium text-gray-600 space-y-2 w-full ml-4 list-decimal">
+                            <ol className="text-sm font-medium text-gray-600 space-y-2 w-full ml-4 list-decimal relative z-10">
                                 <li>Open iPhone <strong>Settings &gt; Safari</strong></li>
                                 <li>Scroll to bottom and tap <strong>Advanced</strong></li>
                                 <li>Tap <strong>Feature Flags</strong></li>
@@ -96,8 +130,27 @@ export default function WebGPUWarning() {
                         </div>
                     ) : (
                         /* Mac Safari Visual Graphic */
-                        <div className="flex-1 flex flex-col items-center justify-center space-y-6">
-                            <div className="w-full bg-[#f5f5f7] rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-black/10">
+                        <div className="flex-1 flex flex-col items-center justify-center space-y-6 relative">
+                            {/* Animated Mac Cursor */}
+                            <motion.div
+                                className="absolute z-50 pointer-events-none"
+                                animate={{
+                                    x: [0, 160, 160, 220, 220, 0],
+                                    y: [40, -10, -10, 50, 50, 40],
+                                    scale: [1, 1, 0.8, 1, 0.8, 1],
+                                    opacity: [0, 1, 1, 1, 1, 0]
+                                }}
+                                transition={{
+                                    duration: 4.5,
+                                    repeat: Infinity,
+                                    repeatDelay: 0.5,
+                                    times: [0, 0.2, 0.3, 0.6, 0.7, 1]
+                                }}
+                            >
+                                <MousePointer2 className="w-6 h-6 text-black fill-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
+                            </motion.div>
+
+                            <div className="w-full bg-[#f5f5f7] rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-black/10 relative">
                                 {/* Simulated Mac Menu Bar */}
                                 <div className="bg-[#e8e8ed] px-3 py-1.5 flex items-center gap-4 text-[13px] font-medium text-black border-b border-black/10">
                                     <span className="font-bold">Safari</span>
@@ -120,7 +173,7 @@ export default function WebGPUWarning() {
                                     </div>
                                 </div>
                             </div>
-                            <ol className="text-sm font-medium text-gray-600 space-y-2 w-full ml-4 list-decimal">
+                            <ol className="text-sm font-medium text-gray-600 space-y-2 w-full ml-4 list-decimal relative z-10">
                                 <li>Enable "Show features for web developers" in <strong>Safari Preferences &gt; Advanced</strong></li>
                                 <li>In the top Mac menu bar, click <strong>Develop</strong></li>
                                 <li>Go to <strong>Feature Flags</strong> and check <strong>WebGPU</strong></li>
