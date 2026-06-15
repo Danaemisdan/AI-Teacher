@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Globe, Smartphone, Settings, Compass, LayoutPanelTop, Check, ArrowRight, MousePointer2, Pointer } from 'lucide-react';
+import { Orb } from '@/components/ui/orb';
 
 export default function WebGPUWarning() {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -31,8 +32,8 @@ export default function WebGPUWarning() {
             >
                 {/* Left Side: The Warning Context */}
                 <div className="flex-1 flex flex-col justify-center">
-                    <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mb-6 shadow-inner border border-orange-200">
-                        <AlertTriangle className="w-8 h-8 text-orange-600" />
+                    <div className="w-24 h-24 mb-4 relative flex items-center justify-center rounded-full bg-blue-50/50 shadow-inner">
+                        <Orb />
                     </div>
                     <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Hardware Access Blocked</h2>
                     <p className="text-gray-600 leading-relaxed font-medium mb-8">
@@ -135,13 +136,13 @@ export default function WebGPUWarning() {
                             <motion.div
                                 className="absolute z-50 pointer-events-none"
                                 animate={{
-                                    x: [0, 160, 160, 220, 220, 0],
-                                    y: [40, -10, -10, 50, 50, 40],
+                                    x: [0, 200, 200, 30, 30, 0],
+                                    y: [80, 50, 50, 110, 110, 80],
                                     scale: [1, 1, 0.8, 1, 0.8, 1],
                                     opacity: [0, 1, 1, 1, 1, 0]
                                 }}
                                 transition={{
-                                    duration: 4.5,
+                                    duration: 5,
                                     repeat: Infinity,
                                     repeatDelay: 0.5,
                                     times: [0, 0.2, 0.3, 0.6, 0.7, 1]
@@ -150,33 +151,54 @@ export default function WebGPUWarning() {
                                 <MousePointer2 className="w-6 h-6 text-black fill-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                             </motion.div>
 
-                            <div className="w-full bg-[#f5f5f7] rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.1)] border border-black/10 relative">
-                                {/* Simulated Mac Menu Bar */}
-                                <div className="bg-[#e8e8ed] px-3 py-1.5 flex items-center gap-4 text-[13px] font-medium text-black border-b border-black/10">
-                                    <span className="font-bold">Safari</span>
-                                    <span>File</span>
-                                    <span>Edit</span>
-                                    <span>View</span>
-                                    <span className="bg-blue-600 text-white px-2 py-0.5 rounded shadow-sm">Develop</span>
-                                    <span>Window</span>
-                                </div>
-                                {/* Simulated Dropdown */}
-                                <div className="bg-white/90 backdrop-blur p-2 w-48 ml-32 shadow-xl border border-black/5 rounded-b-lg">
-                                    <div className="px-3 py-1.5 text-[13px] hover:bg-blue-600 hover:text-white rounded flex items-center justify-between">
-                                        <span>Feature Flags</span>
-                                        <ArrowRight className="w-3 h-3" />
+                            {/* Mac Safari Preferences Window Mockup */}
+                            <div className="w-full bg-[#2c2c2e] rounded-xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.3)] border border-black/20 text-white relative">
+                                {/* Toolbar */}
+                                <div className="bg-[#3a3a3c] px-4 py-2 flex items-center border-b border-black/30 relative">
+                                    <div className="flex gap-2 absolute left-4">
+                                        <div className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e]"></div>
+                                        <div className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123]"></div>
+                                        <div className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29]"></div>
                                     </div>
-                                    <div className="h-px bg-black/5 my-1" />
-                                    <div className="px-3 py-1.5 text-[13px] bg-blue-600 text-white rounded flex items-center gap-2">
-                                        <Check className="w-3 h-3" />
-                                        <span>WebGPU</span>
+                                    <div className="w-full text-xs font-bold text-center text-gray-300">Feature Flags</div>
+                                </div>
+                                
+                                {/* Search Bar Area */}
+                                <div className="p-3 flex justify-end border-b border-black/20 bg-[#2c2c2e]">
+                                    <div className="bg-[#1c1c1e] border border-blue-500/80 rounded-md px-2 flex items-center gap-2 w-40 h-6 shadow-[0_0_0_2px_rgba(59,130,246,0.3)]">
+                                        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                        <motion.div 
+                                            className="text-xs text-white"
+                                            animate={{ opacity: [0, 1] }}
+                                            transition={{ duration: 0.1, repeat: Infinity, repeatType: "reverse", repeatDelay: 2.5 }}
+                                        >
+                                            webGPU
+                                        </motion.div>
+                                    </div>
+                                </div>
+
+                                {/* List Area */}
+                                <div className="p-4 bg-[#1e1e1e] h-32">
+                                    <div className="text-[10px] text-gray-500 font-bold mb-3 pl-1">DOM</div>
+                                    <div className="flex items-center justify-between hover:bg-white/5 p-1 rounded">
+                                        <div className="flex items-center gap-3">
+                                            {/* Animated Checkbox */}
+                                            <motion.div 
+                                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-colors duration-200 ${toggleState ? 'bg-[#007aff] border-[#007aff]' : 'bg-transparent border-gray-500'}`}
+                                            >
+                                                {toggleState && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+                                            </motion.div>
+                                            <span className="text-sm font-medium text-gray-200">WebGPU</span>
+                                        </div>
+                                        <span className="text-xs text-gray-500">Preview</span>
                                     </div>
                                 </div>
                             </div>
+
                             <ol className="text-sm font-medium text-gray-600 space-y-2 w-full ml-4 list-decimal relative z-10">
-                                <li>Enable "Show features for web developers" in <strong>Safari Preferences &gt; Advanced</strong></li>
-                                <li>In the top Mac menu bar, click <strong>Develop</strong></li>
-                                <li>Go to <strong>Feature Flags</strong> and check <strong>WebGPU</strong></li>
+                                <li>Open <strong>Safari Preferences</strong> (Cmd + ,)</li>
+                                <li>Go to the <strong>Feature Flags</strong> tab (far right)</li>
+                                <li>Search for <strong>webGPU</strong> and check the box</li>
                                 <li>Refresh this page</li>
                             </ol>
                         </div>

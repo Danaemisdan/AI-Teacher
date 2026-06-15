@@ -84,9 +84,18 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
               workerRef.current,
               modelToLoad,
               { 
-                  initProgressCallback: (progress) => {
-                      // Use the detailed text which shows exact Megabytes downloaded and shader compilation steps
-                      setAiProgress(`System: ${progress.text}`);
+                  initProgressCallback: (p) => {
+                      const percent = Math.round((p.progress || 0) * 100);
+                      let cleanText = p.text;
+                      
+                      if (cleanText.includes('Start to fetch params')) cleanText = 'Downloading AI Weights';
+                      else if (cleanText.includes('Finish fetching')) cleanText = 'Compiling GPU Shaders';
+                      else if (cleanText.toLowerCase().includes('loading model')) cleanText = 'Loading Neural Network';
+                      
+                      // Strip out ugly brackets from default WebLLM logs if they exist
+                      cleanText = cleanText.replace(/\[.*?\]/g, '').trim();
+                      
+                      setAiProgress(`${cleanText} • ${percent}%`);
                   }
               }
           );
