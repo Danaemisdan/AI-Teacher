@@ -26,19 +26,18 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
 
             {/* Main Header */}
             <div className="max-w-7xl mx-auto w-full px-6 py-4 flex items-center justify-between">
-                {/* Logo - Fixed width to balance the right side */}
-                <div className="flex items-center flex-shrink-0 cursor-pointer w-[300px]">
+                {/* Logo - Pushed to the left */}
+                <div className="flex items-center flex-shrink-0 cursor-pointer flex-1">
                     <img src="/logo.png" alt="Nexmart" className="h-8 object-contain" />
                 </div>
 
                 {/* Center Notch for the AgentOrb */}
-                <div className="flex-1 flex justify-center items-center">
-                    {/* This empty div acts as a spacer so the floating AgentOrb has a clear background */}
-                    <div className="w-[180px] h-[40px]"></div>
+                <div className="flex justify-center items-center flex-shrink-0">
+                    <div className="w-[200px] h-[40px]"></div>
                 </div>
 
-                {/* Actions - Fixed width to balance the left side */}
-                <div className="flex items-center gap-8 flex-shrink-0 w-[300px] justify-end">
+                {/* Actions - Pushed to the right */}
+                <div className="flex items-center gap-8 flex-shrink-0 flex-1 justify-end">
                     <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#1e3a8a] transition-colors group">
                         <Target className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold">AI Assistant</span>
@@ -75,27 +74,34 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
             </div>
 
             {/* Sub Nav & Search */}
-            <div className="max-w-7xl mx-auto w-full px-6 pb-4 flex items-center justify-between gap-8">
-                {/* Categories */}
-                <button className="flex items-center gap-2 border border-gray-200 rounded-full px-4 py-2 hover:bg-gray-50 transition-colors flex-shrink-0">
-                    <Menu className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm font-bold text-gray-800">All Categories</span>
-                </button>
-
-                {/* Search Bar - Moved to the center of the sub nav */}
-                <div className="flex-1 max-w-xl relative">
-                    <input 
-                        type="text" 
-                        placeholder="Search smart. Nexmart AI finds it for you..." 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-full py-2.5 px-6 pr-12 outline-none focus:border-[#1e3a8a] focus:bg-white transition-all font-medium text-sm"
-                    />
-                    <button className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#1e3a8a] text-white p-1.5 rounded-full hover:bg-[#172554] transition-colors shadow-md shadow-[#1e3a8a]/20">
-                        <Search className="w-4 h-4" />
+            <div className="max-w-7xl mx-auto w-full px-6 pb-4 flex items-center justify-between">
+                
+                {/* Left Side: Categories & Search Bar kept aside */}
+                <div className="flex items-center gap-4 flex-1">
+                    <button className="flex items-center gap-2 border border-gray-200 rounded-full px-4 py-2 hover:bg-gray-50 transition-colors flex-shrink-0">
+                        <Menu className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm font-bold text-gray-800">All Categories</span>
                     </button>
+
+                    <div className="w-full max-w-sm relative">
+                        <input 
+                            type="text" 
+                            placeholder="Search smart..." 
+                            className="w-full bg-gray-50 border border-gray-200 rounded-full py-2.5 px-6 pr-12 outline-none focus:border-[#1e3a8a] focus:bg-white transition-all font-medium text-sm"
+                        />
+                        <button className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#1e3a8a] text-white p-1.5 rounded-full hover:bg-[#172554] transition-colors shadow-md shadow-[#1e3a8a]/20">
+                            <Search className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
 
-                {/* Links */}
-                <nav className="flex items-center gap-6 flex-shrink-0">
+                {/* Center Notch for the AgentOrb */}
+                <div className="flex justify-center items-center flex-shrink-0">
+                    <div className="w-[200px] h-[10px]"></div>
+                </div>
+
+                {/* Right Side: Links kept aside */}
+                <nav className="flex items-center gap-6 flex-1 justify-end">
                     <a href="#" className="text-sm font-bold text-[#1e3a8a] border-b-2 border-[#1e3a8a] pb-1">Home</a>
                     <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1 flex items-center gap-1">
                         AI Picks <span className="bg-[#1e3a8a] text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider ml-1">New</span>
