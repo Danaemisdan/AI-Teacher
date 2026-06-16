@@ -46,22 +46,19 @@ export default function Dashboard({ isLoggedIn, onOpenAuth }: DashboardProps) {
             <Header isLoggedIn={isLoggedIn} onOpenAuth={onOpenAuth} />
             
             <main className="flex-1 flex flex-col pb-20">
-                <Hero>
-                    {/* Render the AgentOrb Inline inside the Hero exactly where the mascot would be */}
-                    <div className="absolute inset-0 flex items-center justify-center scale-75 md:scale-100 origin-center">
-                        <AgentOrb 
-                            workflowState={workflowState}
-                            setWorkflowState={setWorkflowState}
-                            setCurrentTask={setCurrentTask}
-                            setAiProducts={setAiProducts}
-                            setIsAiReady={setIsAiReady}
-                            setAiProgress={setAiProgress}
-                            aiProgress={aiProgress}
-                            isAiReady={isAiReady}
-                            inline={true}
-                        />
-                    </div>
-                </Hero>
+                <AgentOrb 
+                    workflowState={workflowState}
+                    setWorkflowState={setWorkflowState}
+                    setCurrentTask={setCurrentTask}
+                    setAiProducts={setAiProducts}
+                    setIsAiReady={setIsAiReady}
+                    setAiProgress={setAiProgress}
+                    aiProgress={aiProgress}
+                    isAiReady={isAiReady}
+                    inline={false}
+                />
+
+                <Hero />
 
                 <CategoriesRow />
                 <TrustBadges />

@@ -11,9 +11,9 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
     return (
         <header className="w-full bg-white flex flex-col z-50 sticky top-0 border-b border-gray-100 shadow-sm">
             {/* Topmost Banner */}
-            <div className="w-full bg-[#073f2a] text-white text-xs py-2 px-4 flex justify-between items-center font-medium">
+            <div className="w-full bg-black text-white text-xs py-2 px-4 flex justify-between items-center font-medium">
                 <div className="flex-1 text-center flex items-center justify-center gap-2">
-                    <span className="text-green-400">✨</span> AI Picks Just for You - Smarter Shopping, Better Choices!
+                    <span className="text-[#00B368]">✨</span> AI Picks Just for You - Smarter Shopping, Better Choices!
                 </div>
                 <div className="flex items-center gap-3">
                     <span>Download App</span>
@@ -28,9 +28,8 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
             {/* Main Header */}
             <div className="max-w-7xl mx-auto w-full px-6 py-4 flex items-center justify-between gap-8">
                 {/* Logo */}
-                <div className="flex items-end gap-1 flex-shrink-0 cursor-pointer">
-                    <span className="text-2xl font-black tracking-tight text-gray-900">nexmart</span>
-                    <span className="text-sm font-bold text-[#00B368] mb-1">ai commerce</span>
+                <div className="flex items-center flex-shrink-0 cursor-pointer">
+                    <img src="/logo.png" alt="Nexmart" className="h-8 object-contain" />
                 </div>
 
                 {/* Search Bar */}
