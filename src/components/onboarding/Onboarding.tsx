@@ -50,7 +50,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
                                     <button 
                                         key={i} 
                                         onClick={() => toggleInterest(i)}
-                                        className={`p-4 rounded-xl border-2 text-left font-bold flex justify-between items-center transition-all ${selectedInterests.includes(i) ? 'border-[#00B368] bg-[#00B368]/10 text-[#00B368]' : 'border-gray-100 text-gray-600 hover:border-gray-300'}`}
+                                        className={`p-4 rounded-xl border-2 text-left font-bold flex justify-between items-center transition-all ${selectedInterests.includes(i) ? 'border-[#1e3a8a] bg-[#1e3a8a]/10 text-[#1e3a8a]' : 'border-gray-100 text-gray-600 hover:border-gray-300'}`}
                                     >
                                         {i}
                                         {selectedInterests.includes(i) && <Check className="w-5 h-5" />}
@@ -70,7 +70,7 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
                             </div>
                             <h2 className="text-2xl font-black mb-2">Where should we deliver?</h2>
                             <p className="text-gray-500 mb-8">Allow location access to find local deals and accurate delivery ETAs.</p>
-                            <button onClick={nextStep} className="w-full bg-[#00B368] text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-[#009255] shadow-lg shadow-[#00B368]/30 transition mb-3">
+                            <button onClick={nextStep} className="w-full bg-[#1e3a8a] text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-[#172554] shadow-lg shadow-[#1e3a8a]/30 transition mb-3">
                                 Allow Location Access
                             </button>
                             <button onClick={nextStep} className="w-full text-gray-500 py-3 font-medium hover:text-black transition">
@@ -87,8 +87,8 @@ export default function Onboarding({ onComplete }: { onComplete: () => void }) {
                             <h2 className="text-2xl font-black mb-2">Delivery Preferences</h2>
                             <p className="text-gray-500 mb-8">How do you want your items delivered?</p>
                             <div className="space-y-3 mb-8">
-                                <div className="p-4 rounded-xl border-2 border-[#00B368] bg-[#00B368]/5 flex gap-4 cursor-pointer">
-                                    <div className="mt-1 w-5 h-5 rounded-full border-4 border-[#00B368] bg-white flex-shrink-0" />
+                                <div className="p-4 rounded-xl border-2 border-[#1e3a8a] bg-[#1e3a8a]/5 flex gap-4 cursor-pointer">
+                                    <div className="mt-1 w-5 h-5 rounded-full border-4 border-[#1e3a8a] bg-white flex-shrink-0" />
                                     <div>
                                         <h3 className="font-bold text-gray-900">Nexmart Prime Delivery</h3>
                                         <p className="text-sm text-gray-500">Consolidated deliveries, less packaging, scheduled drops.</p>

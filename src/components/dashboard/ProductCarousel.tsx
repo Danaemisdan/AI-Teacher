@@ -30,7 +30,7 @@ export default function ProductCarousel({ title, subtitle, products, type }: Pro
                     </h2>
                     {subtitle && <p className="text-sm text-gray-500 font-medium mt-1">{subtitle}</p>}
                 </div>
-                <button className="text-[#00B368] font-bold text-sm flex items-center gap-1 hover:underline">
+                <button className="text-[#1e3a8a] font-bold text-sm flex items-center gap-1 hover:underline">
                     View All {type === 'deals' ? 'Deals' : ''} <ArrowRight className="w-4 h-4" />
                 </button>
             </div>
@@ -48,7 +48,7 @@ export default function ProductCarousel({ title, subtitle, products, type }: Pro
                             </div>
                         )}
                         {type === 'ai_picks' && (
-                            <div className="absolute top-4 left-4 bg-[#00B368]/10 text-[#00B368] text-[10px] font-bold px-2 py-1 rounded-md z-10 flex items-center gap-1 uppercase tracking-wider">
+                            <div className="absolute top-4 left-4 bg-[#1e3a8a]/10 text-[#1e3a8a] text-[10px] font-bold px-2 py-1 rounded-md z-10 flex items-center gap-1 uppercase tracking-wider">
                                 <Sparkles className="w-3 h-3" /> AI Pick
                             </div>
                         )}
@@ -77,7 +77,7 @@ export default function ProductCarousel({ title, subtitle, products, type }: Pro
                                     </div>
                                     
                                     {type === 'ai_picks' && (
-                                        <button className="w-8 h-8 rounded-full border-2 border-[#00B368] text-[#00B368] flex items-center justify-center hover:bg-[#00B368] hover:text-white transition-colors">
+                                        <button className="w-8 h-8 rounded-full border-2 border-[#1e3a8a] text-[#1e3a8a] flex items-center justify-center hover:bg-[#1e3a8a] hover:text-white transition-colors">
                                             <ShoppingCart className="w-4 h-4" />
                                         </button>
                                     )}

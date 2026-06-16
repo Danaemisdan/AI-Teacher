@@ -18,6 +18,9 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [input, setInput] = useState('');
   const [engine, setEngine] = useState<MLCEngineInterface | null>(null);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const [scale, setScale] = useState(1);
+  const [colors, setColors] = useState(["#1e3a8a", "#60a5fa"]);
   const [agentMessage, setAgentMessage] = useState('');
   const [userTranscript, setUserTranscript] = useState('');
   const [chatHistory, setChatHistory] = useState<any[]>([]);
@@ -358,7 +361,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
       <AnimatePresence>
           {showGpuWarning && <WebGPUWarning />}
       </AnimatePresence>
-      <div className={`${inline ? 'relative' : 'fixed top-6 left-1/2 -translate-x-1/2'} z-50 flex flex-col items-center`}>
+      <div className={`${inline ? 'relative' : 'fixed bottom-8 right-8'} z-50 flex flex-col items-center`}>
       
       <div className="relative">
           <motion.div 

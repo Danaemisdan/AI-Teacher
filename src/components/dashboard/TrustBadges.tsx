@@ -4,22 +4,22 @@ import { Sparkles, ShieldCheck, Truck, Lock } from 'lucide-react';
 export default function TrustBadges() {
     const badges = [
         {
-            icon: <Sparkles className="w-6 h-6 text-[#00B368]" />,
+            icon: <Sparkles className="w-6 h-6 text-[#1e3a8a]" />,
             title: "AI-Powered Recommendations",
             desc: "Personalized picks just for you"
         },
         {
-            icon: <ShieldCheck className="w-6 h-6 text-[#00B368]" />,
+            icon: <ShieldCheck className="w-6 h-6 text-[#1e3a8a]" />,
             title: "Best Price Guarantee",
             desc: "We ensure you get the best deal"
         },
         {
-            icon: <Truck className="w-6 h-6 text-[#00B368]" />,
+            icon: <Truck className="w-6 h-6 text-[#1e3a8a]" />,
             title: "Fast & Reliable Delivery",
             desc: "Quick delivery at your doorstep"
         },
         {
-            icon: <Lock className="w-6 h-6 text-[#00B368]" />,
+            icon: <Lock className="w-6 h-6 text-[#1e3a8a]" />,
             title: "Secure Shopping",
             desc: "100% secure & trusted payments"
         }
@@ -30,7 +30,7 @@ export default function TrustBadges() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {badges.map((badge, i) => (
                     <div key={i} className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-[#00B368]/10 flex items-center justify-center flex-shrink-0">
+                        <div className="w-12 h-12 rounded-xl bg-[#1e3a8a]/10 flex items-center justify-center flex-shrink-0">
                             {badge.icon}
                         </div>
                         <div className="flex flex-col">

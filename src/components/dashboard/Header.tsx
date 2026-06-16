@@ -13,7 +13,7 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
             {/* Topmost Banner */}
             <div className="w-full bg-black text-white text-xs py-2 px-4 flex justify-between items-center font-medium">
                 <div className="flex-1 text-center flex items-center justify-center gap-2">
-                    <span className="text-[#00B368]">✨</span> AI Picks Just for You - Smarter Shopping, Better Choices!
+                    <span className="text-[#1e3a8a]">✨</span> AI Picks Just for You - Smarter Shopping, Better Choices!
                 </div>
                 <div className="flex items-center gap-3">
                     <span>Download App</span>
@@ -37,28 +37,28 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
                     <input 
                         type="text" 
                         placeholder="Search smart. Nexmart AI finds it for you..." 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-full py-3 px-6 pr-14 outline-none focus:border-[#00B368] focus:bg-white transition-all font-medium text-sm"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-full py-3 px-6 pr-14 outline-none focus:border-[#1e3a8a] focus:bg-white transition-all font-medium text-sm"
                     />
-                    <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#00B368] text-white p-2 rounded-full hover:bg-[#009255] transition-colors shadow-md shadow-[#00B368]/20">
+                    <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#1e3a8a] text-white p-2 rounded-full hover:bg-[#172554] transition-colors shadow-md shadow-[#1e3a8a]/20">
                         <Search className="w-4 h-4" />
                     </button>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-8 flex-shrink-0">
-                    <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#00B368] transition-colors group">
+                    <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#1e3a8a] transition-colors group">
                         <Target className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold">AI Assistant</span>
                     </button>
-                    <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#00B368] transition-colors group">
+                    <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#1e3a8a] transition-colors group">
                         <Heart className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold">Wishlist</span>
                     </button>
-                    <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#00B368] transition-colors group relative">
+                    <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#1e3a8a] transition-colors group relative">
                         <div className="relative">
                             <ShoppingCart className="w-6 h-6 group-hover:scale-110 transition-transform" />
                             {cartCount > 0 && (
-                                <span className="absolute -top-1 -right-2 bg-[#00B368] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
+                                <span className="absolute -top-1 -right-2 bg-[#1e3a8a] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">
                                     {cartCount}
                                 </span>
                             )}
@@ -67,10 +67,10 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
                     </button>
                     <button 
                         onClick={!isLoggedIn ? onOpenAuth : undefined}
-                        className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#00B368] transition-colors group"
+                        className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#1e3a8a] transition-colors group"
                     >
                         {isLoggedIn ? (
-                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-green-500 to-blue-500 text-white flex items-center justify-center shadow-sm">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#1e3a8a] to-[#3b82f6] text-white flex items-center justify-center shadow-sm">
                                 <User className="w-4 h-4" />
                             </div>
                         ) : (
@@ -89,11 +89,11 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
                 </button>
 
                 <nav className="flex items-center gap-8 flex-1">
-                    <a href="#" className="text-sm font-bold text-[#00B368] border-b-2 border-[#00B368] pb-1">Home</a>
+                    <a href="#" className="text-sm font-bold text-[#1e3a8a] border-b-2 border-[#1e3a8a] pb-1">Home</a>
                     <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Shop</a>
                     <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Deals</a>
                     <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1 flex items-center gap-1">
-                        AI Picks <span className="bg-[#00B368] text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider ml-1">New</span>
+                        AI Picks <span className="bg-[#1e3a8a] text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider ml-1">New</span>
                     </a>
                     <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Brands</a>
                     <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Track Order</a>

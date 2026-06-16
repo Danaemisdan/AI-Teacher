@@ -26,11 +26,11 @@ export default function CategoriesRow() {
                         <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
                             cat.isViewAll 
                             ? 'bg-gray-100 text-gray-500 group-hover:bg-gray-200' 
-                            : 'bg-white border border-gray-100 shadow-sm text-gray-800 group-hover:border-[#00B368] group-hover:text-[#00B368] group-hover:shadow-md'
+                            : 'bg-white border border-gray-100 shadow-sm text-gray-800 group-hover:border-[#1e3a8a] group-hover:text-[#1e3a8a] group-hover:shadow-md'
                         }`}>
                             {cat.icon}
                         </div>
-                        <span className="text-xs font-bold text-gray-700 whitespace-nowrap text-center group-hover:text-[#00B368] transition-colors">
+                        <span className="text-xs font-bold text-gray-700 whitespace-nowrap text-center group-hover:text-[#1e3a8a] transition-colors">
                             {cat.name}
                         </span>
                     </button>
