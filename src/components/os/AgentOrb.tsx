@@ -14,7 +14,7 @@ const suggestedPrompts = [
     "Show me new Shopify stores in fashion"
 ];
 
-export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTask, setAiProducts, setIsAiReady, setAiProgress, aiProgress, isAiReady }: any) {
+export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTask, setAiProducts, setIsAiReady, setAiProgress, aiProgress, isAiReady, inline = false }: any) {
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [input, setInput] = useState('');
   const [engine, setEngine] = useState<MLCEngineInterface | null>(null);
@@ -358,7 +358,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
       <AnimatePresence>
           {showGpuWarning && <WebGPUWarning />}
       </AnimatePresence>
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
+      <div className={`${inline ? 'relative' : 'fixed top-6 left-1/2 -translate-x-1/2'} z-50 flex flex-col items-center`}>
       
       <div className="relative">
           <motion.div 
