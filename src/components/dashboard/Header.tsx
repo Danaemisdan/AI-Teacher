@@ -9,15 +9,14 @@ interface HeaderProps {
 
 export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: HeaderProps) {
     return (
-        <header className="w-full bg-white flex flex-col z-50 sticky top-0 border-b border-gray-100 shadow-sm">
+        <header className="w-full bg-white flex flex-col z-50 sticky top-0 border-b border-gray-100 shadow-sm relative">
             {/* Topmost Banner */}
             <div className="w-full bg-black text-white text-xs py-2 px-4 flex justify-between items-center font-medium">
                 <div className="flex-1 text-center flex items-center justify-center gap-2">
                     <span className="text-[#1e3a8a]">✨</span> AI Picks Just for You - Smarter Shopping, Better Choices!
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 absolute right-4">
                     <span>Download App</span>
-                    {/* Placeholder for app icons */}
                     <div className="flex gap-1">
                         <span className="opacity-80"></span>
                         <span className="opacity-80">🤖</span>
@@ -26,26 +25,20 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
             </div>
 
             {/* Main Header */}
-            <div className="max-w-7xl mx-auto w-full px-6 py-4 flex items-center justify-between gap-8">
-                {/* Logo */}
-                <div className="flex items-center flex-shrink-0 cursor-pointer">
+            <div className="max-w-7xl mx-auto w-full px-6 py-4 flex items-center justify-between">
+                {/* Logo - Fixed width to balance the right side */}
+                <div className="flex items-center flex-shrink-0 cursor-pointer w-[300px]">
                     <img src="/logo.png" alt="Nexmart" className="h-8 object-contain" />
                 </div>
 
-                {/* Search Bar */}
-                <div className="flex-1 max-w-2xl relative">
-                    <input 
-                        type="text" 
-                        placeholder="Search smart. Nexmart AI finds it for you..." 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-full py-3 px-6 pr-14 outline-none focus:border-[#1e3a8a] focus:bg-white transition-all font-medium text-sm"
-                    />
-                    <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-[#1e3a8a] text-white p-2 rounded-full hover:bg-[#172554] transition-colors shadow-md shadow-[#1e3a8a]/20">
-                        <Search className="w-4 h-4" />
-                    </button>
+                {/* Center Notch for the AgentOrb */}
+                <div className="flex-1 flex justify-center items-center">
+                    {/* This empty div acts as a spacer so the floating AgentOrb has a clear background */}
+                    <div className="w-[180px] h-[40px]"></div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-8 flex-shrink-0">
+                {/* Actions - Fixed width to balance the left side */}
+                <div className="flex items-center gap-8 flex-shrink-0 w-[300px] justify-end">
                     <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#1e3a8a] transition-colors group">
                         <Target className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold">AI Assistant</span>
@@ -81,23 +74,34 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
                 </div>
             </div>
 
-            {/* Sub Nav */}
-            <div className="max-w-7xl mx-auto w-full px-6 pb-3 flex items-center gap-8">
-                <button className="flex items-center gap-2 border border-gray-200 rounded-full px-4 py-2 hover:bg-gray-50 transition-colors">
+            {/* Sub Nav & Search */}
+            <div className="max-w-7xl mx-auto w-full px-6 pb-4 flex items-center justify-between gap-8">
+                {/* Categories */}
+                <button className="flex items-center gap-2 border border-gray-200 rounded-full px-4 py-2 hover:bg-gray-50 transition-colors flex-shrink-0">
                     <Menu className="w-4 h-4 text-gray-600" />
                     <span className="text-sm font-bold text-gray-800">All Categories</span>
                 </button>
 
-                <nav className="flex items-center gap-8 flex-1">
+                {/* Search Bar - Moved to the center of the sub nav */}
+                <div className="flex-1 max-w-xl relative">
+                    <input 
+                        type="text" 
+                        placeholder="Search smart. Nexmart AI finds it for you..." 
+                        className="w-full bg-gray-50 border border-gray-200 rounded-full py-2.5 px-6 pr-12 outline-none focus:border-[#1e3a8a] focus:bg-white transition-all font-medium text-sm"
+                    />
+                    <button className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-[#1e3a8a] text-white p-1.5 rounded-full hover:bg-[#172554] transition-colors shadow-md shadow-[#1e3a8a]/20">
+                        <Search className="w-4 h-4" />
+                    </button>
+                </div>
+
+                {/* Links */}
+                <nav className="flex items-center gap-6 flex-shrink-0">
                     <a href="#" className="text-sm font-bold text-[#1e3a8a] border-b-2 border-[#1e3a8a] pb-1">Home</a>
-                    <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Shop</a>
-                    <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Deals</a>
                     <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1 flex items-center gap-1">
                         AI Picks <span className="bg-[#1e3a8a] text-white text-[9px] px-1.5 py-0.5 rounded-full uppercase tracking-wider ml-1">New</span>
                     </a>
-                    <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Brands</a>
+                    <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Deals</a>
                     <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Track Order</a>
-                    <a href="#" className="text-sm font-bold text-gray-600 hover:text-black transition-colors pb-1">Help</a>
                 </nav>
             </div>
         </header>
