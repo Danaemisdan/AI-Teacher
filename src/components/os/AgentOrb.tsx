@@ -14,7 +14,7 @@ const suggestedPrompts = [
     "Show me new Shopify stores in fashion"
 ];
 
-export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTask, setAiProducts, setIsAiReady, setAiProgress, aiProgress, isAiReady, inline = false }: any) {
+export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTask, setAiProducts, setIsAiReady, setAiProgress, aiProgress, isAiReady, setCartCount, inline = false }: any) {
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [input, setInput] = useState('');
   const [engine, setEngine] = useState<MLCEngineInterface | null>(null);
@@ -90,12 +90,8 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
 
           workerRef.current = new Worker(new URL('@/lib/worker.ts', import.meta.url), { type: 'module' });
           
-          // Safari has a 1.5GB WebGPU memory limit and easily crashes. Mobile has similar issues.
-          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-          
-          // Force SmolLM2 on Safari and Mobile to prevent crashes
-          const modelToLoad = (isMobile || isSafari) ? 'SmolLM2-360M-Instruct-q4f16_1-MLC' : 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+          // Force SmolLM2-135M on all devices for absolute maximum speed and stability
+          const modelToLoad = 'SmolLM2-135M-Instruct-q4f16_1-MLC';
 
           const newEngine = await CreateWebWorkerMLCEngine(
               workerRef.current,
@@ -317,18 +313,25 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
       
       const jsonResponse = await engine.chat.completions.create({
           messages: [
-              { role: "system", content: `You are a strict data extractor. Return ONLY a valid JSON array of product IDs from this inventory that match the context of the conversation:\n${inventoryContext}\nExample output: ["t1", "t2"]\nCRITICAL: If the user is just saying "Hi", chatting generally, or not requesting products, YOU MUST RETURN AN EMPTY ARRAY []. Do not hallucinate.` },
-              { role: "user", content: `Conversation context: User said "${userMessage}", you replied "${fullResponse}". Now extract the product IDs as a JSON array.` }
+              { role: "system", content: `You are a strict data extractor. Analyze the conversation. Return ONLY a JSON object with this exact structure:
+              {
+                "action": "SEARCH" | "ADD_TO_CART" | "CHAT",
+                "productIds": ["id1", "id2"]
+              }
+              If the user wants to search/view products, use SEARCH. If the user explicitly asks to add items to cart/buy, use ADD_TO_CART. If they are just chatting, use CHAT.
+              Inventory IDs available:\n${inventoryContext}\n
+              CRITICAL: Return ONLY valid JSON.` },
+              { role: "user", content: `Conversation context: User said "${userMessage}", you replied "${fullResponse}". Extract the JSON.` }
           ],
           temperature: 0.1
       });
 
-      const jsonText = jsonResponse.choices[0].message.content || '[]';
-      const match = jsonText.match(/\[([\s\S]*?)\]/);
-      let parsedIds: string[] = [];
+      const jsonText = jsonResponse.choices[0].message.content || '{}';
+      const match = jsonText.match(/\{[\s\S]*\}/);
+      let actionObj = { action: 'CHAT', productIds: [] as string[] };
       if (match) {
           try {
-              parsedIds = JSON.parse(`[${match[1]}]`);
+              actionObj = JSON.parse(match[0]);
           } catch(e) {}
       }
 
@@ -353,10 +356,15 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           { id: 'h2', title: 'Linen Throw Blanket', price: 65, category: 'Home', image: 'https://images.unsplash.com/photo-1580556882412-25807185c7bb?q=80&w=600&auto=format&fit=crop' }
       ];
 
-      const found = parsedIds.map(id => allInventory.find(p => p.id === id.replace(/["']/g, '').trim())).filter(Boolean);
-      
-      if (found.length > 0) {
-          setAiProducts(found);
+      if (actionObj.action === 'ADD_TO_CART') {
+          if (setCartCount) {
+              setCartCount((prev: number) => prev + (actionObj.productIds.length > 0 ? actionObj.productIds.length : 1));
+          }
+      } else if (actionObj.action === 'SEARCH' && actionObj.productIds.length > 0) {
+          const found = actionObj.productIds.map(id => allInventory.find(p => p.id === id.replace(/["']/g, '').trim())).filter(Boolean);
+          if (found.length > 0) {
+              setAiProducts(found);
+          }
       }
 
     } catch (error) {

@@ -20,6 +20,7 @@ export default function Dashboard({ isLoggedIn, onOpenAuth }: DashboardProps) {
     const [workflowState, setWorkflowState] = useState<WorkflowState>('IDLE');
     const [currentTask, setCurrentTask] = useState('');
     const [aiProducts, setAiProducts] = useState<any[]>([]);
+    const [cartCount, setCartCount] = useState(2);
     
     // AI Engine state
     const [isAiReady, setIsAiReady] = useState(false);
@@ -44,7 +45,7 @@ export default function Dashboard({ isLoggedIn, onOpenAuth }: DashboardProps) {
 
     return (
         <div className="h-full w-full overflow-y-auto bg-white flex flex-col hide-scrollbar relative">
-            <Header isLoggedIn={isLoggedIn} onOpenAuth={onOpenAuth} />
+            <Header isLoggedIn={isLoggedIn} onOpenAuth={onOpenAuth} cartCount={cartCount} />
             
             <main className="flex-1 flex flex-col pb-24 md:pb-10">
                 <AgentOrb 
@@ -56,6 +57,7 @@ export default function Dashboard({ isLoggedIn, onOpenAuth }: DashboardProps) {
                     setAiProgress={setAiProgress}
                     aiProgress={aiProgress}
                     isAiReady={isAiReady}
+                    setCartCount={setCartCount}
                     inline={false}
                 />
 
