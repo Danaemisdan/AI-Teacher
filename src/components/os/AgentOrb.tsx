@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Keyboard, X, Plus, ArrowUp, Loader2 } from 'lucide-react';
+import { Keyboard, X, Plus, ArrowUp, Loader2, Sparkles } from 'lucide-react';
 import { CreateWebWorkerMLCEngine, MLCEngineInterface } from '@mlc-ai/web-llm';
 import { AgentState, Orb } from "@/components/ui/orb";
 import WebGPUWarning from './WebGPUWarning';
@@ -26,6 +26,8 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [showGpuWarning, setShowGpuWarning] = useState(false);
   
+  const [isBooting, setIsBooting] = useState(false);
+  const [hasStartedBoot, setHasStartedBoot] = useState(false);
   const workerRef = useRef<Worker | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -41,9 +43,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
 
   useEffect(() => {
     audioRef.current = new Audio();
-    if (!engine && !workerRef.current) {
-        initWebLLM();
-    }
+    // We intentionally DO NOT call initWebLLM() here anymore to save memory and load time!
     
     const handleKeyDown = (e: KeyboardEvent) => {
         if (e.code === 'Space' && e.target === document.body) {
@@ -56,13 +56,15 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   }, []);
 
   const initWebLLM = async () => {
+      if (isBooting || engine) return;
+      setIsBooting(true);
+      setHasStartedBoot(true);
+      
       try {
           // Play the hardcoded welcome tour instantly
-          // Note: Browsers block autoplay. If it fails, it will catch and silently fail, 
-          // which is why we must wrap it or handle the interaction securely.
           const playWelcome = async () => {
               try {
-                  await speak("Welcome to Nexmart... the smart way of shopping. I am your AI assistant. Feel free to browse the store while I download my neural core...", false);
+                  await speak("Welcome to Nexmart... the smart way of shopping. I am your AI assistant. Please wait while I download my neural core...", false);
               } catch(err) {
                   console.warn("Autoplay blocked. User needs to interact with page first.");
               }
@@ -76,16 +78,18 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
               const adapter = await (navigator as any).gpu.requestAdapter();
               if (!adapter) throw new Error("No Adapter");
           } catch (e) {
-              setAiProgress('Hardware Access Denied');
+              // Proceed anyway to use WASM fallback, but show a warning
               setShowGpuWarning(true);
-              return;
           }
 
           workerRef.current = new Worker(new URL('@/lib/worker.ts', import.meta.url), { type: 'module' });
           
-          // Fallback to the ultra-tiny SmolLM2 (360M) on mobile devices to prevent WebGPU OOM crashes
+          // Safari has a 1.5GB WebGPU memory limit and easily crashes. Mobile has similar issues.
           const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-          const modelToLoad = isMobile ? 'SmolLM2-360M-Instruct-q4f16_1-MLC' : 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+          const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+          
+          // Force SmolLM2 on Safari and Mobile to prevent crashes
+          const modelToLoad = (isMobile || isSafari) ? 'SmolLM2-360M-Instruct-q4f16_1-MLC' : 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
 
           const newEngine = await CreateWebWorkerMLCEngine(
               workerRef.current,
@@ -111,12 +115,14 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           );
           setEngine(newEngine);
           setIsAiReady(true);
+          setIsBooting(false);
           
           // Announce when fully loaded
           speak("My neural core is online. I am ready to help you shop!", false);
       } catch (e) {
           console.error("Failed to init WebLLM", e);
           setAiProgress('Failed to boot AI Engine. Browser might be out of memory.');
+          setIsBooting(false);
       }
   };
 
@@ -169,9 +175,12 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
   };
 
   const handleOrbClick = () => {
-      if (!engine) {
+      if (!engine && !isBooting) {
+          initWebLLM();
+          return;
+      }
+      if (!engine && isBooting) {
           // Graceful fallback while booting
-          speak("I'm still loading my neural core! Take a look around the store while I finish.", false);
           return;
       }
       if (isWorking) return;
@@ -378,8 +387,15 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
             </div>
           </motion.div>
 
-          {/* Download Progress Pill */}
-          {!isAiReady && (
+          {/* Status Pill */}
+          {!isAiReady && !hasStartedBoot && (
+              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white flex items-center gap-2 pointer-events-none">
+                  <Sparkles className="w-3 h-3 text-blue-600" />
+                  <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">Tap to Boot AI</span>
+              </div>
+          )}
+          
+          {!isAiReady && hasStartedBoot && (
               <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm border border-white flex items-center gap-2 pointer-events-none">
                   <Loader2 className="w-3 h-3 text-blue-600 animate-spin" />
                   <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider">{aiProgress}</span>
