@@ -27,17 +27,17 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
             {/* Main Header */}
             <div className="max-w-7xl mx-auto w-full px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
                 {/* Logo */}
-                <div className="flex items-center flex-shrink-0 cursor-pointer flex-1">
+                <div className="flex items-center flex-shrink-0 cursor-pointer">
                     <img src="/logo.png" alt="Nexmart" className="h-6 md:h-8 object-contain" />
                 </div>
 
-                {/* Center Notch for the AgentOrb (Desktop Only) */}
-                <div className="hidden md:flex justify-center items-center flex-shrink-0">
-                    <div className="w-[200px] h-[40px]"></div>
+                {/* Center Notch for the AgentOrb (Mobile & Desktop) */}
+                <div className="flex justify-center items-center flex-shrink-0">
+                    <div className="w-[80px] h-[40px] md:w-[200px] md:h-[40px]"></div>
                 </div>
 
                 {/* Actions (Desktop) */}
-                <div className="hidden md:flex items-center gap-8 flex-shrink-0 flex-1 justify-end">
+                <div className="hidden md:flex items-center gap-8 flex-shrink-0 justify-end">
                     <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#1e3a8a] transition-colors group">
                         <Target className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold">AI Assistant</span>

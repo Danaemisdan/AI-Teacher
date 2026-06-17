@@ -43,7 +43,13 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
 
   useEffect(() => {
     audioRef.current = new Audio();
-    // We intentionally DO NOT call initWebLLM() here anymore to save memory and load time!
+    
+    // Auto-boot after a slight delay to allow the page to render first!
+    const timer = setTimeout(() => {
+        if (!engine && !workerRef.current && !isBooting && !hasStartedBoot) {
+            initWebLLM();
+        }
+    }, 2000);
     
     const handleKeyDown = (e: KeyboardEvent) => {
         if (e.code === 'Space' && e.target === document.body) {
@@ -370,14 +376,14 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
       <AnimatePresence>
           {showGpuWarning && <WebGPUWarning />}
       </AnimatePresence>
-      <div className={`${inline ? 'relative' : 'fixed bottom-4 right-4 md:bottom-auto md:right-auto md:top-[50px] md:left-1/2 md:-translate-x-1/2'} z-50 flex flex-col items-center transition-all duration-500`}>
+      <div className={`${inline ? 'relative' : 'fixed top-[10px] md:top-[50px] left-1/2 -translate-x-1/2'} z-50 flex flex-col items-center transition-all duration-500`}>
       
       <div className="relative">
           <motion.div 
             onClick={handleOrbClick}
             animate={{ scale: isWorking || isTalking ? 1.3 : 1 }}
             transition={{ type: "spring", stiffness: 100, damping: 20 }}
-            className={`relative cursor-pointer transition-shadow duration-700 rounded-full w-32 h-32 ${isWorking || isTalking ? 'drop-shadow-[0_0_60px_rgba(59,130,246,0.4)]' : 'drop-shadow-[0_10px_30px_rgba(0,0,0,0.15)] hover:scale-105 hover:drop-shadow-[0_15px_35px_rgba(0,0,0,0.2)]'}`}
+            className={`relative cursor-pointer transition-shadow duration-700 rounded-full w-20 h-20 md:w-32 md:h-32 ${isWorking || isTalking ? 'drop-shadow-[0_0_60px_rgba(59,130,246,0.4)]' : 'drop-shadow-[0_10px_30px_rgba(0,0,0,0.15)] hover:scale-105 hover:drop-shadow-[0_15px_35px_rgba(0,0,0,0.2)]'}`}
           >
             <div className="bg-transparent h-full w-full overflow-hidden rounded-full shadow-[inset_0_0_20px_rgba(0,0,0,0.2)] border border-black/5">
                 <Orb
