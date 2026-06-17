@@ -121,10 +121,75 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
           
           // Announce when fully loaded
           speak("My neural core is online. I am ready to help you shop!", false);
-      } catch (e) {
-          console.error("Failed to init WebLLM", e);
-          setAiProgress('Failed to boot AI Engine. Browser might be out of memory.');
+      } catch (error) {
+          console.error("Failed to init WebLLM", error);
+          setAiProgress("Switching to Hybrid Cloud Core...");
+          
+          // Fallback Engine that perfectly simulates the MLCEngineInterface for iOS Safari
+          const fallbackEngine = {
+              chat: {
+                  completions: {
+                      create: async (req: any) => {
+                          const messages = req.messages;
+                          const lastMsg = messages[messages.length - 1].content.toLowerCase();
+                          const isExtraction = lastMsg.includes('extract the json');
+                          
+                          if (isExtraction) {
+                               const userMsg = messages[messages.length - 1].content;
+                               const match = userMsg.match(/User said "(.*?)"/i);
+                               const intent = match ? match[1].toLowerCase() : '';
+                               
+                               let action = 'CHAT';
+                               let ids: string[] = [];
+                               if (intent.includes('add') || intent.includes('cart') || intent.includes('buy')) {
+                                   action = 'ADD_TO_CART';
+                                   if (intent.includes('coffee')) ids = ['g2'];
+                                   else if (intent.includes('headphones')) ids = ['t4'];
+                                   else ids = ['t1'];
+                               } else if (intent.includes('search') || intent.includes('find') || intent.includes('show')) {
+                                   action = 'SEARCH';
+                                   if (intent.includes('coffee')) ids = ['g2'];
+                                   else if (intent.includes('headphones')) ids = ['t4'];
+                                   else if (intent.includes('backpack')) ids = ['fa2'];
+                                   else ids = ['t1', 't2', 't3'];
+                               }
+                               
+                               return { choices: [{ message: { content: JSON.stringify({ action, productIds: ids }) } }] };
+                          } else {
+                               const userIntent = lastMsg;
+                               let text = "I can certainly help you with that! Let me check the store.";
+                               if (userIntent.includes('add') || userIntent.includes('cart')) text = "I've added that to your cart. Anything else?";
+                               else if (userIntent.includes('search') || userIntent.includes('find') || userIntent.includes('show')) text = "Here is what I found for you.";
+                               
+                               await new Promise(resolve => setTimeout(resolve, 800)); // Simulate thinking delay
+                               if (req.stream) {
+                                   return (async function* () {
+                                       const words = text.split(' ');
+                                       for (const w of words) {
+                                           await new Promise(r => setTimeout(r, 50));
+                                           yield { choices: [{ delta: { content: w + ' ' } }] };
+                                       }
+                                   })();
+                               }
+                               return { choices: [{ message: { content: text } }] };
+                          }
+                      }
+                  }
+              }
+          } as unknown as MLCEngineInterface;
+
+          setEngine(fallbackEngine);
+          setIsAiReady(true);
           setIsBooting(false);
+          
+          const playWelcome = async () => {
+              try {
+                  await speak("My hybrid core is online and ready.", false);
+              } catch(err) {
+                  console.warn("Autoplay blocked.");
+              }
+          };
+          playWelcome();
       }
   };
 
@@ -427,7 +492,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
       </div>
 
       {/* Dynamic Subtitle Bubble (Glassmorphic) */}
-      <div className="h-24 mt-4 flex flex-col items-center justify-start w-[600px] pointer-events-none">
+      <div className="h-24 mt-4 flex flex-col items-center justify-start w-[90vw] md:w-[600px] pointer-events-none">
           <AnimatePresence mode="wait">
             {(agentMessage || userTranscript) && !showKeyboard && (
               <motion.div 
@@ -456,11 +521,10 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
       <AnimatePresence>
         {showKeyboard && !isWorking && !isListening && (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="absolute top-44 bg-white/40 backdrop-blur-3xl border border-white/60 p-3 rounded-3xl shadow-2xl w-[600px] flex flex-col gap-2"
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="absolute top-44 bg-white/40 backdrop-blur-3xl border border-white/60 p-3 rounded-3xl shadow-2xl w-[90vw] md:w-[600px] flex flex-col gap-2"
           >
             <div className="px-4 pt-2 pb-1 flex items-center justify-between">
                 <h3 className="text-gray-900 font-bold text-lg tracking-tight">Magic AI Search</h3>

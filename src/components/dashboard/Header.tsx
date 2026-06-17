@@ -33,7 +33,7 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
 
                 {/* Center Notch for the AgentOrb (Mobile & Desktop) */}
                 <div className="flex justify-center items-center flex-shrink-0">
-                    <div className="w-[80px] h-[40px] md:w-[200px] md:h-[40px]"></div>
+                    <div className="w-[80px] h-[80px] md:w-[200px] md:h-[40px]"></div>
                 </div>
 
                 {/* Actions (Desktop) */}
