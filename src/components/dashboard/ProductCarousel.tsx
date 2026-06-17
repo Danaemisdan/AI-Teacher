@@ -22,24 +22,24 @@ interface ProductCarouselProps {
 
 export default function ProductCarousel({ title, subtitle, products, type }: ProductCarouselProps) {
     return (
-        <section className="max-w-7xl mx-auto w-full px-6 py-10">
-            <div className="flex items-end justify-between mb-6">
+        <section className="max-w-7xl mx-auto w-full px-4 md:px-6 py-8 md:py-10">
+            <div className="flex items-end justify-between mb-4 md:mb-6">
                 <div>
-                    <h2 className="text-xl font-black text-gray-900 flex items-center gap-2">
+                    <h2 className="text-lg md:text-xl font-black text-gray-900 flex items-center gap-2">
                         {title}
                     </h2>
-                    {subtitle && <p className="text-sm text-gray-500 font-medium mt-1">{subtitle}</p>}
+                    {subtitle && <p className="text-xs md:text-sm text-gray-500 font-medium mt-1">{subtitle}</p>}
                 </div>
-                <button className="text-[#1e3a8a] font-bold text-sm flex items-center gap-1 hover:underline">
-                    View All {type === 'deals' ? 'Deals' : ''} <ArrowRight className="w-4 h-4" />
+                <button className="text-[#1e3a8a] font-bold text-xs md:text-sm flex items-center gap-1 hover:underline whitespace-nowrap ml-2">
+                    View All {type === 'deals' ? 'Deals' : ''} <ArrowRight className="w-3 h-3 md:w-4 md:h-4" />
                 </button>
             </div>
 
-            <div className="flex gap-6 overflow-x-auto pb-6 hide-scrollbar snap-x">
+            <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 md:pb-6 hide-scrollbar snap-x">
                 {products.map((product) => (
                     <div 
                         key={product.id} 
-                        className="min-w-[240px] max-w-[240px] bg-white border border-gray-100 rounded-2xl p-4 flex flex-col group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex-shrink-0 snap-start relative"
+                        className="min-w-[180px] sm:min-w-[200px] md:min-w-[240px] max-w-[180px] sm:max-w-[200px] md:max-w-[240px] bg-white border border-gray-100 rounded-2xl p-3 md:p-4 flex flex-col group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex-shrink-0 snap-start relative"
                     >
                         {/* Badges */}
                         {type === 'deals' && product.discount && (

@@ -361,7 +361,7 @@ export default function AgentOrb({ workflowState, setWorkflowState, setCurrentTa
       <AnimatePresence>
           {showGpuWarning && <WebGPUWarning />}
       </AnimatePresence>
-      <div className={`${inline ? 'relative' : 'fixed top-[50px] left-1/2 -translate-x-1/2'} z-50 flex flex-col items-center`}>
+      <div className={`${inline ? 'relative' : 'fixed bottom-4 right-4 md:bottom-auto md:right-auto md:top-[50px] md:left-1/2 md:-translate-x-1/2'} z-50 flex flex-col items-center transition-all duration-500`}>
       
       <div className="relative">
           <motion.div 

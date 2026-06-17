@@ -26,16 +26,16 @@ export default function TrustBadges() {
     ];
 
     return (
-        <section className="max-w-7xl mx-auto w-full px-6 py-6 border-y border-gray-100 my-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="max-w-7xl mx-auto w-full px-4 md:px-6 py-6 border-y border-gray-100 my-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 {badges.map((badge, i) => (
-                    <div key={i} className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-[#1e3a8a]/10 flex items-center justify-center flex-shrink-0">
+                    <div key={i} className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-3 sm:gap-4">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-[#1e3a8a]/10 flex items-center justify-center flex-shrink-0">
                             {badge.icon}
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-bold text-gray-900 leading-tight">{badge.title}</span>
-                            <span className="text-xs text-gray-500 font-medium mt-0.5">{badge.desc}</span>
+                            <span className="text-xs sm:text-sm font-bold text-gray-900 leading-tight">{badge.title}</span>
+                            <span className="hidden sm:block text-xs text-gray-500 font-medium mt-0.5">{badge.desc}</span>
                         </div>
                     </div>
                 ))}

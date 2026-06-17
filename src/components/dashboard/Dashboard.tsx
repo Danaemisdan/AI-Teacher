@@ -5,6 +5,7 @@ import Hero from './Hero';
 import CategoriesRow from './CategoriesRow';
 import TrustBadges from './TrustBadges';
 import ProductCarousel, { Product } from './ProductCarousel';
+import BottomNav from './BottomNav';
 import AgentOrb from '../os/AgentOrb';
 import { Sparkles } from 'lucide-react';
 
@@ -45,7 +46,7 @@ export default function Dashboard({ isLoggedIn, onOpenAuth }: DashboardProps) {
         <div className="h-full w-full overflow-y-auto bg-white flex flex-col hide-scrollbar relative">
             <Header isLoggedIn={isLoggedIn} onOpenAuth={onOpenAuth} />
             
-            <main className="flex-1 flex flex-col pb-20">
+            <main className="flex-1 flex flex-col pb-24 md:pb-10">
                 <AgentOrb 
                     workflowState={workflowState}
                     setWorkflowState={setWorkflowState}
@@ -94,6 +95,8 @@ export default function Dashboard({ isLoggedIn, onOpenAuth }: DashboardProps) {
                     </>
                 )}
             </main>
+            
+            <BottomNav />
         </div>
     );
 }
