@@ -27,7 +27,7 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
             {/* Main Header */}
             <div className="max-w-7xl mx-auto w-full px-4 md:px-6 py-3 md:py-4 flex items-center justify-between">
                 {/* Logo */}
-                <div className="flex items-center flex-shrink-0 cursor-pointer">
+                <div className="flex items-center flex-shrink-0 cursor-pointer flex-1">
                     <img src="/logo.png" alt="Nexmart" className="h-6 md:h-8 object-contain" />
                 </div>
 
@@ -37,7 +37,7 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
                 </div>
 
                 {/* Actions (Desktop) */}
-                <div className="hidden md:flex items-center gap-8 flex-shrink-0 justify-end">
+                <div className="hidden md:flex items-center gap-8 flex-shrink-0 flex-1 justify-end">
                     <button className="flex flex-col items-center gap-1 text-gray-500 hover:text-[#1e3a8a] transition-colors group">
                         <Target className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-bold">AI Assistant</span>
@@ -73,7 +73,7 @@ export default function Header({ isLoggedIn, onOpenAuth, cartCount = 2 }: Header
                 </div>
 
                 {/* Actions (Mobile) */}
-                <div className="flex md:hidden items-center gap-4 flex-shrink-0 justify-end">
+                <div className="flex md:hidden items-center gap-4 flex-shrink-0 flex-1 justify-end">
                     <button className="text-gray-800 hover:text-[#1e3a8a] relative">
                         <ShoppingCart className="w-6 h-6" />
                         {cartCount > 0 && (
