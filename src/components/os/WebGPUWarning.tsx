@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { AlertTriangle, Globe, Smartphone, Settings, Compass, LayoutPanelTop, Check, ArrowRight, MousePointer2, Pointer } from 'lucide-react';
-import { Orb } from '@/components/ui/orb';
+
 
 export default function WebGPUWarning() {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -24,11 +24,11 @@ export default function WebGPUWarning() {
                 {/* Left Side: The Warning Context */}
                 <div className="flex-1 flex flex-col justify-center">
                     <div className="w-24 h-24 mb-4 relative flex items-center justify-center rounded-full bg-blue-50/50 shadow-inner">
-                        <Orb />
+                        <AlertTriangle className="w-12 h-12 text-blue-500" />
                     </div>
                     <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">Hardware Access Blocked</h2>
                     <p className="text-gray-600 leading-relaxed font-medium mb-8">
-                        Nexmart runs a massive neural network entirely on your device for absolute privacy and zero latency. Your current browser is blocking the necessary connection to your graphics card (WebGPU).
+                        AI School runs a massive neural network entirely on your device for absolute privacy and zero latency. Your current browser is blocking the necessary connection to your graphics card (WebGPU).
                     </p>
 
                     <div className="bg-blue-600 text-white rounded-2xl p-5 shadow-[0_10px_30px_rgba(37,99,235,0.3)] relative overflow-hidden group">

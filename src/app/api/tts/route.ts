@@ -1,45 +1,63 @@
-import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
-import { NextResponse } from "next/server";
-import { Readable } from "stream";
+import { NextResponse } from 'next/server';
+import { MsEdgeTTS, OUTPUT_FORMAT } from 'msedge-tts';
 
-// Convert Node.js Readable to Web ReadableStream for instant streaming
-function streamToWebReadable(nodeStream: Readable) {
-  return new ReadableStream({
-    start(controller) {
-      nodeStream.on('data', chunk => controller.enqueue(new Uint8Array(chunk)));
-      nodeStream.on('end', () => controller.close());
-      nodeStream.on('error', err => controller.error(err));
-    }
-  });
+export async function GET(req: Request) {
+    return handleTTS(req);
 }
 
-// Changed to GET so we can stream directly into <audio src="..."> with zero delay
-export async function GET(req: Request) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const text = searchParams.get('text');
-    // Using a hyper-natural sweet female voice
-    const voice = searchParams.get('voice') || "en-US-AriaNeural";
+export async function POST(req: Request) {
+    return handleTTS(req);
+}
 
-    if (!text) {
-        return NextResponse.json({ error: "Text is required" }, { status: 400 });
+async function handleTTS(req: Request) {
+    try {
+        let text = '';
+        let voice = 'en-US-JennyNeural'; // Highly reliable, natural female voice
+        
+        if (req.method === 'POST') {
+            const body = await req.json();
+            text = body.text;
+            if (body.voice) voice = body.voice;
+        } else {
+            const { searchParams } = new URL(req.url);
+            text = searchParams.get('text') || '';
+            if (searchParams.get('voice')) voice = searchParams.get('voice') as string;
+        }
+
+        if (!text) {
+            return NextResponse.json({ error: 'Text is required' }, { status: 400 });
+        }
+
+        const tts = new MsEdgeTTS();
+        await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
+        
+        // msedge-tts streams back chunks. We need to access the audioStream property
+        const result = tts.toStream(text);
+        const stream = result.audioStream;
+        
+        // Convert Node stream to Web ReadableStream
+        const webStream = new ReadableStream({
+            start(controller) {
+                stream.on('data', (chunk) => {
+                    controller.enqueue(chunk);
+                });
+                stream.on('end', () => {
+                    controller.close();
+                });
+                stream.on('error', (err) => {
+                    controller.error(err);
+                });
+            }
+        });
+
+        return new Response(webStream, {
+            headers: {
+                'Content-Type': 'audio/mpeg',
+                'Cache-Control': 'no-cache',
+            },
+        });
+    } catch (error) {
+        console.error('TTS Error:', error);
+        return NextResponse.json({ error: 'Failed to generate speech' }, { status: 500 });
     }
-
-    const tts = new MsEdgeTTS();
-    await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
-    
-    // This streams the audio *as it is being generated* by Microsoft Edge
-    const { audioStream } = tts.toStream(text);
-    const webStream = streamToWebReadable(audioStream);
-
-    return new NextResponse(webStream, {
-      headers: {
-        'Content-Type': 'audio/mpeg',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-      },
-    });
-  } catch (error) {
-    console.error("TTS API Error:", error);
-    return NextResponse.json({ error: "Failed to synthesize speech" }, { status: 500 });
-  }
 }
