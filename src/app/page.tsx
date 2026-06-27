@@ -505,7 +505,7 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
                                     // Only trigger the mic if we are completely done speaking the queue
                                     if (audioQueue.length === 0 && !isGenerating) {
                                         setTimeout(() => {
-                                            const btn = document.getElementById('mic-button');
+                                            const btn = document.getElementById('mic-button') as HTMLButtonElement | null;
                                             if (btn && !btn.disabled) btn.click();
                                         }, 500);
                                     }
