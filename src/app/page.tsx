@@ -423,7 +423,7 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
     };
 
     return (
-        <main className="flex h-screen w-full text-white overflow-hidden relative" style={{
+        <main className="flex h-[100dvh] w-full text-white overflow-hidden relative" style={{
             background: "#0a0a0c radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.15) 0%, rgba(109, 40, 217, 0.05) 40%, transparent 80%)"
         }}>
             {/* Fullscreen Overlay Prompt for Mobile */}
@@ -436,12 +436,16 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                     </div>
                     <h2 className="text-3xl font-bold text-white mb-4">{isIOS ? 'Add to Home Screen' : 'Tap to enter Full Screen'}</h2>
-                    <p className="text-white/60 text-lg">
+                    <p className="text-white/60 text-lg max-w-md">
                         {isIOS 
-                            ? 'Apple restricts full screen in Safari. Tap the Share button (square with arrow) and select "Add to Home Screen" for the true immersive experience!' 
+                            ? 'Safari completely blocks web apps from hiding the URL bar. To get true Full Screen, you MUST tap the Share button below and select "Add to Home Screen"!' 
                             : 'For the best immersive AI teacher experience.'}
                     </p>
-                    <p className="text-white/30 text-sm mt-12">(Swipe down from top to exit later)</p>
+                    {isIOS ? (
+                        <p className="text-yellow-400 font-bold mt-4 animate-pulse">DO NOT just tap this screen. You must use the Share button!</p>
+                    ) : (
+                        <p className="text-white/30 text-sm mt-12">(Swipe down from top to exit later)</p>
+                    )}
                 </div>
             )}
 
