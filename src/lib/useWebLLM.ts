@@ -77,6 +77,12 @@ export function useWebLLM() {
         return fullReply;
     }, []);
 
+    const interrupt = useCallback(() => {
+        if (engineRef.current) {
+            engineRef.current.interruptGenerate();
+        }
+    }, []);
+
     return {
         init,
         isLoaded,
@@ -84,6 +90,7 @@ export function useWebLLM() {
         progress,
         progressText,
         generateResponse,
+        interrupt,
         hasWebGPUError
     };
 }

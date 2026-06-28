@@ -12,7 +12,7 @@ import LessonBoard from '@/components/LessonBoard';
 import { AgentFace } from '@/components/AgentFace';
 
 export default function Home() {
-    const { init, isLoaded, isLoading, progressText, generateResponse, hasWebGPUError } = useWebLLM();
+    const { init, isLoaded, isLoading, progressText, generateResponse, interrupt, hasWebGPUError } = useWebLLM();
     const { listen, stopListening, isListening } = useSpeech();
     const [messages, setMessages] = useState<{role: string, content: string}[]>([]);
     const [currentReply, setCurrentReply] = useState('');
@@ -29,6 +29,21 @@ export default function Home() {
             setAudioQueue(prev => prev.slice(1));
         }
     }, [isSpeaking, audioQueue]);
+
+    const [isMobileDevice, setIsMobileDevice] = useState(false);
+    const [isFullscreenPrompted, setIsFullscreenPrompted] = useState(false);
+    
+    useEffect(() => {
+        setIsMobileDevice(window.innerWidth < 768 || navigator.maxTouchPoints > 0);
+    }, []);
+
+    const enterFullscreen = () => {
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) {
+            docEl.requestFullscreen().catch(() => {});
+        }
+        setIsFullscreenPrompted(true);
+    };
 
     const [currentLessonTitle, setCurrentLessonTitle] = useState<string | null>(null);
     const [currentLessonContent, setCurrentLessonContent] = useState<string | null>(null);
@@ -94,7 +109,11 @@ ${currentLessonContent}
 
 User said: "${promptText}"
 Reply conversationally with a detailed, engaging explanation building on what was taught. End your response by asking a thought-provoking question to continue the lesson.
-DO NOT use bullet points, bold text, or lists. Just natural speech.`;
+DO NOT use bullet points, bold text, or lists. Just natural speech.
+CRITICAL: You have the ability to show incredible graphics on the blackboard! If it helps explain the topic, you MUST output a highly descriptive image prompt inside an [IMAGE: ] block anywhere in your response. 
+Format: [IMAGE: description | Title | Short explanation]
+You can output MULTIPLE [IMAGE: ] blocks if you want a carousel!
+You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seconds | true_or_false_for_mute]`;
 
             const finalMessages = [
                 { role: 'user' as const, content: SYSTEM_PROMPT }
@@ -174,8 +193,9 @@ DO NOT use bullet points, bold text, or lists. Just natural speech.`;
         const SYSTEM_PROMPT = `You are Momentum, a witty virtual teacher. 
 Respond naturally and conversationally. DO NOT use titles, formatting, or generate quizzes for normal chat.
 CRITICAL: You have the ability to show incredible graphics on the blackboard! If the student asks you to show or draw something, you MUST output a highly descriptive image prompt inside an [IMAGE: ] block anywhere in your response. 
-Example: [IMAGE: A realistic illustration of a man pushing a heavy box across a floor to demonstrate physical force and friction.]
-Keep the image prompts detailed and educational.
+Format: [IMAGE: description | Title | Short explanation]
+You can output MULTIPLE [IMAGE: ] blocks if you want a carousel!
+You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seconds | true_or_false_for_mute]
 ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
 
         const finalMessages = [
@@ -192,12 +212,20 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
                 if (drawMatch && drawMatch[1]) {
                     setCurrentHtmlGraphic(drawMatch[1]);
                 }
-                const imageMatch = chunk.match(/\[IMAGE:\s*(.*?)\]/i);
-                if (imageMatch && imageMatch[1]) {
-                    setCurrentHtmlGraphic(`[IMAGE: ${imageMatch[1]}]`);
+                
+                // MULTIPLE IMAGES
+                const imageMatches = [...chunk.matchAll(/\[IMAGE:\s*([\s\S]*?)\]/gi)].map(m => m[1].trim());
+                if (imageMatches.length > 0) {
+                    setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify(imageMatches)}]`);
+                }
+                
+                // YOUTUBE VIDEO
+                const videoMatch = chunk.match(/\[VIDEO:\s*(.*?)\s*\]/i);
+                if (videoMatch && videoMatch[1]) {
+                    setCurrentHtmlGraphic(`[VIDEO: ${videoMatch[1]}]`);
                 }
 
-                const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '');
+                const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '');
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
                 if (sentences.length > spokenSentencesCount) {
                     const newSentence = sentences[spokenSentencesCount].trim();
@@ -264,9 +292,10 @@ Output ONLY a short descriptive prompt for an AI image generator. Example: "A ma
 Provide a fascinating, highly detailed introductory explanation of this topic to hook the student's interest. 
 End your explanation by asking if the student is ready to continue.
 DO NOT use bullet points, bold text, or lists. Just use natural speech.
-CRITICAL: You have the ability to draw on the blackboard! If it helps explain the topic, you MUST output a beautifully styled SVG inside a [DRAW: ] block anywhere in your response. 
-Example: [DRAW: <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="50" fill="transparent" stroke="white" stroke-width="4"/></svg>]
-Use white/purple neon colors. Keep the drawing clean and educational.`;
+CRITICAL: You have the ability to show incredible graphics on the blackboard! If it helps explain the topic, you MUST output a highly descriptive image prompt inside an [IMAGE: ] block anywhere in your response. 
+Format: [IMAGE: description | Title | Short explanation]
+You can output MULTIPLE [IMAGE: ] blocks if you want a carousel!
+You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seconds | true_or_false_for_mute]`;
 
         const finalMessages = [
             { role: 'user' as const, content: SYSTEM_PROMPT }
@@ -347,10 +376,13 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
 
     const handleListen = () => {
         // Interruption Logic
-        if (isSpeaking) {
+        if (isSpeaking || isGenerating) {
+            interrupt();
+            setCurrentReply('');
             setAudioQueue([]);
             setAudioUrlToSpeak(null); // Instantly stops her audio and resets her mouth!
             setIsSpeaking(false);
+            setIsGenerating(false);
         }
 
         if (isListening) {
@@ -362,17 +394,16 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
 
     // True Closed-Captioning Engine Synced to Sentence Queue!
     const getCaptionText = (text: string) => {
+        if (!text) return "";
         // If speaking, perfectly display the EXACT sentence being spoken right now!
         if (isSpeaking && audioUrlToSpeak) {
-            try {
-                const match = audioUrlToSpeak.match(/\?text=([^&]+)/);
-                if (match) return decodeURIComponent(match[1]);
-            } catch (e) {}
+            const urlObj = new URL(audioUrlToSpeak, "http://localhost");
+            return urlObj.searchParams.get("text") || "";
         }
         
         // If still generating but hasn't spoken yet, show typing preview
         if (isGenerating && text) {
-            const cleanText = text.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').trim();
+            const cleanText = text.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '').trim();
             const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
             return sentences[sentences.length - 1].trim();
         }
@@ -384,36 +415,26 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
         <main className="flex h-screen w-full text-white overflow-hidden relative" style={{
             background: "#0a0a0c radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.15) 0%, rgba(109, 40, 217, 0.05) 40%, transparent 80%)"
         }}>
+            {/* Fullscreen Overlay Prompt for Mobile */}
+            {isMobileDevice && !isFullscreenPrompted && (
+                <div 
+                    className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center cursor-pointer"
+                    onClick={enterFullscreen}
+                >
+                    <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                    </div>
+                    <h2 className="text-3xl font-bold text-white mb-4">Tap to enter Full Screen</h2>
+                    <p className="text-white/60 text-lg">For the best immersive AI teacher experience.</p>
+                    <p className="text-white/30 text-sm mt-12">(Swipe down from top to exit later)</p>
+                </div>
+            )}
+
             {/* Mobile Rotate Overlay */}
             <div className="hidden portrait:flex fixed inset-0 z-[100] bg-black items-center justify-center text-white text-2xl font-bold text-center p-8">
                 Please rotate your device horizontally for the best blackboard experience!
             </div>
             
-            {/* The Left Panel System (Momentum UI) */}
-            <div className="hidden h-full z-50 group absolute left-0 top-0">
-                <div className={`absolute left-0 top-0 h-[85vh] w-[280px] bg-[#0f0f11] border-r border-white/5 flex flex-col z-[40] transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-2xl rounded-r-3xl ${isSyllabusOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                    <div className="p-4 border-b border-white/5 font-semibold text-sm tracking-wide text-white/50 flex justify-between items-center">
-                        Curriculum Syllabus
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
-                        {CHAPTERS.map((chap, idx) => (
-                            <button 
-                                key={idx}
-                                onClick={() => {
-                                    setIsSyllabusOpen(false);
-                                    startCurriculum(chap);
-                                }}
-                                disabled={!isLoaded || isGenerating}
-                                className="text-left px-4 py-4 rounded-xl bg-white/5 hover:bg-blue-600 hover:text-white font-semibold text-gray-300 transition-all shadow-sm flex items-center gap-3 disabled:opacity-50"
-                            >
-                                <span className="w-6 h-6 rounded-full bg-black/30 flex items-center justify-center text-xs">{idx + 1}</span>
-                                {chap}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
             {/* Main Stage area (AgentFace & Chalkboard) */}
             <div className="flex-1 relative flex">
                 
@@ -449,7 +470,7 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
                     </div>
 
                     {/* Agent Face Floating Over Blackboard */}
-                    <div className={`absolute transition-all duration-700 ease-in-out z-40 flex flex-col items-center gap-4 ${currentLessonTitle ? '-top-8 left-1/2 -translate-x-1/2 scale-[0.40] md:scale-[0.60]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[0.60] md:scale-100'}`}>
+                    <div className={`absolute transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${currentLessonTitle ? 'top-4 left-1/2 -translate-x-1/2 scale-[0.35] md:scale-[0.50]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[0.90] md:scale-[1.2]'}`}>
                         <AgentFace 
                             state={isGenerating ? 'thinking' : isSpeaking ? 'speaking' : 'idle'} 
                             className="shadow-[0_0_80px_rgba(139,92,246,0.5)] rounded-[3rem] border border-white/10"
@@ -523,15 +544,44 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
                         )}
                         
                         <div className="flex items-center gap-3 w-full">
-                            {/* Menu Button OUTSIDE the chat pill! */}
-                            <button 
-                                type="button" 
-                                onClick={() => setIsSyllabusOpen(!isSyllabusOpen)}
-                                className={`p-4 rounded-full transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 shrink-0 bg-[#111]/90 backdrop-blur-2xl hover:scale-105 active:scale-95 ${isSyllabusOpen ? 'text-purple-400 border-purple-500/50' : 'text-white/50 hover:text-white hover:border-white/30'}`}
-                                title="Lessons Menu"
-                            >
-                                <BookOpen className="w-6 h-6" />
-                            </button>
+                            {/* Speed Dial Menu Container */}
+                            <div className="relative shrink-0 flex items-end justify-center">
+                                {/* The popup circles */}
+                                <AnimatePresence>
+                                    {isSyllabusOpen && (
+                                        <div className="absolute bottom-16 flex flex-col-reverse gap-3 pb-2 z-50">
+                                            {CHAPTERS.map((chap, idx) => (
+                                                <motion.button
+                                                    key={idx}
+                                                    initial={{ opacity: 0, y: 20, scale: 0.5 }}
+                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                    exit={{ opacity: 0, y: 20, scale: 0.5, transition: { duration: 0.2 } }}
+                                                    transition={{ delay: (CHAPTERS.length - 1 - idx) * 0.05, type: 'spring', stiffness: 300, damping: 20 }}
+                                                    onClick={() => {
+                                                        setIsSyllabusOpen(false);
+                                                        startCurriculum(chap);
+                                                    }}
+                                                    disabled={!isLoaded || isGenerating}
+                                                    title={chap}
+                                                    className="w-12 h-12 rounded-full bg-[#111]/90 backdrop-blur-2xl flex items-center justify-center border border-white/10 shadow-[0_0_30px_rgba(139,92,246,0.3)] hover:scale-110 hover:bg-purple-600 hover:border-purple-500 hover:text-white transition-colors text-white/70 font-bold disabled:opacity-50"
+                                                >
+                                                    {idx + 1}
+                                                </motion.button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Main FAB */}
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsSyllabusOpen(!isSyllabusOpen)}
+                                    className={`p-4 rounded-full transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 shrink-0 bg-[#111]/90 backdrop-blur-2xl hover:scale-105 active:scale-95 z-[60] ${isSyllabusOpen ? 'text-purple-400 border-purple-500/50 rotate-[360deg]' : 'text-white/50 hover:text-white hover:border-white/30'}`}
+                                    title="Lessons Menu"
+                                >
+                                    <BookOpen className="w-6 h-6" />
+                                </button>
+                            </div>
 
                             <form onSubmit={handleTextSubmit} className="flex-1 flex items-center gap-2 bg-[#111]/90 backdrop-blur-2xl p-2 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 focus-within:border-purple-500/50 transition-all">
 
