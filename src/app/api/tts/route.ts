@@ -28,11 +28,17 @@ async function handleTTS(req: Request) {
             return NextResponse.json({ error: 'Text is required' }, { status: 400 });
         }
 
+        // Clean text for TTS engine (remove emojis and markdown formatting)
+        const cleanTtsText = text
+            .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '')
+            .replace(/[*_~`#]+/g, '')
+            .trim();
+
         const tts = new MsEdgeTTS();
         await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
         
         // msedge-tts streams back chunks. We need to access the audioStream property
-        const result = tts.toStream(text);
+        const result = tts.toStream(cleanTtsText);
         const stream = result.audioStream;
         
         // Convert Node stream to Web ReadableStream
