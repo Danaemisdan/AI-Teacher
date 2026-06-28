@@ -24,8 +24,8 @@ export function useWebLLM() {
         setIsLoading(true);
 
         try {
-            // Reverted to Llama-3.2-1B which is under 800MB and extremely fast/lightweight
-            const selectedModel = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+            // Using Qwen2-0.5B which is the absolute smallest model available (~350MB) for ultra-fast downloads!
+            const selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
             setProgressText(`Loading ${selectedModel}...`);
 
             // Initialize worker
