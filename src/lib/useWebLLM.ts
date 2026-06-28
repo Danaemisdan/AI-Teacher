@@ -24,8 +24,8 @@ export function useWebLLM() {
         setIsLoading(true);
 
         try {
-            // Using Llama-3-8B which is fully supported and highly robust for teaching
-            const selectedModel = 'Llama-3-8B-Instruct-q4f32_1-MLC-1k';
+            // Reverted to Llama-3.2-1B which is under 800MB and extremely fast/lightweight
+            const selectedModel = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
             setProgressText(`Loading ${selectedModel}...`);
 
             // Initialize worker
