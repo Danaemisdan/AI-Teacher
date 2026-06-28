@@ -234,19 +234,15 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         
         // Phase 1: Zero-Shot Mermaid Mindmap (Background)
         setIsSourcing(true);
-        const GRAPHICS_PROMPT = `What are 4 key subtopics of "${topic}"? 
-Answer ONLY with a comma-separated list of 4 short words or phrases. No introduction.`;
+        const GRAPHICS_PROMPT = `Generate a Mermaid.js diagram illustrating the key concepts of "${moduleName}" in the context of "${topic}".
+Output ONLY valid mermaid code starting with "graph TD" or "mindmap". Do not use markdown blocks. Keep it simple and clean.`;
         
         try {
             const chartReply = await generateResponse([{ role: 'user' as const, content: GRAPHICS_PROMPT }], () => {});
             
-            // Clean the reply to just the comma-separated words
-            const cleanList = chartReply.replace(/[^a-zA-Z0-9,\s-]/g, '').split(',').map(s => s.trim()).filter(s => s.length > 0).slice(0, 4);
-            
-            if (cleanList.length > 0) {
-                setCurrentHtmlGraphic(JSON.stringify(cleanList));
-            } else {
-                setCurrentHtmlGraphic(JSON.stringify(["Concept 1", "Concept 2", "Details", "Summary"]));
+            const cleanChart = chartReply.replace(/```mermaid\n?|```/g, '').trim();
+            if (cleanChart.length > 10) {
+                setCurrentHtmlGraphic(cleanChart);
             }
         } catch(e) {
             console.error("Graphics Gen failed", e);
@@ -389,34 +385,8 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
             </div>
             
             {/* The Left Panel System (Momentum UI) */}
-            <div className="h-full z-50 flex group">
-                <div className="w-[60px] h-full bg-[#050505] border-r border-white/5 flex flex-col items-center py-4 z-50 shrink-0 relative">
-                    <div className="flex flex-col gap-6 w-full items-center">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20 mb-2 font-black text-[10px]">AI</div>
-                        
-                        <button className="text-white/40 hover:text-white transition-colors" title="New Lesson" onClick={() => window.location.reload()}>
-                            <SquarePen className="w-5 h-5" />
-                        </button>
-                        <button className="text-white/40 hover:text-white transition-colors" title="Search">
-                            <Search className="w-5 h-5" />
-                        </button>
-                        <button className={`transition-colors ${isSyllabusOpen ? 'text-white' : 'text-white/40 hover:text-white'}`} title="Syllabus" onClick={() => setIsSyllabusOpen(!isSyllabusOpen)}>
-                            <BookOpen className="w-5 h-5" />
-                        </button>
-                    </div>
-
-                    <div className="flex flex-col gap-6 w-full items-center mt-auto">
-                        <button className="text-white/40 hover:text-white transition-colors" title="Settings">
-                            <Settings className="w-5 h-5" />
-                        </button>
-                        <div className="w-8 h-8 bg-[#E35400] rounded-full flex items-center justify-center text-xs font-bold text-white cursor-pointer shadow-md tracking-wider">
-                           SN
-                        </div>
-                    </div>
-                </div>
-                
-                {/* Syllabus Drawer (Sliding out) */}
-                <div className={`absolute left-[60px] top-0 h-full w-[280px] bg-[#0f0f11] border-r border-white/5 flex flex-col z-[40] transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-2xl ${isSyllabusOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="hidden h-full z-50 group absolute left-0 top-0">
+                <div className={`absolute left-0 top-0 h-[85vh] w-[280px] bg-[#0f0f11] border-r border-white/5 flex flex-col z-[40] transform transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shadow-2xl rounded-r-3xl ${isSyllabusOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                     <div className="p-4 border-b border-white/5 font-semibold text-sm tracking-wide text-white/50 flex justify-between items-center">
                         Curriculum Syllabus
                     </div>
@@ -474,7 +444,7 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
                     </div>
 
                     {/* Agent Face Floating Over Blackboard */}
-                    <div className={`absolute transition-all duration-700 ease-in-out z-40 flex flex-col items-center gap-4 ${currentLessonTitle ? '-top-8 left-1/2 -translate-x-1/2 scale-[0.60]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-100'}`}>
+                    <div className={`absolute transition-all duration-700 ease-in-out z-40 flex flex-col items-center gap-4 ${currentLessonTitle ? '-top-8 left-1/2 -translate-x-1/2 scale-[0.40] md:scale-[0.60]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[0.60] md:scale-100'}`}>
                         <AgentFace 
                             state={isGenerating ? 'thinking' : isSpeaking ? 'speaking' : 'idle'} 
                             className="shadow-[0_0_80px_rgba(139,92,246,0.5)] rounded-[3rem] border border-white/10"
@@ -548,6 +518,16 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
                         )}
                         
                         <form onSubmit={handleTextSubmit} className="flex items-center gap-2 bg-[#111]/90 backdrop-blur-2xl p-2 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 focus-within:border-purple-500/50 transition-all">
+                            
+                            <button 
+                                type="button" 
+                                onClick={() => setIsSyllabusOpen(!isSyllabusOpen)}
+                                className={`p-3.5 rounded-full transition-all transform active:scale-95 text-white/50 hover:text-white shrink-0 ${isSyllabusOpen ? 'bg-purple-600/20 text-purple-400' : 'hover:bg-white/5'}`}
+                                title="Lessons Menu"
+                            >
+                                <BookOpen className="w-5 h-5" />
+                            </button>
+
                             <input
                                 type="text"
                                 value={inputText}

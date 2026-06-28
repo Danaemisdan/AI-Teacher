@@ -117,6 +117,12 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                             />
                                                         );
                                                     }
+                                                    
+                                                    // Handle Mermaid Diagrams
+                                                    const isMermaid = ['graph', 'mindmap', 'pie', 'sequenceDiagram', 'flowchart', 'stateDiagram'].some(keyword => htmlGraphic.trim().toLowerCase().startsWith(keyword.toLowerCase()));
+                                                    if (isMermaid) {
+                                                        return <MermaidDiagram chart={htmlGraphic} />;
+                                                    }
 
                                                     const concepts = JSON.parse(htmlGraphic);
                                                     if (Array.isArray(concepts)) {
