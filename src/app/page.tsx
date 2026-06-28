@@ -580,3 +580,4 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
             </div>
         </main>
     );
+}
