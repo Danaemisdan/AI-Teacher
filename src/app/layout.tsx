@@ -19,6 +19,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -30,7 +31,7 @@ export default function RootLayout({
     <html lang="en" className={cn(inter.variable, outfit.variable, "font-sans", geist.variable)}>
       <head>
       </head>
-      <body className="min-h-screen bg-gray-50 text-gray-900 font-sans antialiased">
+      <body className="min-h-screen bg-black text-gray-100 font-sans antialiased overflow-hidden">
         <Script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js" />
         <Script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js" />
         {children}

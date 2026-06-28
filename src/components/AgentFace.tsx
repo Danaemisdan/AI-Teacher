@@ -94,7 +94,7 @@ export function AgentFace({ state, isShuttered = false, isVoiceMode = false, cla
   return (
     <div
       className={cn(
-        "relative w-[280px] h-[280px] rounded-[3rem] overflow-hidden flex items-center justify-center bg-[#070708] border-[4px] border-[#1a1a1c]",
+        "relative overflow-hidden flex items-center justify-center bg-[#070708]",
         "shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_0_60px_rgba(0,0,0,0.8)]",
         className
       )}

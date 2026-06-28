@@ -472,11 +472,11 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                         />
                     </div>
 
-                    {/* Agent Face Floating Over Blackboard */}
-                    <div className={`absolute transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${currentLessonTitle ? 'top-4 left-1/2 -translate-x-1/2 scale-[0.35] md:scale-[0.50]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 scale-[0.90] md:scale-[1.2]'}`}>
+                    {/* Agent Face Floating Over Blackboard or Fullscreen */}
+                    <div className={`absolute transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${currentLessonTitle ? 'top-4 left-1/2 -translate-x-1/2 scale-[0.35] md:scale-[0.50]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full md:w-auto md:h-auto scale-100 md:scale-[1.2]'}`}>
                         <AgentFace 
                             state={isGenerating ? 'thinking' : isSpeaking ? 'speaking' : 'idle'} 
-                            className="shadow-[0_0_80px_rgba(139,92,246,0.5)] rounded-[3rem] border border-white/10"
+                            className={`shadow-[0_0_80px_rgba(139,92,246,0.5)] transition-all duration-1000 ${currentLessonTitle ? 'rounded-[3rem] border-4 border-white/10 w-[280px] h-[280px]' : 'rounded-none border-0 w-full h-full md:rounded-[3rem] md:border-4 md:border-white/10 md:w-[280px] md:h-[280px]'}`}
                         />
 
                         {/* Status Indicator Below Face */}
