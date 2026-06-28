@@ -429,17 +429,31 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
             {/* Fullscreen Overlay Prompt for Mobile */}
             {isMobileDevice && !isFullscreenPrompted && (
                 <div 
-                    className="fixed inset-0 z-[200] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center cursor-pointer"
+                    className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-3xl flex flex-col items-center justify-center p-8 text-center cursor-pointer"
                     onClick={enterFullscreen}
                 >
-                    <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
+                    {isIOS && (
+                        <>
+                            {/* Portrait Arrow (Bottom Center) */}
+                            <div className="portrait:flex hidden absolute bottom-12 left-1/2 -translate-x-1/2 flex-col items-center animate-bounce text-yellow-400 pointer-events-none">
+                                <p className="font-bold mb-2 text-2xl text-center shadow-black drop-shadow-xl">Tap Share &<br/>Add to Home Screen!</p>
+                                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+                            </div>
+                            {/* Landscape Arrow (Top Right) */}
+                            <div className="landscape:flex hidden absolute top-8 right-16 flex-col items-end animate-bounce text-yellow-400 pointer-events-none">
+                                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                                <p className="font-bold mt-2 text-2xl text-right shadow-black drop-shadow-xl w-64">Tap Share up here &<br/>Add to Home Screen!</p>
+                            </div>
+                        </>
+                    )}
+
+                    <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                     </div>
                     <h2 className="text-3xl font-bold text-white mb-4">Tap to Start</h2>
-                    <p className="text-white/60 text-lg max-w-md">
+                    <p className="text-white/60 text-lg max-w-md mb-8">
                         Let's begin the interactive lesson!
                     </p>
-                    <p className="text-white/30 text-sm mt-12">(Tip: For true edge-to-edge fullscreen on iPhone, use Share - Add to Home Screen)</p>
                 </div>
             )}
 
@@ -454,14 +468,20 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                 {/* WebGPU Error Modal */}
                 {hasWebGPUError && (
                     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
-                        <div className="bg-[#111] p-8 rounded-3xl max-w-lg text-center shadow-2xl border-4 border-red-500/50">
+                        <div className="bg-[#111] p-8 rounded-3xl max-w-lg text-center shadow-2xl border-4 border-red-500/50 mx-4">
                             <h2 className="text-3xl font-black text-red-500 mb-4">WebGPU Required</h2>
                             <p className="text-gray-300 font-medium mb-4 text-lg">
                                 Your browser does not currently support WebGPU, which is required to run the AI engine locally.
                             </p>
                             <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl text-left">
                                 <p className="text-red-400 font-bold mb-2">Are you on Android Chrome?</p>
-                                <p className="text-white/70 text-sm">WebGPU is rolling out to Android, but you may need to manually enable it. Type <strong className="text-white select-all">chrome://flags/#enable-unsafe-webgpu</strong> in your address bar, set it to Enabled, and restart Chrome!</p>
+                                <p className="text-white/70 text-sm mb-4">WebGPU is rolling out to Android, but you may need to manually enable it.</p>
+                                <button 
+                                    onClick={() => navigator.clipboard.writeText('chrome://flags/#enable-unsafe-webgpu').then(() => alert('Copied to clipboard! Open a new tab, paste this link, and change the setting to Enabled.'))}
+                                    className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg shadow-lg active:scale-95 transition-all"
+                                >
+                                    Copy Chrome Flags URL
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -530,17 +550,17 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                 </div>
 
                 {/* Glassmorphism Captions Bubble */}
-                <div className="absolute bottom-2 left-[50%] -translate-x-[50%] w-full max-w-xl z-[60] flex flex-col items-center justify-end pointer-events-none mb-[120px]">
+                <div className="absolute bottom-32 lg:bottom-4 left-[50%] -translate-x-[50%] w-[90vw] lg:max-w-xl z-[60] flex flex-col items-center justify-end pointer-events-none lg:mb-[120px]">
                     <AnimatePresence>
                         {(isSpeaking || isGenerating) && (
                             <motion.div 
                                 initial={{ opacity: 0, scale: 0.9, y: 10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 exit={{ opacity: 0, scale: 0.9 }}
-                                className="max-w-lg w-full px-6 py-4 rounded-2xl backdrop-blur-3xl shadow-2xl leading-relaxed text-gray-100 border border-white/20 pointer-events-auto text-center flex items-center justify-center min-h-[60px] max-h-[100px] overflow-hidden bg-[#0a0a0c]/90"
+                                className="w-full px-4 lg:px-6 py-2 lg:py-4 rounded-xl lg:rounded-2xl backdrop-blur-3xl shadow-2xl leading-relaxed text-gray-100 border border-white/20 pointer-events-auto text-center flex items-center justify-center min-h-[40px] max-h-[80px] lg:min-h-[60px] lg:max-h-[100px] overflow-hidden bg-[#0a0a0c]/90"
                                 style={{
                                     fontFamily: "'SF_Pro_Display',-apple-system,BlinkMacSystemFont,'Helvetica_Neue',sans-serif",
-                                    fontSize: '1.2rem',
+                                    fontSize: '1rem',
                                     fontWeight: 500,
                                     textShadow: currentLessonTitle ? '0 0 10px rgba(0,0,0,0.8)' : 'none',
                                     boxShadow: '0 10px 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(255,255,255,0.05)'

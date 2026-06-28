@@ -63,7 +63,7 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                     exit={{ opacity: 0, scale: 0.9, y: 20 }}
                     transition={{ type: "spring", stiffness: 90, damping: 20 }}
                     // Glassmorphism Blackboard
-                    className={`w-full h-full bg-black/40 backdrop-blur-3xl rounded-[3rem] border border-white/20 shadow-[0_20px_60px_rgba(0,0,0,0.8),inset_0_0_80px_rgba(255,255,255,0.05)] p-10 flex flex-col pointer-events-auto relative overflow-hidden ${chalkFont.className}`}
+                    className={`w-full h-full bg-black/20 backdrop-blur-3xl rounded-[2rem] lg:rounded-[3rem] border border-white/30 shadow-[0_20px_60px_rgba(0,0,0,0.8),inset_0_0_80px_rgba(255,255,255,0.1)] p-6 lg:p-10 flex flex-col pointer-events-auto relative overflow-hidden ${chalkFont.className}`}
                     style={{ 
                         transformPerspective: 1200,
                         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E")`
@@ -71,22 +71,22 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                 >
                     {/* Header & Tabs drawn in glowing chalk */}
                     <div className={`flex flex-col relative z-10 gap-6 transition-all duration-1000 ${htmlGraphic ? 'mb-2 opacity-30 scale-90 -translate-y-4 hover:opacity-100 hover:scale-100 hover:translate-y-0' : 'mb-8 opacity-100'}`}>
-                        <div className="flex flex-col gap-2 border-b-2 border-white/30 pb-3">
+                        <div className="flex flex-col gap-2 border-b-2 border-white/40 pb-3">
                             {moduleInfo && (
-                                <span className="text-sm font-bold text-white/60 uppercase tracking-widest" style={{ textShadow: '0 0 10px rgba(255,255,255,0.3)' }}>{moduleInfo}</span>
+                                <span className="text-sm lg:text-base font-bold text-white/90 uppercase tracking-widest" style={{ textShadow: '0 0 10px rgba(255,255,255,0.5)' }}>{moduleInfo}</span>
                             )}
-                            <h2 className="text-3xl font-bold text-white tracking-wide line-clamp-2 text-ellipsis overflow-hidden" style={{ textShadow: '0 0 15px rgba(255,255,255,0.6), 0 0 30px rgba(255,255,255,0.4)' }}>{title}</h2>
+                            <h2 className="text-2xl lg:text-4xl font-bold text-white tracking-wide line-clamp-2 text-ellipsis overflow-hidden" style={{ textShadow: '0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.6)' }}>{title}</h2>
                         </div>
 
                         {/* Chalk Tabs */}
-                        <div className="flex w-full justify-between gap-6 px-4">
-                            <button onClick={() => setActiveTab('media')} className={`flex-1 py-2 text-3xl font-bold transition-all ${activeTab === 'media' ? 'text-white border-b-4 border-white/90' : 'text-white/40 hover:text-white/70 hover:border-b-4 hover:border-white/30'}`} style={activeTab === 'media' ? { textShadow: '0 0 15px rgba(255,255,255,0.8)' } : {}}>
+                        <div className="flex w-full justify-between gap-2 lg:gap-6 px-2 lg:px-4">
+                            <button onClick={() => setActiveTab('media')} className={`flex-1 py-2 text-xl lg:text-3xl font-bold transition-all ${activeTab === 'media' ? 'text-white border-b-4 border-white' : 'text-white/60 hover:text-white/90 hover:border-b-4 hover:border-white/50'}`} style={activeTab === 'media' ? { textShadow: '0 0 15px rgba(255,255,255,0.8)' } : {}}>
                                 Diagram
                             </button>
-                            <button onClick={() => setActiveTab('notes')} className={`flex-1 py-2 text-3xl font-bold transition-all ${activeTab === 'notes' ? 'text-white border-b-4 border-white/90' : 'text-white/40 hover:text-white/70 hover:border-b-4 hover:border-white/30'}`} style={activeTab === 'notes' ? { textShadow: '0 0 15px rgba(255,255,255,0.8)' } : {}}>
+                            <button onClick={() => setActiveTab('notes')} className={`flex-1 py-2 text-xl lg:text-3xl font-bold transition-all ${activeTab === 'notes' ? 'text-white border-b-4 border-white' : 'text-white/60 hover:text-white/90 hover:border-b-4 hover:border-white/50'}`} style={activeTab === 'notes' ? { textShadow: '0 0 15px rgba(255,255,255,0.8)' } : {}}>
                                 Notes
                             </button>
-                            <button onClick={() => setActiveTab('test')} className={`flex-1 py-2 text-3xl font-bold transition-all ${activeTab === 'test' ? 'text-white border-b-4 border-white/90' : 'text-white/40 hover:text-white/70 hover:border-b-4 hover:border-white/30'}`} style={activeTab === 'test' ? { textShadow: '0 0 15px rgba(255,255,255,0.8)' } : {}}>
+                            <button onClick={() => setActiveTab('test')} className={`flex-1 py-2 text-xl lg:text-3xl font-bold transition-all ${activeTab === 'test' ? 'text-white border-b-4 border-white' : 'text-white/60 hover:text-white/90 hover:border-b-4 hover:border-white/50'}`} style={activeTab === 'test' ? { textShadow: '0 0 15px rgba(255,255,255,0.8)' } : {}}>
                                 Pop Quiz
                             </button>
                         </div>
