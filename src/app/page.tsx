@@ -456,9 +456,13 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
                         <div className="bg-[#111] p-8 rounded-3xl max-w-lg text-center shadow-2xl border-4 border-red-500/50">
                             <h2 className="text-3xl font-black text-red-500 mb-4">WebGPU Required</h2>
-                            <p className="text-gray-300 font-medium mb-6 text-lg">
-                                Your browser is currently blocking WebGPU, which is required to run the AI engine locally.
+                            <p className="text-gray-300 font-medium mb-4 text-lg">
+                                Your browser does not currently support WebGPU, which is required to run the AI engine locally.
                             </p>
+                            <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl text-left">
+                                <p className="text-red-400 font-bold mb-2">Are you on Android Chrome?</p>
+                                <p className="text-white/70 text-sm">WebGPU is rolling out to Android, but you may need to manually enable it. Type <strong className="text-white select-all">chrome://flags/#enable-unsafe-webgpu</strong> in your address bar, set it to Enabled, and restart Chrome!</p>
+                            </div>
                         </div>
                     </div>
                 )}
