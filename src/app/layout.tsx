@@ -16,6 +16,7 @@ export const metadata = {
     title: 'AI School',
     statusBarStyle: 'black-translucent',
   },
+  manifest: '/manifest.json',
 }
 
 export const viewport = {
