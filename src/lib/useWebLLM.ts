@@ -15,7 +15,7 @@ export function useWebLLM() {
         
         // Explicitly check for WebGPU support before initializing the WebWorker!
         // iOS Safari and some older browsers do not support this, and might silently hang the worker.
-        if (!navigator || !navigator.gpu) {
+        if (!navigator || !(navigator as any).gpu) {
             setHasWebGPUError(true);
             setProgressText('Error: WebGPU not supported on this device/browser.');
             return;
