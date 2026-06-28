@@ -24,8 +24,8 @@ export function useWebLLM() {
         setIsLoading(true);
 
         try {
-            // Using Qwen2.5-0.5B-Instruct which is extremely fast and much smarter than Qwen2
-            const selectedModel = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+            // Using Llama-3-8B which is fully supported and highly robust for teaching
+            const selectedModel = 'Llama-3-8B-Instruct-q4f32_1-MLC-1k';
             setProgressText(`Loading ${selectedModel}...`);
 
             // Initialize worker
