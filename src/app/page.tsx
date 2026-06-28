@@ -173,9 +173,9 @@ DO NOT use bullet points, bold text, or lists. Just natural speech.`;
 
         const SYSTEM_PROMPT = `You are Momentum, a witty virtual teacher. 
 Respond naturally and conversationally. DO NOT use titles, formatting, or generate quizzes for normal chat.
-CRITICAL: You have the ability to draw on the blackboard! If the student asks you to show or draw something, you MUST output a beautifully styled SVG inside a [DRAW: ] block anywhere in your response. 
-Example: [DRAW: <svg viewBox="0 0 200 200"><circle cx="100" cy="100" r="50" fill="transparent" stroke="purple" stroke-width="4"/></svg>]
-Use white/purple neon colors. Keep the drawing clean and educational.
+CRITICAL: You have the ability to show incredible graphics on the blackboard! If the student asks you to show or draw something, you MUST output a highly descriptive image prompt inside an [IMAGE: ] block anywhere in your response. 
+Example: [IMAGE: A realistic illustration of a man pushing a heavy box across a floor to demonstrate physical force and friction.]
+Keep the image prompts detailed and educational.
 ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
 
         const finalMessages = [
@@ -192,8 +192,12 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
                 if (drawMatch && drawMatch[1]) {
                     setCurrentHtmlGraphic(drawMatch[1]);
                 }
+                const imageMatch = chunk.match(/\[IMAGE:\s*(.*?)\]/i);
+                if (imageMatch && imageMatch[1]) {
+                    setCurrentHtmlGraphic(`[IMAGE: ${imageMatch[1]}]`);
+                }
 
-                const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '');
+                const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '');
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
                 if (sentences.length > spokenSentencesCount) {
                     const newSentence = sentences[spokenSentencesCount].trim();
@@ -204,7 +208,7 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
                 }
             });
             
-            const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').trim();
+            const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').trim();
             const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
             const spokenLength = sentences.join('').length;
             if (cleanSpeech.length > spokenLength + 2) {
@@ -232,17 +236,17 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         setCurrentHtmlGraphic(null);
         setCurrentModuleInfo(`Module ${idx + 1} of ${total}: ${moduleName}`);
         
-        // Phase 1: Zero-Shot Mermaid Mindmap (Background)
+        // Phase 1: Zero-Shot Image Generation (Background)
         setIsSourcing(true);
-        const GRAPHICS_PROMPT = `Generate a Mermaid.js diagram illustrating the key concepts of "${moduleName}" in the context of "${topic}".
-Output ONLY valid mermaid code starting with "graph TD" or "mindmap". Do not use markdown blocks. Keep it simple and clean.`;
+        const GRAPHICS_PROMPT = `Describe a highly detailed, educational illustration for "${moduleName}" in the context of "${topic}".
+Output ONLY a short descriptive prompt for an AI image generator. Example: "A man pushing a heavy box across a floor to demonstrate physical force and friction."`;
         
         try {
             const chartReply = await generateResponse([{ role: 'user' as const, content: GRAPHICS_PROMPT }], () => {});
             
-            const cleanChart = chartReply.replace(/```mermaid\n?|```/g, '').trim();
-            if (cleanChart.length > 10) {
-                setCurrentHtmlGraphic(cleanChart);
+            const cleanPrompt = chartReply.replace(/["\n\[\]]/g, '').trim();
+            if (cleanPrompt.length > 5) {
+                setCurrentHtmlGraphic(`[IMAGE: ${cleanPrompt}]`);
             }
         } catch(e) {
             console.error("Graphics Gen failed", e);
@@ -332,6 +336,7 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
         e?.preventDefault();
         if (inputText.trim() && !isGenerating && isLoaded) {
             if (isSpeaking) {
+                setAudioQueue([]);
                 setAudioUrlToSpeak(null);
                 setIsSpeaking(false);
             }
@@ -343,6 +348,7 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
     const handleListen = () => {
         // Interruption Logic
         if (isSpeaking) {
+            setAudioQueue([]);
             setAudioUrlToSpeak(null); // Instantly stops her audio and resets her mouth!
             setIsSpeaking(false);
         }
@@ -359,17 +365,16 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
         // If speaking, perfectly display the EXACT sentence being spoken right now!
         if (isSpeaking && audioUrlToSpeak) {
             try {
-                const urlParams = new URL(audioUrlToSpeak, 'http://localhost').searchParams;
-                const spokenText = urlParams.get('text');
-                if (spokenText) return spokenText;
+                const match = audioUrlToSpeak.match(/\?text=([^&]+)/);
+                if (match) return decodeURIComponent(match[1]);
             } catch (e) {}
         }
         
         // If still generating but hasn't spoken yet, show typing preview
         if (isGenerating && text) {
-            const cleanText = text.replace(/\[DRAW:[\s\S]*?\]/gi, '').trim();
-            if (cleanText.length > 120) return "..." + cleanText.substring(cleanText.length - 100);
-            return cleanText;
+            const cleanText = text.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').trim();
+            const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+            return sentences[sentences.length - 1].trim();
         }
         
         return "";
@@ -517,16 +522,18 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
                             </div>
                         )}
                         
-                        <form onSubmit={handleTextSubmit} className="flex items-center gap-2 bg-[#111]/90 backdrop-blur-2xl p-2 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 focus-within:border-purple-500/50 transition-all">
-                            
+                        <div className="flex items-center gap-3 w-full">
+                            {/* Menu Button OUTSIDE the chat pill! */}
                             <button 
                                 type="button" 
                                 onClick={() => setIsSyllabusOpen(!isSyllabusOpen)}
-                                className={`p-3.5 rounded-full transition-all transform active:scale-95 text-white/50 hover:text-white shrink-0 ${isSyllabusOpen ? 'bg-purple-600/20 text-purple-400' : 'hover:bg-white/5'}`}
+                                className={`p-4 rounded-full transition-all shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 shrink-0 bg-[#111]/90 backdrop-blur-2xl hover:scale-105 active:scale-95 ${isSyllabusOpen ? 'text-purple-400 border-purple-500/50' : 'text-white/50 hover:text-white hover:border-white/30'}`}
                                 title="Lessons Menu"
                             >
-                                <BookOpen className="w-5 h-5" />
+                                <BookOpen className="w-6 h-6" />
                             </button>
+
+                            <form onSubmit={handleTextSubmit} className="flex-1 flex items-center gap-2 bg-[#111]/90 backdrop-blur-2xl p-2 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/10 focus-within:border-purple-500/50 transition-all">
 
                             <input
                                 type="text"
@@ -566,10 +573,10 @@ Use white/purple neon colors. Keep the drawing clean and educational.`;
                                 </button>
                             )}
                         </div>
-                    </form>
+                        </form>
+                    </div>
                     </div>
                 </div>
             </div>
         </main>
     );
-}

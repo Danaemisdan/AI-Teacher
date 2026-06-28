@@ -118,6 +118,20 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         );
                                                     }
                                                     
+                                                    // Handle Pollinations AI images
+                                                    if (htmlGraphic.trim().startsWith('[IMAGE:')) {
+                                                        const imagePrompt = htmlGraphic.replace(/\[IMAGE:([\s\S]*?)\]/gi, '$1').trim();
+                                                        return (
+                                                            <div className="w-full h-full flex items-center justify-center p-4">
+                                                                <img 
+                                                                    src={`https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=1200&height=800&nologo=true`} 
+                                                                    alt={imagePrompt}
+                                                                    className="w-full h-full object-contain rounded-2xl shadow-[0_0_50px_rgba(255,255,255,0.2)]"
+                                                                />
+                                                            </div>
+                                                        );
+                                                    }
+                                                    
                                                     // Handle Mermaid Diagrams
                                                     const isMermaid = ['graph', 'mindmap', 'pie', 'sequenceDiagram', 'flowchart', 'stateDiagram'].some(keyword => htmlGraphic.trim().toLowerCase().startsWith(keyword.toLowerCase()));
                                                     if (isMermaid) {
