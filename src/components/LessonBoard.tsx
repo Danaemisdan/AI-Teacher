@@ -13,11 +13,12 @@ interface LessonBoardProps {
     testContent?: string | null;
     moduleInfo?: string | null;
     htmlGraphic?: string | null;
+    isSpeaking?: boolean;
 }
 
 type TabType = 'media' | 'notes' | 'test';
 
-export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic }: LessonBoardProps) {
+export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic, isSpeaking }: LessonBoardProps) {
     const [step, setStep] = useState(0);
     const [activeTab, setActiveTab] = useState<TabType>('notes');
     const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -36,6 +37,18 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
             };
         }
     }, [title, content, videoId, mediaUrl]);
+
+    // Handle Dynamic YouTube Audio Muting based on AI Speaking
+    useEffect(() => {
+        const iframe = document.getElementById('yt-player') as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+            iframe.contentWindow.postMessage(JSON.stringify({
+                event: 'command',
+                func: isSpeaking ? 'mute' : 'unMute',
+                args: []
+            }), '*');
+        }
+    }, [isSpeaking]);
 
     const bulletPoints = content 
         ? content.split('\n').filter(line => line.trim().length > 0).map(line => line.replace(/^-\s*/, '').trim())
@@ -130,9 +143,10 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         return (
                                                             <div className="w-full h-full border-4 border-white/40 rounded-xl overflow-hidden relative shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                                                                 <iframe 
+                                                                    id="yt-player"
                                                                     width="100%" 
                                                                     height="100%" 
-                                                                    src={`https://www.youtube.com/embed/${vId}?autoplay=1${start}${end}${mute}&controls=1&rel=0`} 
+                                                                    src={`https://www.youtube.com/embed/${vId}?enablejsapi=1&autoplay=1${start}${end}${mute}&controls=1&rel=0`} 
                                                                     title="YouTube video player" 
                                                                     frameBorder="0" 
                                                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 

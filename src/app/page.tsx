@@ -274,7 +274,7 @@ Output ONLY a short descriptive prompt for an AI image generator. Example: "A ma
             
             const cleanPrompt = chartReply.replace(/["\n\[\]]/g, '').trim();
             if (cleanPrompt.length > 5) {
-                setCurrentHtmlGraphic(`[IMAGE: ${cleanPrompt}]`);
+                setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([cleanPrompt])}]`);
             }
         } catch(e) {
             console.error("Graphics Gen failed", e);
@@ -394,13 +394,15 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
 
     // True Closed-Captioning Engine Synced to Sentence Queue!
     const getCaptionText = (text: string) => {
-        if (!text) return "";
         // If speaking, perfectly display the EXACT sentence being spoken right now!
         if (isSpeaking && audioUrlToSpeak) {
-            const urlObj = new URL(audioUrlToSpeak, "http://localhost");
-            return urlObj.searchParams.get("text") || "";
+            try {
+                const match = audioUrlToSpeak.match(/\?text=([^&]+)/);
+                if (match) return decodeURIComponent(match[1]);
+            } catch (e) {}
         }
         
+        if (!text) return "";
         // If still generating but hasn't spoken yet, show typing preview
         if (isGenerating && text) {
             const cleanText = text.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '').trim();
@@ -466,6 +468,7 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                             testContent={currentTestContent}
                             moduleInfo={currentModuleInfo}
                             htmlGraphic={currentHtmlGraphic}
+                            isSpeaking={isSpeaking}
                         />
                     </div>
 
