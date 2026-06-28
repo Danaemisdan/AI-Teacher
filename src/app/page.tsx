@@ -42,8 +42,9 @@ export default function Home() {
         if (docEl.requestFullscreen) {
             docEl.requestFullscreen().then(() => {
                 try {
-                    if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
-                        window.screen.orientation.lock("landscape").catch(e => console.warn(e));
+                    const orientation: any = window.screen.orientation;
+                    if (orientation && orientation.lock) {
+                        orientation.lock("landscape").catch((e: any) => console.warn(e));
                     }
                 } catch(e) {}
             }).catch(() => {});
