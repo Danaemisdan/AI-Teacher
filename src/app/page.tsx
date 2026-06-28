@@ -40,7 +40,13 @@ export default function Home() {
     const enterFullscreen = () => {
         const docEl = document.documentElement;
         if (docEl.requestFullscreen) {
-            docEl.requestFullscreen().catch(() => {});
+            docEl.requestFullscreen().then(() => {
+                try {
+                    if (window.screen && window.screen.orientation && window.screen.orientation.lock) {
+                        window.screen.orientation.lock("landscape").catch(e => console.warn(e));
+                    }
+                } catch(e) {}
+            }).catch(() => {});
         }
         setIsFullscreenPrompted(true);
     };
@@ -453,7 +459,7 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                 )}
 
                 {/* Centered Main Stage */}
-                <div className="flex-1 flex flex-col items-center justify-center relative p-8">
+                <div className="flex-1 flex flex-col items-center justify-center relative p-0 lg:p-8">
                     
                     {/* Purple Blur Background for Voice */}
                     <div className={`absolute left-1/2 -translate-x-1/2 top-12 w-[600px] h-[300px] rounded-[100%] blur-[120px] pointer-events-none transition-all duration-1000 z-10 ${isSpeaking ? 'bg-purple-600/50 animate-pulse' : 'bg-transparent'}`}></div>
@@ -473,10 +479,10 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     </div>
 
                     {/* Agent Face Floating Over Blackboard or Fullscreen */}
-                    <div className={`absolute transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${currentLessonTitle ? 'top-4 left-1/2 -translate-x-1/2 scale-[0.35] md:scale-[0.50]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full md:w-auto md:h-auto scale-100 md:scale-[1.2]'}`}>
+                    <div className={`absolute transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${currentLessonTitle ? 'top-4 left-1/2 -translate-x-1/2 scale-[0.35] lg:scale-[0.50]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full lg:w-auto lg:h-auto scale-100 lg:scale-[1.2]'}`}>
                         <AgentFace 
                             state={isGenerating ? 'thinking' : isSpeaking ? 'speaking' : 'idle'} 
-                            className={`shadow-[0_0_80px_rgba(139,92,246,0.5)] transition-all duration-1000 ${currentLessonTitle ? 'rounded-[3rem] border-4 border-white/10 w-[280px] h-[280px]' : 'rounded-none border-0 w-full h-full md:rounded-[3rem] md:border-4 md:border-white/10 md:w-[280px] md:h-[280px]'}`}
+                            className={`shadow-[0_0_80px_rgba(139,92,246,0.5)] transition-all duration-1000 ${currentLessonTitle ? 'rounded-[3rem] border-4 border-white/10 w-[280px] h-[280px]' : 'rounded-none border-0 w-full h-full lg:rounded-[3rem] lg:border-4 lg:border-white/10 lg:w-[280px] lg:h-[280px]'}`}
                         />
 
                         {/* Status Indicator Below Face */}
@@ -538,8 +544,8 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                 </div>
 
                 {/* Bottom Input Area Container - Acts as hover zone */}
-                <div className="absolute bottom-0 left-[50%] -translate-x-[50%] w-full max-w-xl h-40 z-50 flex items-end justify-center pb-8 group">
-                    <div className={`w-full px-4 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${(currentLessonTitle && (isSpeaking || isGenerating)) ? 'translate-y-24 opacity-0 group-hover:translate-y-0 group-hover:opacity-100' : 'translate-y-0 opacity-100'}`}>
+                <div className="absolute bottom-0 left-[50%] -translate-x-[50%] w-[90vw] sm:w-[80vw] lg:w-full max-w-xl h-40 z-50 flex items-end justify-center pb-8 group">
+                    <div className={`w-full transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${(currentLessonTitle && (isSpeaking || isGenerating)) ? 'translate-y-24 opacity-0 group-hover:translate-y-0 group-hover:opacity-100' : 'translate-y-0 opacity-100'}`}>
                         {isSpeaking && (
                             <div className="absolute -top-10 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-400 bg-[#111] px-3 py-1 rounded-full shadow-lg border border-white/5 whitespace-nowrap">
                                 Click mic to interrupt
