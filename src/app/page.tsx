@@ -31,10 +31,12 @@ export default function Home() {
     }, [isSpeaking, audioQueue]);
 
     const [isMobileDevice, setIsMobileDevice] = useState(false);
+    const [isIOS, setIsIOS] = useState(false);
     const [isFullscreenPrompted, setIsFullscreenPrompted] = useState(false);
     
     useEffect(() => {
-        setIsMobileDevice(window.innerWidth < 768 || navigator.maxTouchPoints > 0);
+        setIsMobileDevice(window.innerWidth < 1024 || navigator.maxTouchPoints > 0);
+        setIsIOS(/iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
     }, []);
 
     const enterFullscreen = () => {
@@ -433,8 +435,12 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center mb-6 animate-bounce">
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                     </div>
-                    <h2 className="text-3xl font-bold text-white mb-4">Tap to enter Full Screen</h2>
-                    <p className="text-white/60 text-lg">For the best immersive AI teacher experience.</p>
+                    <h2 className="text-3xl font-bold text-white mb-4">{isIOS ? 'Add to Home Screen' : 'Tap to enter Full Screen'}</h2>
+                    <p className="text-white/60 text-lg">
+                        {isIOS 
+                            ? 'Apple restricts full screen in Safari. Tap the Share button (square with arrow) and select "Add to Home Screen" for the true immersive experience!' 
+                            : 'For the best immersive AI teacher experience.'}
+                    </p>
                     <p className="text-white/30 text-sm mt-12">(Swipe down from top to exit later)</p>
                 </div>
             )}

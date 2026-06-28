@@ -11,6 +11,11 @@ const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 export const metadata = {
   title: 'AI School',
   description: 'Interactive AI Learning Environment',
+  appleWebApp: {
+    capable: true,
+    title: 'AI School',
+    statusBarStyle: 'black-translucent',
+  },
 }
 
 export const viewport = {
