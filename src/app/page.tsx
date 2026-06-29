@@ -295,12 +295,9 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         setCurrentModuleInfo(`Module ${idx + 1} of ${total}: ${moduleName}`);
         
         // Phase 1: Graphics (Instant)
-        const useVideo = Math.random() > 0.2; // 80% chance of video since it's more interactive and reliable!
-        if (useVideo) {
-            setCurrentHtmlGraphic(`[VIDEO: search: ${moduleName} ${topic} tutorial]`);
-        } else {
-            setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([`${moduleName} ${topic} detailed educational diagram illustration`])}]`);
-        }
+        // Generate a highly specific prompt for Stable Diffusion so we get actual educational diagrams instead of surreal art.
+        const imagePrompt = `${moduleName} concept diagram, educational infographic, clean minimal UI, flat design, white background`;
+        setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([imagePrompt])}]`);
 
         // Phase 2: Lecture
         setCurrentLessonContent("Listening to Momentum...");
@@ -338,15 +335,10 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
             setCurrentLessonContent("- " + cleanSpeech);
             setCurrentReply("Generating Pop Quiz...");
             
-            const QUIZ_PROMPT = `Based on your explanation of "${moduleName}", generate a single multiple-choice question to test the student.
-CRITICAL: Output STRICTLY in JSON format and nothing else.
-Format:
-{
-  "question": "What is...",
-  "options": ["A", "B", "C"],
-  "answer": "A",
-  "explanation": "Because..."
-}`;
+            const QUIZ_PROMPT = `Generate a single multiple-choice question to test the student on "${moduleName}".
+Output ONLY a valid JSON object. Do not include any markdown formatting or backticks.
+Example of REQUIRED format:
+{"question": "What is 2+2?", "options": ["4", "5", "6"], "answer": "4", "explanation": "Because 2+2 equals 4."}`;
             
             const quizReply = await generateResponse([
                 { role: 'system', content: 'You are an educational quiz generator.' },
@@ -374,7 +366,8 @@ Format:
         setIsGenerating(true);
         setCurrentLessonTitle("Planning Curriculum...");
         setCurrentLessonContent("Thinking...");
-        const MODULE_PROMPT = `Generate a 3-module curriculum outline for teaching "${topic}". 
+        const MODULE_PROMPT = `Generate a professional 3-module curriculum outline for teaching "${topic}". 
+DO NOT repeat the user's prompt as the module name.
 CRITICAL: Output STRICTLY as a JSON array of strings. Do not include any other text.
 Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]`;
         
@@ -541,7 +534,7 @@ Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]
                             testContent={currentTestContent}
                             moduleInfo={currentModuleInfo}
                             htmlGraphic={currentHtmlGraphic}
-                            isSpeaking={isSpeaking}
+                            isSpeaking={isSpeaking || audioQueue.length > 0}
                             onNextModule={handleNextModule}
                         />
                     </div>
