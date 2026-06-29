@@ -107,7 +107,7 @@ export function useWebLLM() {
                         const { done, value } = await reader.read();
                         if (done) break;
                         const chunkStr = decoder.decode(value, { stream: true });
-                        const lines = chunkStr.split('\\n');
+                        const lines = chunkStr.split('\n');
                         
                         for (const line of lines) {
                             if (line.startsWith('data: ') && line !== 'data: [DONE]') {

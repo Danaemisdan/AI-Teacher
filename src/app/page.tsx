@@ -283,7 +283,10 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         const GRAPHICS_PROMPT = `Describe a highly detailed, educational illustration for "${moduleName}" in the context of "${topic}".
 Output ONLY a short descriptive prompt for an AI image generator. Example: "A man pushing a heavy box across a floor to demonstrate physical force and friction."`;
         try {
-            const chartReply = await generateResponse([{ role: 'user' as const, content: GRAPHICS_PROMPT }], () => {});
+            const chartReply = await generateResponse([
+                { role: 'system', content: 'You are a helpful assistant.' },
+                { role: 'user', content: GRAPHICS_PROMPT }
+            ], () => {});
             const cleanPrompt = chartReply.replace(/["\n\[\]]/g, '').trim();
             if (cleanPrompt.length > 5) {
                 setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([cleanPrompt])}]`);
@@ -299,7 +302,10 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
         let cleanSpeech = '';
         try {
             let spokenSentencesCount = 0;
-            const fullReply = await generateResponse([{ role: 'user' as const, content: SYSTEM_PROMPT }], (chunk) => {
+            const fullReply = await generateResponse([
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: `Please start teaching ${moduleName} now.` }
+            ], (chunk) => {
                 setCurrentReply(chunk);
                 const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '');
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
@@ -334,7 +340,10 @@ Format:
   "explanation": "Because..."
 }`;
             
-            const quizReply = await generateResponse([{ role: 'user' as const, content: cleanSpeech }, { role: 'user' as const, content: QUIZ_PROMPT }], () => {});
+            const quizReply = await generateResponse([
+                { role: 'system', content: 'You are an educational quiz generator.' },
+                { role: 'user', content: `Here is the explanation you gave: ${cleanSpeech}\n\n${QUIZ_PROMPT}` }
+            ], () => {});
             
             try {
                 const jsonMatch = quizReply.match(/\{[\s\S]*\}/);
@@ -363,7 +372,10 @@ Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]
         
         let modules = ["1. Introduction & Basics", "2. Core Concepts", "3. Real-World Applications"];
         try {
-            const reply = await generateResponse([{ role: 'user' as const, content: MODULE_PROMPT }], () => {});
+            const reply = await generateResponse([
+                { role: 'system', content: 'You are an educational curriculum planner.' },
+                { role: 'user', content: MODULE_PROMPT }
+            ], () => {});
             const jsonMatch = reply.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);
