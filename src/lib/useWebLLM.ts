@@ -43,6 +43,13 @@ export function useWebLLM() {
         } catch (error: any) {
             console.error('Failed to initialize WebLLM:', error);
             
+            if (error.message?.includes('Cache') || error.toString().includes('Cache')) {
+                try {
+                    await caches.delete('tvmjs');
+                    console.warn("Cleared corrupted TVMJS cache.");
+                } catch(e) {}
+            }
+
             if (error.message?.includes('WebGPU') || error.toString().includes('WebGPU') || error.message?.includes('gpu')) {
                 console.warn("WebGPU error detected. Emitting WebGPU error.");
                 setHasWebGPUError(true);

@@ -523,10 +523,13 @@ Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]
                         />
 
                         {/* Status Indicator Below Face */}
-                        {(isSourcing || !isLoaded || isGenerating) && (
-                            <div className="flex items-center gap-2 text-sm font-semibold bg-[#111]/80 backdrop-blur-md px-5 py-2 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/5 text-purple-300">
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                        {(isSourcing || (!isLoaded && isLoading) || isGenerating || (!isLoaded && progressText.includes('Error'))) && (
+                            <div className={`flex items-center gap-2 text-sm font-semibold bg-[#111]/80 backdrop-blur-md px-5 py-2 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/5 ${progressText.includes('Error') ? 'text-red-400' : 'text-purple-300'}`}>
+                                {(!progressText.includes('Error') || isLoading) && <Loader2 className="w-4 h-4 animate-spin" />}
                                 {isSourcing ? "Sourcing live data..." : !isLoaded ? (progressText || 'Booting AI Engine...') : "Thinking..."}
+                                {!isLoading && progressText.includes('Error') && (
+                                    <button onClick={() => window.location.reload()} className="ml-2 px-3 py-1 bg-white/10 rounded-md hover:bg-white/20 transition-colors text-xs text-white border border-white/20">Retry</button>
+                                )}
                             </div>
                         )}
                         
