@@ -406,7 +406,11 @@ Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]
                 try {
                     const parsed = JSON.parse(jsonMatch[0]);
                     if (Array.isArray(parsed) && parsed.length > 0) {
-                        modules = parsed;
+                        modules = parsed.map(item => {
+                            if (typeof item === 'string') return item;
+                            if (item && typeof item === 'object') return item.title || item.name || item.module || JSON.stringify(item);
+                            return String(item);
+                        });
                         parsedSuccessfully = true;
                     }
                 } catch (e) {}
