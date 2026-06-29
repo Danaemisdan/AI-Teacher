@@ -381,7 +381,13 @@ Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]
                 const parsed = JSON.parse(jsonMatch[0]);
                 if (Array.isArray(parsed) && parsed.length > 0) modules = parsed;
             }
-        } catch(e) {}
+        } catch(e) {
+            console.error("Curriculum generation failed:", e);
+            setCurrentLessonTitle("System Error");
+            setCurrentLessonContent("Failed to generate curriculum. The AI engine may have crashed due to memory limits. Please reload the page.");
+            setIsGenerating(false);
+            return;
+        }
         setIsGenerating(false);
 
         setCurriculum({ topic, modules, currentIndex: 0, isTeaching: true });
@@ -512,7 +518,7 @@ Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]
                     {/* Agent Face Floating Over Blackboard or Fullscreen */}
                     <div className={`absolute left-1/2 -translate-x-1/2 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${
                         currentLessonTitle 
-                            ? 'top-1/2 -translate-y-1/2 w-full h-full scale-100 lg:top-4 lg:-translate-y-0 lg:w-auto lg:h-auto lg:scale-[0.50]' 
+                            ? 'top-1/2 -translate-y-1/2 w-full h-full scale-100 lg:-top-8 lg:-translate-y-0 lg:w-auto lg:h-auto lg:scale-[0.50]' 
                             : 'top-1/2 -translate-y-1/2 w-full h-full scale-100'
                     }`}>
                         <AgentFace 
