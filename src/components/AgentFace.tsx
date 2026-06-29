@@ -102,8 +102,7 @@ export function AgentFace({ state, isShuttered = false, isVoiceMode = false, cla
         boxShadow: `0 0 60px rgba(255,255,255,0.1), inset 0 0 50px rgba(0,0,0,0.9)`
       }}
     >
-      <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-white/20 to-transparent rounded-[100%] blur-[2px] pointer-events-none transform -translate-y-2 scale-x-125 opacity-90" />
-      <div className="absolute inset-x-[15%] top-0 h-[3px] bg-gradient-to-r from-transparent via-white/40 to-transparent blur-[1px] pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-[30%] bg-gradient-to-b from-[#ffffff10] to-transparent blur-3xl pointer-events-none opacity-60" />
 
       {/* Physics Wrapper for Parallax Eyes */}
       <motion.div 

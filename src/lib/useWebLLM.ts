@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { CreateMLCEngine, MLCEngine, ChatCompletionMessageParam } from '@mlc-ai/web-llm';
+import { CreateMLCEngine, MLCEngine, ChatCompletionMessageParam, prebuiltAppConfig } from '@mlc-ai/web-llm';
 
 export function useWebLLM() {
     const [isLoaded, setIsLoaded] = useState(false);
@@ -34,6 +34,10 @@ export function useWebLLM() {
                 initProgressCallback: (info) => {
                     setProgress(info.progress);
                     setProgressText(info.text);
+                },
+                appConfig: {
+                    ...prebuiltAppConfig,
+                    cacheBackend: "indexeddb"
                 }
             });
             
