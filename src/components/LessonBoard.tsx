@@ -24,13 +24,15 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
     const [activeTab, setActiveTab] = useState<TabType>('notes');
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [selectedQuizOption, setSelectedQuizOption] = useState<string | null>(null);
+    const [lastAutoSwitchedQuiz, setLastAutoSwitchedQuiz] = useState<string | null>(null);
 
     useEffect(() => {
-        if (testContent && !isSpeaking) {
+        if (testContent && !isSpeaking && testContent !== lastAutoSwitchedQuiz) {
             setSelectedQuizOption(null);
             setActiveTab('test');
+            setLastAutoSwitchedQuiz(testContent);
         }
-    }, [testContent, isSpeaking]);
+    }, [testContent, isSpeaking, lastAutoSwitchedQuiz]);
 
     useEffect(() => {
         if (title) {

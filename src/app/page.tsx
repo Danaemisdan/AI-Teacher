@@ -336,9 +336,9 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
             setCurrentReply("Generating Pop Quiz...");
             
             const QUIZ_PROMPT = `Generate a single multiple-choice question to test the student on "${moduleName}".
-Output ONLY a valid JSON object. Do not include any markdown formatting or backticks.
-Example of REQUIRED format:
-{"question": "What is 2+2?", "options": ["4", "5", "6"], "answer": "4", "explanation": "Because 2+2 equals 4."}`;
+The options MUST contain the actual full text of the possible answers.
+Example for topic "Baking":
+{"question": "What ingredient makes bread rise?", "options": ["Flour", "Yeast", "Salt"], "answer": "Yeast", "explanation": "Yeast is a microorganism that ferments sugars, producing carbon dioxide gas which makes the dough rise."}`;
             
             const quizReply = await generateResponse([
                 { role: 'system', content: 'You are an educational quiz generator.' },
@@ -366,10 +366,10 @@ Example of REQUIRED format:
         setIsGenerating(true);
         setCurrentLessonTitle("Planning Curriculum...");
         setCurrentLessonContent("Thinking...");
-        const MODULE_PROMPT = `Generate a professional 3-module curriculum outline for teaching "${topic}". 
-DO NOT repeat the user's prompt as the module name.
+        const MODULE_PROMPT = `You are a curriculum planner. The user wants to learn about: "${topic}".
+Generate a professional 3-module curriculum syllabus.
 CRITICAL: Output STRICTLY as a JSON array of strings. Do not include any other text.
-Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]`;
+Example for topic "Baking": ["1. Baking Fundamentals", "2. Pastry Techniques", "3. Cake Decorating"]`;
         
         let modules = ["1. Introduction & Basics", "2. Core Concepts", "3. Real-World Applications"];
         try {
