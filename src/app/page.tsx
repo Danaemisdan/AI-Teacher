@@ -12,7 +12,7 @@ import LessonBoard from '@/components/LessonBoard';
 import { AgentFace } from '@/components/AgentFace';
 
 export default function Home() {
-    const { init, isLoaded, isLoading, progressText, generateResponse, interrupt, hasWebGPUError } = useWebLLM();
+    const { init, isLoaded, isLoading, progressText, generateResponse, interrupt, hasWebGPUError, isCloudFallback, groqApiKey, saveGroqKey } = useWebLLM();
     const { listen, stopListening, isListening } = useSpeech();
     const [messages, setMessages] = useState<{role: string, content: string}[]>([]);
     const [currentReply, setCurrentReply] = useState('');
@@ -465,24 +465,39 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
             {/* Main Stage area (AgentFace & Chalkboard) */}
             <div className="flex-1 relative flex">
                 
-                {/* WebGPU Error Modal */}
-                {hasWebGPUError && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm pointer-events-auto">
-                        <div className="bg-[#111] p-8 rounded-3xl max-w-lg text-center shadow-2xl border-4 border-red-500/50 mx-4">
-                            <h2 className="text-3xl font-black text-red-500 mb-4">WebGPU Required</h2>
-                            <p className="text-gray-300 font-medium mb-4 text-lg">
-                                Your browser does not currently support WebGPU, which is required to run the AI engine locally.
+                {/* Cloud Fallback API Key Modal */}
+                {isCloudFallback && !groqApiKey && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-auto p-4">
+                        <div className="bg-[#111] p-6 lg:p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(139,92,246,0.3)] border border-purple-500/30">
+                            <h2 className="text-2xl lg:text-3xl font-black text-white mb-4">WebGPU Not Found</h2>
+                            <p className="text-gray-300 mb-6 text-sm lg:text-base leading-relaxed">
+                                Your device or browser currently blocks WebGPU, meaning we cannot run the AI model directly on your hardware. But don't worry! 
+                                <br/><br/>
+                                You can run it instantly at a smooth 60fps via the Cloud using a free Groq API key.
                             </p>
-                            <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl text-left">
-                                <p className="text-red-400 font-bold mb-2">Are you on Android Chrome?</p>
-                                <p className="text-white/70 text-sm mb-4">WebGPU is rolling out to Android, but you may need to manually enable it.</p>
-                                <button 
-                                    onClick={() => navigator.clipboard.writeText('chrome://flags/#enable-unsafe-webgpu').then(() => alert('Copied to clipboard! Open a new tab, paste this link, and change the setting to Enabled.'))}
-                                    className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg shadow-lg active:scale-95 transition-all"
-                                >
-                                    Copy Chrome Flags URL
+                            
+                            <form 
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const val = (e.currentTarget.elements.namedItem('groq_key') as HTMLInputElement).value.trim();
+                                    if (val) saveGroqKey(val);
+                                }}
+                                className="flex flex-col gap-4"
+                            >
+                                <input 
+                                    name="groq_key"
+                                    type="password" 
+                                    placeholder="gsk_..."
+                                    className="w-full bg-black border border-white/20 rounded-xl p-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
+                                    required
+                                />
+                                <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all text-lg">
+                                    Start Learning
                                 </button>
-                            </div>
+                                <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-center text-purple-400 text-sm hover:underline mt-2">
+                                    Get a free Groq API Key here
+                                </a>
+                            </form>
                         </div>
                     </div>
                 )}
