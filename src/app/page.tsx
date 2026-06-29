@@ -12,7 +12,7 @@ import LessonBoard from '@/components/LessonBoard';
 import { AgentFace } from '@/components/AgentFace';
 
 export default function Home() {
-    const { init, isLoaded, isLoading, progressText, generateResponse, interrupt, hasWebGPUError, isCloudFallback, groqApiKey, saveGroqKey } = useWebLLM();
+    const { init, isLoaded, isLoading, progressText, generateResponse, interrupt, hasWebGPUError } = useWebLLM();
     const { listen, stopListening, isListening } = useSpeech();
     const [messages, setMessages] = useState<{role: string, content: string}[]>([]);
     const [currentReply, setCurrentReply] = useState('');
@@ -476,39 +476,15 @@ Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]
             {/* Main Stage area (AgentFace & Chalkboard) */}
             <div className="flex-1 relative flex">
                 
-                {/* Cloud Fallback API Key Modal */}
-                {isCloudFallback && !groqApiKey && (
+                {hasWebGPUError && (
                     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md pointer-events-auto p-4">
-                        <div className="bg-[#111] p-6 lg:p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(139,92,246,0.3)] border border-purple-500/30">
-                            <h2 className="text-2xl lg:text-3xl font-black text-white mb-4">WebGPU Not Found</h2>
+                        <div className="bg-[#111] p-6 lg:p-8 rounded-3xl w-full max-w-lg shadow-[0_0_50px_rgba(248,113,113,0.3)] border border-red-500/30">
+                            <h2 className="text-2xl lg:text-3xl font-black text-white mb-4">WebGPU Error</h2>
                             <p className="text-gray-300 mb-6 text-sm lg:text-base leading-relaxed">
-                                Your device or browser currently blocks WebGPU, meaning we cannot run the AI model directly on your hardware. But don't worry! 
+                                Your device or browser does not support WebGPU, or it is disabled.
                                 <br/><br/>
-                                You can run it instantly at a smooth 60fps via the Cloud using a free Groq API key.
+                                Please use a modern browser (like Chrome or Edge) on a compatible device to run the local AI engine.
                             </p>
-                            
-                            <form 
-                                onSubmit={(e) => {
-                                    e.preventDefault();
-                                    const val = (e.currentTarget.elements.namedItem('groq_key') as HTMLInputElement).value.trim();
-                                    if (val) saveGroqKey(val);
-                                }}
-                                className="flex flex-col gap-4"
-                            >
-                                <input 
-                                    name="groq_key"
-                                    type="password" 
-                                    placeholder="gsk_..."
-                                    className="w-full bg-black border border-white/20 rounded-xl p-4 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 transition-colors"
-                                    required
-                                />
-                                <button type="submit" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all text-lg">
-                                    Start Learning
-                                </button>
-                                <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="text-center text-purple-400 text-sm hover:underline mt-2">
-                                    Get a free Groq API Key here
-                                </a>
-                            </form>
                         </div>
                     </div>
                 )}
