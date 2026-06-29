@@ -457,11 +457,7 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                 </div>
             )}
 
-            {/* Mobile Rotate Overlay */}
-            <div className="hidden portrait:flex fixed inset-0 z-[100] bg-black items-center justify-center text-white text-2xl font-bold text-center p-8">
-                Please rotate your device horizontally for the best blackboard experience!
-            </div>
-            
+
             {/* Main Stage area (AgentFace & Chalkboard) */}
             <div className="flex-1 relative flex">
                 
@@ -509,7 +505,7 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     <div className={`absolute left-1/2 -translate-x-1/2 top-12 w-[600px] h-[300px] rounded-[100%] blur-[120px] pointer-events-none transition-all duration-1000 z-10 ${isSpeaking ? 'bg-purple-600/50 animate-pulse' : 'bg-transparent'}`}></div>
 
                     {/* Blackboard - Massive Slate */}
-                    <div className={`transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col justify-center w-[95vw] h-[85vh] max-w-[1600px] z-20 ${currentLessonTitle ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none absolute'}`}>
+                    <div className={`hidden lg:flex transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] flex-col justify-center w-[95vw] h-[85vh] max-w-[1600px] z-20 ${currentLessonTitle ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none absolute'}`}>
                         <LessonBoard 
                             title={currentLessonTitle} 
                             content={currentLessonContent} 
@@ -523,10 +519,14 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     </div>
 
                     {/* Agent Face Floating Over Blackboard or Fullscreen */}
-                    <div className={`absolute transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${currentLessonTitle ? 'top-4 left-1/2 -translate-x-1/2 scale-[0.35] lg:scale-[0.50]' : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full lg:w-auto lg:h-auto scale-100 lg:scale-[1.2]'}`}>
+                    <div className={`absolute left-1/2 -translate-x-1/2 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${
+                        currentLessonTitle 
+                            ? 'top-1/2 -translate-y-1/2 w-full h-full scale-100 lg:top-4 lg:-translate-y-0 lg:w-auto lg:h-auto lg:scale-[0.50]' 
+                            : 'top-1/2 -translate-y-1/2 w-full h-full scale-100 lg:w-auto lg:h-auto lg:scale-[1.2]'
+                    }`}>
                         <AgentFace 
                             state={isGenerating ? 'thinking' : isSpeaking ? 'speaking' : 'idle'} 
-                            className={`shadow-[0_0_80px_rgba(139,92,246,0.5)] transition-all duration-1000 ${currentLessonTitle ? 'rounded-[3rem] border-4 border-white/10 w-[280px] h-[280px]' : 'rounded-none border-0 w-full h-full lg:rounded-[3rem] lg:border-4 lg:border-white/10 lg:w-[280px] lg:h-[280px]'}`}
+                            className="shadow-[0_0_80px_rgba(139,92,246,0.5)] transition-all duration-1000 rounded-none border-0 w-full h-full lg:rounded-[3rem] lg:border-4 lg:border-white/10 lg:w-[280px] lg:h-[280px]"
                         />
 
                         {/* Status Indicator Below Face */}
