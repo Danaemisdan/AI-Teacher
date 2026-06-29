@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { CreateMLCEngine, MLCEngine, ChatCompletionMessageParam } from '@mlc-ai/web-llm';
+import { CreateWebWorkerMLCEngine, MLCEngineInterface, ChatCompletionMessageParam } from '@mlc-ai/web-llm';
 
 export function useWebLLM() {
     const [isLoaded, setIsLoaded] = useState(false);
@@ -8,7 +8,7 @@ export function useWebLLM() {
     const [progressText, setProgressText] = useState('');
     const [hasWebGPUError, setHasWebGPUError] = useState(false);
     
-    const engineRef = useRef<MLCEngine | null>(null);
+    const engineRef = useRef<MLCEngineInterface | null>(null);
 
     const init = useCallback(async () => {
         if (isLoaded || isLoading) return;
@@ -29,7 +29,12 @@ export function useWebLLM() {
             const selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
             setProgressText(`Loading ${selectedModel}...`);
             
-            const engine = await CreateMLCEngine(selectedModel, {
+            const worker = new Worker(
+                new URL('./worker.ts', import.meta.url), 
+                { type: 'module' }
+            );
+
+            const engine = await CreateWebWorkerMLCEngine(worker, selectedModel, {
                 initProgressCallback: (info) => {
                     setProgress(info.progress);
                     setProgressText(info.text);
