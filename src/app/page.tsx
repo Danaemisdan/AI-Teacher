@@ -337,8 +337,8 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
             
             const QUIZ_PROMPT = `Generate a single multiple-choice question to test the student on "${moduleName}".
 The options MUST contain the actual full text of the possible answers.
-Example for topic "Baking":
-{"question": "What ingredient makes bread rise?", "options": ["Flour", "Yeast", "Salt"], "answer": "Yeast", "explanation": "Yeast is a microorganism that ferments sugars, producing carbon dioxide gas which makes the dough rise."}`;
+Example for ${moduleName}:
+{"question": "What is the main purpose of ${moduleName}?", "options": ["It is used for X", "It is used for Y", "It is used for Z"], "answer": "It is used for X", "explanation": "Because X is the correct definition of ${moduleName}."}`;
             
             const quizReply = await generateResponse([
                 { role: 'system', content: 'You are an educational quiz generator.' },
@@ -366,10 +366,10 @@ Example for topic "Baking":
         setIsGenerating(true);
         setCurrentLessonTitle("Planning Curriculum...");
         setCurrentLessonContent("Thinking...");
-        const MODULE_PROMPT = `You are a curriculum planner. The user wants to learn about: "${topic}".
-Generate a professional 3-module curriculum syllabus.
-CRITICAL: Output STRICTLY as a JSON array of strings. Do not include any other text.
-Example for topic "Baking": ["1. Baking Fundamentals", "2. Pastry Techniques", "3. Cake Decorating"]`;
+        const MODULE_PROMPT = `Generate a 3-module curriculum syllabus for teaching the topic: "${topic}".
+Output ONLY a JSON array of strings.
+Format exactly like this (replace with actual concepts for ${topic}):
+["1. Introduction to ${topic}", "2. Core concepts of ${topic}", "3. Advanced ${topic}"]`;
         
         let modules = ["1. Introduction & Basics", "2. Core Concepts", "3. Real-World Applications"];
         try {
