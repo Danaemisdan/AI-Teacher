@@ -26,11 +26,11 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
     const [selectedQuizOption, setSelectedQuizOption] = useState<string | null>(null);
 
     useEffect(() => {
-        if (testContent) {
+        if (testContent && !isSpeaking) {
             setSelectedQuizOption(null);
             setActiveTab('test');
         }
-    }, [testContent]);
+    }, [testContent, isSpeaking]);
 
     useEffect(() => {
         if (title) {

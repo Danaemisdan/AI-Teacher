@@ -294,29 +294,13 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         setCurrentHtmlGraphic(null);
         setCurrentModuleInfo(`Module ${idx + 1} of ${total}: ${moduleName}`);
         
-        // Phase 1: Graphics
-        setIsSourcing(true);
-        const useVideo = Math.random() > 0.5;
-        
+        // Phase 1: Graphics (Instant)
+        const useVideo = Math.random() > 0.2; // 80% chance of video since it's more interactive and reliable!
         if (useVideo) {
-            setCurrentLessonContent("Finding a related YouTube video...");
             setCurrentHtmlGraphic(`[VIDEO: search: ${moduleName} ${topic} tutorial]`);
         } else {
-            setCurrentLessonContent("Generating visual aids...");
-            const GRAPHICS_PROMPT = `Describe a highly detailed, educational illustration for "${moduleName}" in the context of "${topic}".
-Output ONLY a short descriptive prompt for an AI image generator. Example: "A man pushing a heavy box across a floor to demonstrate physical force and friction."`;
-            try {
-                const chartReply = await generateResponse([
-                    { role: 'system', content: 'You are a helpful assistant.' },
-                    { role: 'user', content: GRAPHICS_PROMPT }
-                ], () => {});
-                const cleanPrompt = chartReply.replace(/["\n\[\]]/g, '').trim();
-                if (cleanPrompt.length > 5) {
-                    setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([cleanPrompt])}]`);
-                }
-            } catch(e) {}
+            setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([`${moduleName} ${topic} detailed educational diagram illustration`])}]`);
         }
-        setIsSourcing(false);
 
         // Phase 2: Lecture
         setCurrentLessonContent("Listening to Momentum...");
