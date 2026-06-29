@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { CreateWebWorkerMLCEngine, MLCEngineInterface, ChatCompletionMessageParam } from '@mlc-ai/web-llm';
+import { CreateMLCEngine, MLCEngine, ChatCompletionMessageParam } from '@mlc-ai/web-llm';
 
 export function useWebLLM() {
     const [isLoaded, setIsLoaded] = useState(false);
@@ -8,10 +8,13 @@ export function useWebLLM() {
     const [progressText, setProgressText] = useState('');
     const [hasWebGPUError, setHasWebGPUError] = useState(false);
     
-    const engineRef = useRef<MLCEngineInterface | null>(null);
+    const engineRef = useRef<MLCEngine | null>(null);
+    const initInProgressRef = useRef(false);
 
     const init = useCallback(async () => {
-        if (isLoaded || isLoading) return;
+        if (isLoaded || initInProgressRef.current) return;
+        initInProgressRef.current = true;
+        setIsLoading(true);
         
         // Explicitly check for WebGPU support before initializing the WebWorker!
         if (!navigator || !(navigator as any).gpu) {
@@ -22,19 +25,12 @@ export function useWebLLM() {
             return;
         }
 
-        setIsLoading(true);
-
         try {
             // Using Qwen2-0.5B which is the absolute smallest model available (~350MB) for ultra-fast downloads!
             const selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
             setProgressText(`Loading ${selectedModel}...`);
             
-            const worker = new Worker(
-                new URL('./worker.ts', import.meta.url), 
-                { type: 'module' }
-            );
-
-            const engine = await CreateWebWorkerMLCEngine(worker, selectedModel, {
+            const engine = await CreateMLCEngine(selectedModel, {
                 initProgressCallback: (info) => {
                     setProgress(info.progress);
                     setProgressText(info.text);
