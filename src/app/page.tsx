@@ -19,12 +19,14 @@ export default function Home() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [audioUrlToSpeak, setAudioUrlToSpeak] = useState<string | null>(null);
-    const [audioQueue, setAudioQueue] = useState<string[]>([]);
+    const [audioQueue, setAudioQueue] = useState<{url: string, text: string}[]>([]);
+    const [currentCaption, setCurrentCaption] = useState('');
 
     // Audio Queue Processor: Plays sentences sequentially as they arrive!
     useEffect(() => {
         if (!isSpeaking && audioQueue.length > 0) {
-            setAudioUrlToSpeak(audioQueue[0]);
+            setAudioUrlToSpeak(audioQueue[0].url);
+            setCurrentCaption(audioQueue[0].text);
             setIsSpeaking(true);
             setAudioQueue(prev => prev.slice(1));
         }
@@ -129,30 +131,33 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
             ];
 
             try {
+                let spokenSentencesCount = 0;
                 const fullReply = await generateResponse(finalMessages, (chunk) => {
                     setCurrentReply(chunk);
+                    const sentences = chunk.match(/[^.!?]+[.!?]+/g) || [];
+                    while (sentences.length > spokenSentencesCount) {
+                        const newSentence = sentences[spokenSentencesCount].trim();
+                        spokenSentencesCount++;
+                        if (newSentence.length > 2) {
+                            setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(newSentence), text: newSentence }]);
+                        }
+                    }
                 });
                 
-                let cleanReply = fullReply
-                    .replace(/#/g, '')
-                    .replace(/\[|\]/g, '')
-                    .replace(/\*/g, '') // Remove all bold/italic asterisks
-                    .replace(/Sentence \d+:?/gi, '') // Just in case
-                    .trim(); 
+                let cleanReply = fullReply.replace(/#/g, '').replace(/\[|\]/g, '').replace(/\*/g, '').trim();
+                const sentences = cleanReply.match(/[^.!?]+[.!?]+/g) || [];
+                const spokenLength = sentences.join('').length;
+                if (cleanReply.length > spokenLength + 2) {
+                     const finalSentence = cleanReply.substring(spokenLength).trim();
+                     setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(finalSentence), text: finalSentence }]);
+                }
 
-                // Let the Few-Shot prompt handle the logic naturally.
-                // Just log the entire brief response to the chalkboard notes!
                 setCurrentLessonContent(prev => {
                     if (!prev || prev === "Listening to Shizuku...") return "- " + cleanReply;
                     return prev + '\n- ' + cleanReply;
                 });
-
                 setMessages([...newMessages, { role: 'assistant', content: cleanReply }]);
                 setCurrentReply('');
-                
-                const url = '/api/tts?text=' + encodeURIComponent(cleanReply);
-                setIsSpeaking(true);
-                setAudioUrlToSpeak(url);
             } catch (error) {
                 console.error(error);
             } finally {
@@ -236,11 +241,11 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
 
                 const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '');
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
-                if (sentences.length > spokenSentencesCount) {
+                while (sentences.length > spokenSentencesCount) {
                     const newSentence = sentences[spokenSentencesCount].trim();
                     spokenSentencesCount++;
                     if (newSentence.length > 2) {
-                        setAudioQueue(prev => [...prev, '/api/tts?text=' + encodeURIComponent(newSentence)]);
+                        setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(newSentence), text: newSentence }]);
                     }
                 }
             });
@@ -250,7 +255,7 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
             const spokenLength = sentences.join('').length;
             if (cleanSpeech.length > spokenLength + 2) {
                  const finalSentence = cleanSpeech.substring(spokenLength).trim();
-                 setAudioQueue(prev => [...prev, '/api/tts?text=' + encodeURIComponent(finalSentence)]);
+                 setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(finalSentence), text: finalSentence }]);
             }
             
             setMessages([...newMessages, { role: 'assistant', content: fullReply }]);
@@ -266,97 +271,81 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         setIsGenerating(true);
         setCurrentReply('');
         setCurrentLessonTitle(moduleName.replace(/^[0-9.]+\s*/, '')); // Clean title
-        setCurrentLessonContent("Generating diagram...");
+        setCurrentLessonContent("Generating visual aids...");
         setCurrentMediaUrl(null);
         setCurrentVideoId(null);
         setCurrentTestContent(null);
         setCurrentHtmlGraphic(null);
         setCurrentModuleInfo(`Module ${idx + 1} of ${total}: ${moduleName}`);
         
-        // Phase 1: Zero-Shot Image Generation (Background)
+        // Phase 1: Graphics
         setIsSourcing(true);
         const GRAPHICS_PROMPT = `Describe a highly detailed, educational illustration for "${moduleName}" in the context of "${topic}".
 Output ONLY a short descriptive prompt for an AI image generator. Example: "A man pushing a heavy box across a floor to demonstrate physical force and friction."`;
-        
         try {
             const chartReply = await generateResponse([{ role: 'user' as const, content: GRAPHICS_PROMPT }], () => {});
-            
             const cleanPrompt = chartReply.replace(/["\n\[\]]/g, '').trim();
             if (cleanPrompt.length > 5) {
                 setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([cleanPrompt])}]`);
             }
-        } catch(e) {
-            console.error("Graphics Gen failed", e);
-        }
+        } catch(e) {}
         setIsSourcing(false);
 
-        setCurrentLessonContent("Listening to Shizuku...");
+        // Phase 2: Lecture
+        setCurrentLessonContent("Listening to Momentum...");
+        const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching: "${moduleName}" for the topic "${topic}".
+Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech.`;
 
-        const promptText = triggerPrompt || `Please teach me Module ${idx + 1}: ${moduleName}`;
-        const newMessages = [...messages, { role: 'user' as const, content: promptText }];
-        setMessages(newMessages);
-
-        // Phase 2: Socratic Start (No Quiz on Step 1)
-        const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching the topic: "${topic}", specifically focusing on "${moduleName}".
-Provide a fascinating, highly detailed introductory explanation of this topic to hook the student's interest. 
-End your explanation by asking if the student is ready to continue.
-DO NOT use bullet points, bold text, or lists. Just use natural speech.
-CRITICAL: You have the ability to show incredible graphics on the blackboard! If it helps explain the topic, you MUST output a highly descriptive image prompt inside an [IMAGE: ] block anywhere in your response. 
-Format: [IMAGE: description | Title | Short explanation]
-You can output MULTIPLE [IMAGE: ] blocks if you want a carousel!
-You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seconds | true_or_false_for_mute]`;
-
-        const finalMessages = [
-            { role: 'user' as const, content: SYSTEM_PROMPT }
-        ];
-
+        let cleanSpeech = '';
         try {
             let spokenSentencesCount = 0;
-            const fullReply = await generateResponse(finalMessages, (chunk) => {
+            const fullReply = await generateResponse([{ role: 'user' as const, content: SYSTEM_PROMPT }], (chunk) => {
                 setCurrentReply(chunk);
-                
-                // Real-time dynamic drawing extraction!
-                const drawMatch = chunk.match(/\[DRAW:\s*(<svg[\s\S]*?<\/svg>)\s*\]/i);
-                if (drawMatch && drawMatch[1]) {
-                    setCurrentHtmlGraphic(drawMatch[1]);
-                }
-                
-                // Stream Audio Sentence-by-Sentence instantly!
                 const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '');
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
-                if (sentences.length > spokenSentencesCount) {
+                while (sentences.length > spokenSentencesCount) {
                     const newSentence = sentences[spokenSentencesCount].trim();
                     spokenSentencesCount++;
                     if (newSentence.length > 2) {
-                        setAudioQueue(prev => [...prev, '/api/tts?text=' + encodeURIComponent(newSentence)]);
+                        setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(newSentence), text: newSentence }]);
                     }
                 }
             });
             
-            // Queue any remaining text that didn't end in punctuation
-            const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').trim();
+            cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').trim();
             const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
             const spokenLength = sentences.join('').length;
             if (cleanSpeech.length > spokenLength + 2) {
                  const finalSentence = cleanSpeech.substring(spokenLength).trim();
-                 setAudioQueue(prev => [...prev, '/api/tts?text=' + encodeURIComponent(finalSentence)]);
+                 setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(finalSentence), text: finalSentence }]);
             }
-            let cleanReply = fullReply
-                .replace(/#/g, '')
-                .replace(/\[|\]/g, '')
-                .replace(/\*/g, '')
-                .replace(/Sentence \d+:?/gi, '')
-                .trim(); 
             
-            // Log the entire brief response to the chalkboard notes
-            setCurrentLessonContent("- " + cleanReply);
-
-            setMessages([...newMessages, { role: 'assistant', content: cleanReply }]);
+            // Phase 3: Pop Quiz Generation
+            setCurrentLessonContent("- " + cleanSpeech);
+            setCurrentReply("Generating Pop Quiz...");
+            
+            const QUIZ_PROMPT = `Based on your explanation of "${moduleName}", generate a single multiple-choice question to test the student.
+CRITICAL: Output STRICTLY in JSON format and nothing else.
+Format:
+{
+  "question": "What is...",
+  "options": ["A", "B", "C"],
+  "answer": "A",
+  "explanation": "Because..."
+}`;
+            
+            const quizReply = await generateResponse([{ role: 'user' as const, content: cleanSpeech }, { role: 'user' as const, content: QUIZ_PROMPT }], () => {});
+            
+            try {
+                const jsonMatch = quizReply.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const quizData = JSON.parse(jsonMatch[0]);
+                    setCurrentTestContent(JSON.stringify(quizData));
+                }
+            } catch(e) {}
+            
             setCurrentReply('');
-            
-            const url = '/api/tts?text=' + encodeURIComponent(cleanReply);
-            setIsSpeaking(true);
-            setAudioUrlToSpeak(url);
+            setMessages([...messages, { role: 'assistant', content: cleanSpeech }]);
         } catch (error) {
             console.error(error);
         } finally {
@@ -365,7 +354,24 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
     };
 
     const startCurriculum = async (topic: string) => {
-        const modules = ["1. Introduction & Basics", "2. Core Concepts", "3. Real-World Applications"];
+        setIsGenerating(true);
+        setCurrentLessonTitle("Planning Curriculum...");
+        setCurrentLessonContent("Thinking...");
+        const MODULE_PROMPT = `Generate a 3-module curriculum outline for teaching "${topic}". 
+CRITICAL: Output STRICTLY as a JSON array of strings. Do not include any other text.
+Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]`;
+        
+        let modules = ["1. Introduction & Basics", "2. Core Concepts", "3. Real-World Applications"];
+        try {
+            const reply = await generateResponse([{ role: 'user' as const, content: MODULE_PROMPT }], () => {});
+            const jsonMatch = reply.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+                const parsed = JSON.parse(jsonMatch[0]);
+                if (Array.isArray(parsed) && parsed.length > 0) modules = parsed;
+            }
+        } catch(e) {}
+        setIsGenerating(false);
+
         setCurriculum({ topic, modules, currentIndex: 0, isTeaching: true });
         await teachModule(topic, modules[0], 0, modules.length);
     };
@@ -404,11 +410,8 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
     // True Closed-Captioning Engine Synced to Sentence Queue!
     const getCaptionText = (text: string) => {
         // If speaking, perfectly display the EXACT sentence being spoken right now!
-        if (isSpeaking && audioUrlToSpeak) {
-            try {
-                const match = audioUrlToSpeak.match(/\?text=([^&]+)/);
-                if (match) return decodeURIComponent(match[1]);
-            } catch (e) {}
+        if (isSpeaking && currentCaption) {
+            return currentCaption;
         }
         
         if (!text) return "";
@@ -522,11 +525,13 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     <div className={`absolute left-1/2 -translate-x-1/2 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${
                         currentLessonTitle 
                             ? 'top-1/2 -translate-y-1/2 w-full h-full scale-100 lg:top-4 lg:-translate-y-0 lg:w-auto lg:h-auto lg:scale-[0.50]' 
-                            : 'top-1/2 -translate-y-1/2 w-full h-full scale-100 lg:w-auto lg:h-auto lg:scale-[1.2]'
+                            : 'top-1/2 -translate-y-1/2 w-full h-full scale-100'
                     }`}>
                         <AgentFace 
                             state={isGenerating ? 'thinking' : isSpeaking ? 'speaking' : 'idle'} 
-                            className="shadow-[0_0_80px_rgba(139,92,246,0.5)] transition-all duration-1000 rounded-none border-0 w-full h-full lg:rounded-[3rem] lg:border-4 lg:border-white/10 lg:w-[280px] lg:h-[280px]"
+                            className={`shadow-[0_0_80px_rgba(139,92,246,0.5)] transition-all duration-1000 rounded-none border-0 w-full h-full ${
+                                currentLessonTitle ? 'lg:rounded-[3rem] lg:border-4 lg:border-white/10 lg:w-[280px] lg:h-[280px]' : ''
+                            }`}
                         />
 
                         {/* Status Indicator Below Face */}

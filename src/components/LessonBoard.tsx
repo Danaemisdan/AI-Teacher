@@ -22,6 +22,14 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
     const [step, setStep] = useState(0);
     const [activeTab, setActiveTab] = useState<TabType>('notes');
     const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const [selectedQuizOption, setSelectedQuizOption] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (testContent) {
+            setSelectedQuizOption(null);
+            setActiveTab('test');
+        }
+    }, [testContent]);
 
     useEffect(() => {
         if (title) {
@@ -292,12 +300,45 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                     exit={{ opacity: 0 }}
                                     className="absolute inset-0 flex flex-col p-2 overflow-y-auto"
                                 >
-                                    {testContent ? (
-                                        <div className="h-full flex flex-col">
-                                            <h3 className="text-3xl font-bold text-white/80 border-b border-white/30 pb-2 mb-4 drop-shadow-md">Pop Quiz!</h3>
-                                            <div className="text-2xl leading-relaxed space-y-4 drop-shadow-md" dangerouslySetInnerHTML={{ __html: testContent.replace(/\n/g, '<br/>') }} />
-                                        </div>
-                                    ) : (
+                                    {testContent ? (() => {
+                                        let quizObj: any = null;
+                                        try { quizObj = JSON.parse(testContent); } catch(e) {}
+                                        if (quizObj && quizObj.options) {
+                                            return (
+                                                <div className="h-full flex flex-col">
+                                                    <h3 className="text-3xl font-bold text-white/80 border-b border-white/30 pb-2 mb-6 drop-shadow-md">Pop Quiz!</h3>
+                                                    <p className="text-3xl mb-8 leading-relaxed drop-shadow-md">{quizObj.question}</p>
+                                                    <div className="flex flex-col gap-4">
+                                                        {quizObj.options.map((opt: string) => (
+                                                            <button 
+                                                                key={opt}
+                                                                onClick={() => setSelectedQuizOption(opt)}
+                                                                className={`p-5 text-left text-2xl rounded-2xl border transition-all ${selectedQuizOption === opt ? (opt === quizObj.answer ? 'bg-green-500/50 border-green-400 shadow-[0_0_20px_rgba(74,222,128,0.5)]' : 'bg-red-500/50 border-red-400 shadow-[0_0_20px_rgba(248,113,113,0.5)]') : 'bg-white/10 border-white/20 hover:bg-white/20'}`}
+                                                            >
+                                                                {opt}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                    {selectedQuizOption && (
+                                                        <motion.div 
+                                                            initial={{ opacity: 0, y: 20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            className={`mt-8 p-6 rounded-2xl text-2xl drop-shadow-md ${selectedQuizOption === quizObj.answer ? 'bg-green-500/20 text-green-200' : 'bg-red-500/20 text-red-200'}`}
+                                                        >
+                                                            <p className="font-bold mb-2">{selectedQuizOption === quizObj.answer ? 'Correct!' : 'Incorrect.'}</p>
+                                                            <p className="leading-relaxed">{quizObj.explanation}</p>
+                                                        </motion.div>
+                                                    )}
+                                                </div>
+                                            );
+                                        }
+                                        return (
+                                            <div className="h-full flex flex-col">
+                                                <h3 className="text-3xl font-bold text-white/80 border-b border-white/30 pb-2 mb-4 drop-shadow-md">Pop Quiz!</h3>
+                                                <div className="text-2xl leading-relaxed space-y-4 drop-shadow-md" dangerouslySetInnerHTML={{ __html: testContent.replace(/\n/g, '<br/>') }} />
+                                            </div>
+                                        );
+                                    })() : (
                                         <div className="flex-1 flex flex-col items-center justify-center text-white/40 text-3xl animate-pulse">
                                             <p>Preparing quiz...</p>
                                         </div>
