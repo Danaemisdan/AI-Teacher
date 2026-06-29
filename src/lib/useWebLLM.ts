@@ -27,8 +27,7 @@ export function useWebLLM() {
 
         try {
             // Using Qwen2-0.5B which is the absolute smallest model available (~350MB) for ultra-fast downloads!
-            // Using TinyLlama which is highly stable and doesn't deadlock on system prompts
-            const selectedModel = 'TinyLlama-1.1B-Chat-v0.4-q4f16_1-MLC';
+            const selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
             setProgressText(`Loading ${selectedModel}...`);
             
             const engine = await CreateMLCEngine(selectedModel, {

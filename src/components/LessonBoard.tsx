@@ -13,12 +13,13 @@ interface LessonBoardProps {
     testContent?: string | null;
     moduleInfo?: string | null;
     htmlGraphic?: string | null;
-    isSpeaking?: boolean;
+    isSpeaking: boolean;
+    onNextModule?: () => void;
 }
 
 type TabType = 'media' | 'notes' | 'test';
 
-export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic, isSpeaking }: LessonBoardProps) {
+export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic, isSpeaking, onNextModule }: LessonBoardProps) {
     const [step, setStep] = useState(0);
     const [activeTab, setActiveTab] = useState<TabType>('notes');
     const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -148,13 +149,19 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         const start = parts[1] ? `&start=${parts[1]}` : '';
                                                         const end = parts[2] ? `&end=${parts[2]}` : '';
                                                         const mute = parts[3] === 'true' ? '&mute=1' : '';
+                                                        
+                                                        const isSearch = vId.startsWith('search:');
+                                                        const srcUrl = isSearch 
+                                                            ? `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(vId.replace('search:', '').trim())}&autoplay=1` 
+                                                            : `https://www.youtube.com/embed/${vId}?enablejsapi=1&autoplay=1${start}${end}${mute}&controls=1&rel=0`;
+
                                                         return (
                                                             <div className="w-full h-full border-4 border-white/40 rounded-xl overflow-hidden relative shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                                                                 <iframe 
                                                                     id="yt-player"
                                                                     width="100%" 
                                                                     height="100%" 
-                                                                    src={`https://www.youtube.com/embed/${vId}?enablejsapi=1&autoplay=1${start}${end}${mute}&controls=1&rel=0`} 
+                                                                    src={srcUrl} 
                                                                     title="YouTube video player" 
                                                                     frameBorder="0" 
                                                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
@@ -327,6 +334,15 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         >
                                                             <p className="font-bold mb-2">{selectedQuizOption === quizObj.answer ? 'Correct!' : 'Incorrect.'}</p>
                                                             <p className="leading-relaxed">{quizObj.explanation}</p>
+                                                            
+                                                            {selectedQuizOption === quizObj.answer && onNextModule && (
+                                                                <button 
+                                                                    onClick={onNextModule}
+                                                                    className="mt-6 w-full py-4 bg-green-500 hover:bg-green-400 text-black font-bold rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.5)] transition-all"
+                                                                >
+                                                                    Next Module ➔
+                                                                </button>
+                                                            )}
                                                         </motion.div>
                                                     )}
                                                 </div>

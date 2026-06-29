@@ -13,6 +13,22 @@ import { AgentFace } from '@/components/AgentFace';
 
 export default function Home() {
     const { init, isLoaded, isLoading, progressText, generateResponse, interrupt, hasWebGPUError } = useWebLLM();
+
+    const handleNextModule = async () => {
+        if (!curriculum || curriculum.currentIndex >= curriculum.modules.length - 1) {
+            // Finished curriculum
+            setCurriculum(null);
+            setCurrentLessonTitle(null);
+            setCurrentLessonContent(null);
+            setCurrentHtmlGraphic(null);
+            setCurrentTestContent(null);
+            setMessages(prev => [...prev, { role: 'assistant', content: "That concludes the curriculum! What would you like to learn next?" }]);
+            return;
+        }
+        const nextIndex = curriculum.currentIndex + 1;
+        setCurriculum({ ...curriculum, currentIndex: nextIndex });
+        await teachModule(curriculum.topic, curriculum.modules[nextIndex], nextIndex, curriculum.modules.length);
+    };
     const { listen, stopListening, isListening } = useSpeech();
     const [messages, setMessages] = useState<{role: string, content: string}[]>([]);
     const [currentReply, setCurrentReply] = useState('');
@@ -280,18 +296,26 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         
         // Phase 1: Graphics
         setIsSourcing(true);
-        const GRAPHICS_PROMPT = `Describe a highly detailed, educational illustration for "${moduleName}" in the context of "${topic}".
+        const useVideo = Math.random() > 0.5;
+        
+        if (useVideo) {
+            setCurrentLessonContent("Finding a related YouTube video...");
+            setCurrentHtmlGraphic(`[VIDEO: search: ${moduleName} ${topic} tutorial]`);
+        } else {
+            setCurrentLessonContent("Generating visual aids...");
+            const GRAPHICS_PROMPT = `Describe a highly detailed, educational illustration for "${moduleName}" in the context of "${topic}".
 Output ONLY a short descriptive prompt for an AI image generator. Example: "A man pushing a heavy box across a floor to demonstrate physical force and friction."`;
-        try {
-            const chartReply = await generateResponse([
-                { role: 'system', content: 'You are a helpful assistant.' },
-                { role: 'user', content: GRAPHICS_PROMPT }
-            ], () => {});
-            const cleanPrompt = chartReply.replace(/["\n\[\]]/g, '').trim();
-            if (cleanPrompt.length > 5) {
-                setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([cleanPrompt])}]`);
-            }
-        } catch(e) {}
+            try {
+                const chartReply = await generateResponse([
+                    { role: 'system', content: 'You are a helpful assistant.' },
+                    { role: 'user', content: GRAPHICS_PROMPT }
+                ], () => {});
+                const cleanPrompt = chartReply.replace(/["\n\[\]]/g, '').trim();
+                if (cleanPrompt.length > 5) {
+                    setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([cleanPrompt])}]`);
+                }
+            } catch(e) {}
+        }
         setIsSourcing(false);
 
         // Phase 2: Lecture
@@ -377,9 +401,27 @@ Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]
                 { role: 'user', content: MODULE_PROMPT }
             ], () => {});
             const jsonMatch = reply.match(/\[[\s\S]*\]/);
+            let parsedSuccessfully = false;
             if (jsonMatch) {
-                const parsed = JSON.parse(jsonMatch[0]);
-                if (Array.isArray(parsed) && parsed.length > 0) modules = parsed;
+                try {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        modules = parsed;
+                        parsedSuccessfully = true;
+                    }
+                } catch (e) {}
+            }
+            if (!parsedSuccessfully) {
+                const lines = reply.split('\n');
+                const extracted = lines.map(l => l.trim()).filter(l => /^(?:[0-9]+[.)]|-|\*)\s+.+/.test(l));
+                if (extracted.length > 0) {
+                    modules = extracted.map(m => m.replace(/^(?:[0-9]+[.)]|-|\*)\s+/, '').replace(/"/g, ''));
+                } else {
+                    const backupMatch = reply.match(/"([^"]+)"/g);
+                    if (backupMatch && backupMatch.length > 0) {
+                        modules = backupMatch.map(m => m.replace(/"/g, ''));
+                    }
+                }
             }
         } catch(e) {
             console.error("Curriculum generation failed:", e);
@@ -512,6 +554,7 @@ Example: ["1. Introduction to Topic", "2. Deep Dive into X", "3. Advanced Uses"]
                             moduleInfo={currentModuleInfo}
                             htmlGraphic={currentHtmlGraphic}
                             isSpeaking={isSpeaking}
+                            onNextModule={handleNextModule}
                         />
                     </div>
 
