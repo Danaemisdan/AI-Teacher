@@ -29,6 +29,17 @@ export function useWebLLM() {
             let selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
             setProgressText(`Loading ${selectedModel}...`);
             
+            // Optimize network by overriding the default HuggingFace CDN with a faster global mirror (hf-mirror.com)
+            // This prevents the 10-15 second ISP handshake stall before the download even begins!
+            const customAppConfig = {
+                ...prebuiltAppConfig,
+                model_list: prebuiltAppConfig.model_list.map(model => ({
+                    ...model,
+                    model_url: model.model_url ? model.model_url.replace('huggingface.co', 'hf-mirror.com') : model.model_url
+                })),
+                cacheBackend: "indexeddb"
+            };
+
             let engine;
             try {
                 engine = await CreateMLCEngine(selectedModel, {
@@ -36,10 +47,7 @@ export function useWebLLM() {
                         setProgress(info.progress);
                         setProgressText(info.text);
                     },
-                    appConfig: {
-                        ...prebuiltAppConfig,
-                        cacheBackend: "indexeddb"
-                    }
+                    appConfig: customAppConfig
                 });
             } catch (engineError: any) {
                 console.warn(`Failed to load ${selectedModel} (Shader/WebGPU crash). Falling back to 135M model...`, engineError);
@@ -52,10 +60,7 @@ export function useWebLLM() {
                             setProgress(info.progress);
                             setProgressText(info.text);
                         },
-                        appConfig: {
-                            ...prebuiltAppConfig,
-                            cacheBackend: "indexeddb"
-                        }
+                        appConfig: customAppConfig
                     });
                 } catch (fallbackError: any) {
                     console.warn(`Failed to load ${selectedModel} (f16 unsupported). Falling back to f32 model...`, fallbackError);
@@ -67,10 +72,7 @@ export function useWebLLM() {
                             setProgress(info.progress);
                             setProgressText(info.text);
                         },
-                        appConfig: {
-                            ...prebuiltAppConfig,
-                            cacheBackend: "indexeddb"
-                        }
+                        appConfig: customAppConfig
                     });
                 }
             }
