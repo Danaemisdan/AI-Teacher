@@ -73,22 +73,40 @@ export function useWebLLM() {
     ) => {
         if (!engineRef.current) throw new Error("Engine not initialized");
 
-        const chunks = await engineRef.current.chat.completions.create({
-            messages: messages as ChatCompletionMessageParam[],
-            temperature: 0.4,
-            frequency_penalty: 0.5,
-            presence_penalty: 0.5,
-            stream: true,
-        });
+        const executeCompletion = async () => {
+            const chunks = await engineRef.current!.chat.completions.create({
+                messages: messages as ChatCompletionMessageParam[],
+                temperature: 0.4,
+                frequency_penalty: 0.5,
+                presence_penalty: 0.5,
+                stream: true,
+            });
 
-        let fullReply = '';
-        for await (const chunk of chunks) {
-            const content = chunk.choices[0]?.delta?.content || '';
-            fullReply += content;
-            if (onUpdate) onUpdate(fullReply);
+            let fullReply = '';
+            for await (const chunk of chunks) {
+                const content = chunk.choices[0]?.delta?.content || '';
+                fullReply += content;
+                if (onUpdate) onUpdate(fullReply);
+            }
+            return fullReply;
+        };
+
+        try {
+            return await executeCompletion();
+        } catch (error: any) {
+            console.warn("AI generation crashed. Attempting to fall back to a smaller model...", error);
+            
+            const fallbackModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
+            setProgressText(`Recovering: Loading ${fallbackModel}...`);
+            try {
+                await engineRef.current.reload(fallbackModel);
+                setProgressText('Ready (Fallback Mode)');
+                return await executeCompletion();
+            } catch (fallbackError: any) {
+                console.warn("Fallback model also failed.", fallbackError);
+                throw fallbackError;
+            }
         }
-        
-        return fullReply;
     }, []);
 
     const interrupt = useCallback(() => {
