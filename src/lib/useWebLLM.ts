@@ -46,16 +46,33 @@ export function useWebLLM() {
                 selectedModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
                 setProgressText(`Recovering: Loading ${selectedModel}...`);
                 
-                engine = await CreateMLCEngine(selectedModel, {
-                    initProgressCallback: (info) => {
-                        setProgress(info.progress);
-                        setProgressText(info.text);
-                    },
-                    appConfig: {
-                        ...prebuiltAppConfig,
-                        cacheBackend: "indexeddb"
-                    }
-                });
+                try {
+                    engine = await CreateMLCEngine(selectedModel, {
+                        initProgressCallback: (info) => {
+                            setProgress(info.progress);
+                            setProgressText(info.text);
+                        },
+                        appConfig: {
+                            ...prebuiltAppConfig,
+                            cacheBackend: "indexeddb"
+                        }
+                    });
+                } catch (fallbackError: any) {
+                    console.warn(`Failed to load ${selectedModel} (f16 unsupported). Falling back to f32 model...`, fallbackError);
+                    selectedModel = 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+                    setProgressText(`Recovering: Loading ${selectedModel} (f32 Compatibility Mode)...`);
+                    
+                    engine = await CreateMLCEngine(selectedModel, {
+                        initProgressCallback: (info) => {
+                            setProgress(info.progress);
+                            setProgressText(info.text);
+                        },
+                        appConfig: {
+                            ...prebuiltAppConfig,
+                            cacheBackend: "indexeddb"
+                        }
+                    });
+                }
             }
             
             engineRef.current = engine;
