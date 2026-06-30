@@ -82,6 +82,8 @@ export default function Home() {
     const [isSourcing, setIsSourcing] = useState(false);
     const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
     const [curriculum, setCurriculum] = useState<{ topic: string, modules: string[], currentIndex: number, isTeaching: boolean } | null>(null);
+    const [teachingPhase, setTeachingPhase] = useState<'lecture' | 'challenge' | 'quiz' | null>(null);
+    const [baseBrainKnowledge, setBaseBrainKnowledge] = useState<string[]>([]);
 
     const CHAPTERS = [
         "Chapter 1: The Cosmos & Black Holes",
@@ -130,16 +132,86 @@ export default function Home() {
             const newMessages = [...messages, { role: 'user' as const, content: promptText }];
             setMessages(newMessages);
 
+            if (teachingPhase === 'challenge') {
+                // Phase 3: Evaluate and Quiz
+                setTeachingPhase('quiz');
+                
+                const EVAL_PROMPT = `You are the Examiner.
+Base Knowledge: ${baseBrainKnowledge.join('\n')}
+Assistant's Challenge: "${messages[messages.length-1].content}"
+User's Answer: "${promptText}"
+
+Evaluate the user's answer accurately. If correct, praise them. If wrong, correct them. Be conversational and use natural speech.`;
+                
+                try {
+                    let spokenSentencesCount = 0;
+                    const evalReply = await generateResponse([
+                        { role: 'system', content: 'You are the Examiner.' },
+                        { role: 'user', content: EVAL_PROMPT }
+                    ], (chunk) => {
+                        setCurrentReply(chunk);
+                        const sentences = chunk.match(/[^.!?]+[.!?]+/g) || [];
+                        while (sentences.length > spokenSentencesCount) {
+                            const newSentence = sentences[spokenSentencesCount].trim();
+                            spokenSentencesCount++;
+                            if (newSentence.length > 2) {
+                                setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(newSentence), text: newSentence }]);
+                            }
+                        }
+                    });
+
+                    let cleanEval = evalReply.replace(/#/g, '').replace(/\[|\]/g, '').replace(/\*/g, '').trim();
+                    const sentences = cleanEval.match(/[^.!?]+[.!?]+/g) || [];
+                    const spokenLength = sentences.join('').length;
+                    if (cleanEval.length > spokenLength + 2) {
+                         const finalSentence = cleanEval.substring(spokenLength).trim();
+                         setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(finalSentence), text: finalSentence }]);
+                    }
+                    
+                    setBaseBrainKnowledge(prev => [...prev, `User Answer: ${promptText}`, `Examiner Eval: ${cleanEval}`]);
+                    
+                    setCurrentLessonContent(prev => prev + '\n\n**Examiner Evaluation:**\n' + cleanEval);
+                    setMessages([...newMessages, { role: 'assistant', content: cleanEval }]);
+                    
+                    // Generate Pop Quiz
+                    setCurrentReply("Generating Pop Quiz...");
+                    const QUIZ_PROMPT = `Generate a single multiple-choice question to test the student on this module.
+The options MUST contain the actual full text of the possible answers.
+Example:
+{"question": "What is X?", "options": ["X is Y", "X is Z", "X is A"], "answer": "X is Y", "explanation": "Because X is Y."}`;
+                    
+                    const quizReply = await generateResponse([
+                        { role: 'system', content: `You are an educational quiz generator. Base Knowledge: ${baseBrainKnowledge.join('\n')}` },
+                        { role: 'user', content: QUIZ_PROMPT }
+                    ], () => {});
+                    
+                    try {
+                        const jsonMatch = quizReply.match(/\{[\s\S]*\}/);
+                        if (jsonMatch) {
+                            const quizData = JSON.parse(jsonMatch[0]);
+                            setCurrentTestContent(JSON.stringify(quizData));
+                        }
+                    } catch(e) {}
+                    
+                    setCurrentReply('');
+
+                } catch (error) {
+                    console.warn("Eval generation failed:", error);
+                } finally {
+                    setIsGenerating(false);
+                }
+                return;
+            }
+
+            // General conversational fallback
             const SYSTEM_PROMPT = `You are Momentum, teaching ${curriculum.modules[curriculum.currentIndex]}.
-Taught so far:
-${currentLessonContent}
+Base Knowledge:
+${baseBrainKnowledge.join('\n')}
 
 User said: "${promptText}"
-Reply conversationally with a detailed, engaging explanation building on what was taught. End your response by asking a thought-provoking question to continue the lesson.
+Reply conversationally. End your response by asking a thought-provoking question to continue the lesson.
 DO NOT use bullet points, bold text, or lists. Just natural speech.
-CRITICAL: You have the ability to show incredible graphics on the blackboard! If it helps explain the topic, you MUST output a highly descriptive image prompt inside an [IMAGE: ] block anywhere in your response. 
-Format: [IMAGE: description | Title | Short explanation]
-You can output MULTIPLE [IMAGE: ] blocks if you want a carousel!
+CRITICAL: You can show graphics on the blackboard using [IMAGE: description | Title | Short explanation]
 You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seconds | true_or_false_for_mute]`;
 
             const finalMessages = [
@@ -150,7 +222,26 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                 let spokenSentencesCount = 0;
                 const fullReply = await generateResponse(finalMessages, (chunk) => {
                     setCurrentReply(chunk);
-                    const sentences = chunk.match(/[^.!?]+[.!?]+/g) || [];
+                    
+                    const drawMatch = chunk.match(/\[DRAW:\s*(<svg[\s\S]*?<\/svg>)\s*\]/i);
+                    if (drawMatch && drawMatch[1]) {
+                        setCurrentHtmlGraphic(drawMatch[1]);
+                    }
+                    
+                    // MULTIPLE IMAGES
+                    const imageMatches = [...chunk.matchAll(/\[IMAGE:\s*([\s\S]*?)\]/gi)].map(m => m[1].trim());
+                    if (imageMatches.length > 0) {
+                        setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify(imageMatches)}]`);
+                    }
+                    
+                    // YOUTUBE VIDEO
+                    const videoMatch = chunk.match(/\[VIDEO:\s*(.*?)\s*\]/i);
+                    if (videoMatch && videoMatch[1]) {
+                        setCurrentHtmlGraphic(`[VIDEO: ${videoMatch[1]}]`);
+                    }
+
+                    const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '');
+                    const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
                     while (sentences.length > spokenSentencesCount) {
                         const newSentence = sentences[spokenSentencesCount].trim();
                         spokenSentencesCount++;
@@ -160,22 +251,19 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     }
                 });
                 
-                let cleanReply = fullReply.replace(/#/g, '').replace(/\[|\]/g, '').replace(/\*/g, '').trim();
-                const sentences = cleanReply.match(/[^.!?]+[.!?]+/g) || [];
+                const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').trim();
+                const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
                 const spokenLength = sentences.join('').length;
-                if (cleanReply.length > spokenLength + 2) {
-                     const finalSentence = cleanReply.substring(spokenLength).trim();
+                if (cleanSpeech.length > spokenLength + 2) {
+                     const finalSentence = cleanSpeech.substring(spokenLength).trim();
                      setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(finalSentence), text: finalSentence }]);
                 }
-
-                setCurrentLessonContent(prev => {
-                    if (!prev || prev === "Listening to Shizuku...") return "- " + cleanReply;
-                    return prev + '\n- ' + cleanReply;
-                });
-                setMessages([...newMessages, { role: 'assistant', content: cleanReply }]);
+                
+                setBaseBrainKnowledge(prev => [...prev, `User Answer: ${promptText}`, `Momentum: ${cleanSpeech}`]);
+                setMessages([...newMessages, { role: 'assistant', content: fullReply }]);
                 setCurrentReply('');
             } catch (error) {
-                console.warn("Generation failed:", error);
+                console.warn("Chat generation failed:", error);
             } finally {
                 setIsGenerating(false);
             }
@@ -285,6 +373,7 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
 
     const teachModule = async (topic: string, moduleName: string, idx: number, total: number, triggerPrompt?: string) => {
         setIsGenerating(true);
+        setTeachingPhase('lecture');
         setCurrentReply('');
         setCurrentLessonTitle(moduleName.replace(/^[0-9.]+\s*/, '')); // Clean title
         setCurrentLessonContent("Generating visual aids...");
@@ -295,11 +384,10 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         setCurrentModuleInfo(`Module ${idx + 1} of ${total}: ${moduleName}`);
         
         // Phase 1: Graphics (Instant)
-        // Generate a highly specific prompt for Stable Diffusion so we get actual educational diagrams instead of surreal art.
         const imagePrompt = `${moduleName} concept diagram, educational infographic, clean minimal UI, flat design, white background`;
         setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([imagePrompt])}]`);
 
-        // Phase 2: Lecture
+        // Phase 1: Teacher Lecture
         setCurrentLessonContent("Listening to Momentum...");
         const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching: "${moduleName}" for the topic "${topic}".
 Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech.`;
@@ -331,32 +419,49 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
                  setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(finalSentence), text: finalSentence }]);
             }
             
-            // Phase 3: Pop Quiz Generation
+            // Save to Base Brain!
+            setBaseBrainKnowledge([`Topic: ${topic}`, `Module: ${moduleName}`, `Lecture Notes: ${cleanSpeech}`]);
             setCurrentLessonContent("- " + cleanSpeech);
-            setCurrentReply("Generating Pop Quiz...");
             
-            const QUIZ_PROMPT = `Generate a single multiple-choice question to test the student on "${moduleName}".
-The options MUST contain the actual full text of the possible answers.
-Example for ${moduleName}:
-{"question": "What is the main purpose of ${moduleName}?", "options": ["It is used for X", "It is used for Y", "It is used for Z"], "answer": "It is used for X", "explanation": "Because X is the correct definition of ${moduleName}."}`;
+            // Phase 2: Assistant Challenge
+            setTeachingPhase('challenge');
+            setCurrentReply("Assistant is generating a challenge...");
             
-            const quizReply = await generateResponse([
-                { role: 'system', content: 'You are an educational quiz generator.' },
-                { role: 'user', content: `Here is the explanation you gave: ${cleanSpeech}\n\n${QUIZ_PROMPT}` }
-            ], () => {});
-            
-            try {
-                const jsonMatch = quizReply.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    const quizData = JSON.parse(jsonMatch[0]);
-                    setCurrentTestContent(JSON.stringify(quizData));
+            const CHALLENGE_PROMPT = `You are the Teaching Assistant. Based on the lecture:
+${cleanSpeech}
+Pose a single, engaging, Socratic question to the user to test their understanding. Be conversational and slightly challenging. DO NOT output the answer.`;
+
+            let challengeSpokenSentencesCount = 0;
+            const challengeReply = await generateResponse([
+                { role: 'system', content: 'You are a Teaching Assistant.' },
+                { role: 'user', content: CHALLENGE_PROMPT }
+            ], (chunk) => {
+                setCurrentReply(chunk);
+                const sentences = chunk.match(/[^.!?]+[.!?]+/g) || [];
+                while (sentences.length > challengeSpokenSentencesCount) {
+                    const newSentence = sentences[challengeSpokenSentencesCount].trim();
+                    challengeSpokenSentencesCount++;
+                    if (newSentence.length > 2) {
+                        setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(newSentence), text: newSentence }]);
+                    }
                 }
-            } catch(e) {}
+            });
+            
+            let cleanChallenge = challengeReply.replace(/#/g, '').replace(/\[|\]/g, '').replace(/\*/g, '').trim();
+            const challengeSentences = cleanChallenge.match(/[^.!?]+[.!?]+/g) || [];
+            const challengeSpokenLength = challengeSentences.join('').length;
+            if (cleanChallenge.length > challengeSpokenLength + 2) {
+                 const finalSentence = cleanChallenge.substring(challengeSpokenLength).trim();
+                 setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(finalSentence), text: finalSentence }]);
+            }
+            
+            setBaseBrainKnowledge(prev => [...prev, `Assistant Challenge: ${challengeReply}`]);
+            setCurrentLessonContent(prev => prev + '\n\n**Assistant Challenge:**\n' + challengeReply);
             
             setCurrentReply('');
-            setMessages([...messages, { role: 'assistant', content: cleanSpeech }]);
+            setMessages([...messages, { role: 'assistant', content: challengeReply }]);
         } catch (error) {
-            console.warn("Quiz generation failed:", error);
+            console.warn("Module generation failed:", error);
         } finally {
             setIsGenerating(false);
         }
