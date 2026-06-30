@@ -26,20 +26,37 @@ export function useWebLLM() {
         }
 
         try {
-            // Using Qwen2-0.5B which is the absolute smallest model available (~350MB) for ultra-fast downloads!
-            const selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
+            let selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
             setProgressText(`Loading ${selectedModel}...`);
             
-            const engine = await CreateMLCEngine(selectedModel, {
-                initProgressCallback: (info) => {
-                    setProgress(info.progress);
-                    setProgressText(info.text);
-                },
-                appConfig: {
-                    ...prebuiltAppConfig,
-                    cacheBackend: "indexeddb"
-                }
-            });
+            let engine;
+            try {
+                engine = await CreateMLCEngine(selectedModel, {
+                    initProgressCallback: (info) => {
+                        setProgress(info.progress);
+                        setProgressText(info.text);
+                    },
+                    appConfig: {
+                        ...prebuiltAppConfig,
+                        cacheBackend: "indexeddb"
+                    }
+                });
+            } catch (engineError: any) {
+                console.warn(`Failed to load ${selectedModel} (Shader/WebGPU crash). Falling back to 135M model...`, engineError);
+                selectedModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
+                setProgressText(`Recovering: Loading ${selectedModel}...`);
+                
+                engine = await CreateMLCEngine(selectedModel, {
+                    initProgressCallback: (info) => {
+                        setProgress(info.progress);
+                        setProgressText(info.text);
+                    },
+                    appConfig: {
+                        ...prebuiltAppConfig,
+                        cacheBackend: "indexeddb"
+                    }
+                });
+            }
             
             engineRef.current = engine;
             setIsLoaded(true);
