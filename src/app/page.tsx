@@ -175,7 +175,7 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                 setMessages([...newMessages, { role: 'assistant', content: cleanReply }]);
                 setCurrentReply('');
             } catch (error) {
-                console.error(error);
+                console.warn("Generation failed:", error);
             } finally {
                 setIsGenerating(false);
             }
@@ -215,7 +215,7 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     // Removed random YouTube video hijacking so the AI is forced to draw SVGs instead!
                 }
             } catch (e) {
-                console.error("Failed to fetch web context", e);
+                console.warn("Failed to fetch web context", e);
             }
         }
         setIsSourcing(false);
@@ -277,7 +277,7 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
             setMessages([...newMessages, { role: 'assistant', content: fullReply }]);
             setCurrentReply('');
         } catch (error) {
-            console.error(error);
+            console.warn("Chat generation failed:", error);
         } finally {
             setIsGenerating(false);
         }
@@ -356,7 +356,7 @@ Example for ${moduleName}:
             setCurrentReply('');
             setMessages([...messages, { role: 'assistant', content: cleanSpeech }]);
         } catch (error) {
-            console.error(error);
+            console.warn("Quiz generation failed:", error);
         } finally {
             setIsGenerating(false);
         }
@@ -405,7 +405,7 @@ Format exactly like this (replace with actual concepts for ${topic}):
                 }
             }
         } catch(e) {
-            console.error("Curriculum generation failed:", e);
+            console.warn("Curriculum generation failed (WebGPU Crash or Timeout):", e);
             setCurrentLessonTitle("System Error");
             setCurrentLessonContent("Failed to generate curriculum. The AI engine may have crashed due to memory limits. Please reload the page.");
             setIsGenerating(false);
