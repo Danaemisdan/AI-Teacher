@@ -160,7 +160,7 @@ Evaluate the user's answer accurately. If correct, praise them. If wrong, correc
                         }
                     });
 
-                    let cleanEval = evalReply.replace(/#/g, '').replace(/\[|\]/g, '').replace(/\*/g, '').trim();
+                    let cleanEval = evalReply.replace(/#/g, '').replace(/\[|\]/g, '').replace(/\*/g, '').replace(/`/g, '').trim();
                     const sentences = cleanEval.match(/[^.!?]+[.!?]+/g) || [];
                     const spokenLength = sentences.join('').length;
                     if (cleanEval.length > spokenLength + 2) {
@@ -387,8 +387,10 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         setCurrentLessonContent("Listening to Momentum...");
         const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching: "${moduleName}" for the topic "${topic}".
 Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech.
-CRITICAL: You MUST dynamically generate a diagram for the blackboard to aid your explanation! Output a highly descriptive image prompt inside an [IMAGE: ] block anywhere in your response.
-Format: [IMAGE: description | Title | Short explanation]`;
+CRITICAL: You MUST dynamically draw a diagram on the blackboard to visually explain the concept! 
+Output a beautiful, clean, modern SVG drawing inside a [DRAW: ] block anywhere in your response. 
+Use flat design, vibrant colors, and clear text labels.
+Format: [DRAW: <svg viewBox="0 0 500 400">...</svg>]`;
 
         let cleanSpeech = '';
         try {
@@ -416,7 +418,9 @@ Format: [IMAGE: description | Title | Short explanation]`;
                 }
             });
             
-            cleanSpeech = fullReply.replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[DRAW:[\s\S]*?\]/gi, '').trim();
+            cleanSpeech = fullReply.replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[DRAW:[\s\S]*?\]/gi, '');
+            // Aggressively strip markdown (hashes, asterisks, backticks) since the blackboard doesn't render markdown
+            cleanSpeech = cleanSpeech.replace(/#/g, '').replace(/\*/g, '').replace(/`/g, '').trim();
             const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
             const spokenLength = sentences.join('').length;
             if (cleanSpeech.length > spokenLength + 2) {
@@ -452,7 +456,7 @@ Pose a single, engaging, Socratic question to the user to test their understandi
                 }
             });
             
-            let cleanChallenge = challengeReply.replace(/#/g, '').replace(/\[|\]/g, '').replace(/\*/g, '').trim();
+            let cleanChallenge = challengeReply.replace(/#/g, '').replace(/\[|\]/g, '').replace(/\*/g, '').replace(/`/g, '').trim();
             const challengeSentences = cleanChallenge.match(/[^.!?]+[.!?]+/g) || [];
             const challengeSpokenLength = challengeSentences.join('').length;
             if (cleanChallenge.length > challengeSpokenLength + 2) {
@@ -472,47 +476,33 @@ Pose a single, engaging, Socratic question to the user to test their understandi
         }
     };
 
-    const startCurriculum = async (topic: string) => {
+    const startCurriculum = async (rawPrompt: string) => {
         setIsGenerating(true);
         setCurrentLessonTitle("Planning Curriculum...");
         setCurrentLessonContent("Thinking...");
-        const MODULE_PROMPT = `Generate a 3-module curriculum syllabus for teaching the topic: "${topic}".
-Output ONLY a JSON array of strings.
-Format exactly like this (replace with actual concepts for ${topic}):
-["1. Introduction to ${topic}", "2. Core concepts of ${topic}", "3. Advanced ${topic}"]`;
+        const MODULE_PROMPT = `Analyze the student's request: "${rawPrompt}".
+Extract the core educational topic they want to learn. Then, generate a 3-module syllabus.
+Output ONLY a strict JSON object.
+Format exactly like this:
+{"topic": "The Core Topic", "modules": ["1. Introduction to [Topic]", "2. Core concepts of [Topic]", "3. Advanced [Topic]"]}`;
         
+        let extractedTopic = rawPrompt;
         let modules = ["1. Introduction & Basics", "2. Core Concepts", "3. Real-World Applications"];
         try {
             const reply = await generateResponse([
                 { role: 'system', content: 'You are an educational curriculum planner.' },
                 { role: 'user', content: MODULE_PROMPT }
             ], () => {});
-            const jsonMatch = reply.match(/\[[\s\S]*\]/);
-            let parsedSuccessfully = false;
+            
+            const jsonMatch = reply.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
                 try {
                     const parsed = JSON.parse(jsonMatch[0]);
-                    if (Array.isArray(parsed) && parsed.length > 0) {
-                        modules = parsed.map(item => {
-                            if (typeof item === 'string') return item;
-                            if (item && typeof item === 'object') return item.title || item.name || item.module || JSON.stringify(item);
-                            return String(item);
-                        });
-                        parsedSuccessfully = true;
+                    if (parsed.topic) extractedTopic = parsed.topic;
+                    if (Array.isArray(parsed.modules) && parsed.modules.length > 0) {
+                        modules = parsed.modules.map((item: any) => String(item));
                     }
                 } catch (e) {}
-            }
-            if (!parsedSuccessfully) {
-                const lines = reply.split('\n');
-                const extracted = lines.map(l => l.trim()).filter(l => /^(?:[0-9]+[.)]|-|\*)\s+.+/.test(l));
-                if (extracted.length > 0) {
-                    modules = extracted.map(m => m.replace(/^(?:[0-9]+[.)]|-|\*)\s+/, '').replace(/"/g, ''));
-                } else {
-                    const backupMatch = reply.match(/"([^"]+)"/g);
-                    if (backupMatch && backupMatch.length > 0) {
-                        modules = backupMatch.map(m => m.replace(/"/g, ''));
-                    }
-                }
             }
         } catch(e) {
             console.warn("Curriculum generation failed (WebGPU Crash or Timeout):", e);
@@ -523,8 +513,8 @@ Format exactly like this (replace with actual concepts for ${topic}):
         }
         setIsGenerating(false);
 
-        setCurriculum({ topic, modules, currentIndex: 0, isTeaching: true });
-        await teachModule(topic, modules[0], 0, modules.length);
+        setCurriculum({ topic: extractedTopic, modules, currentIndex: 0, isTeaching: true });
+        await teachModule(extractedTopic, modules[0], 0, modules.length);
     };
 
     const handleTextSubmit = (e?: React.FormEvent) => {
