@@ -26,30 +26,37 @@ export function useWebLLM() {
         }
 
         try {
-            // Hardware Heuristic: Proactively detect lower-end devices to assign the tiny model instantly
-            let isLowEnd = false;
+            // 3-Tier Hardware & Network Heuristic
+            let tier = 1; // 1 = High (Llama), 2 = Mid/Slow-Net (Qwen), 3 = Low (SmolLM)
             
-            // Check RAM (Supported on Chrome/Android)
-            if ('deviceMemory' in navigator && (navigator as any).deviceMemory <= 4) {
-                isLowEnd = true;
-            }
-            
-            // Check CPU Cores
-            if (!isLowEnd && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) {
-                isLowEnd = true;
-            }
-            
-            // Aggressive mobile check
-            const isMobile = window.innerWidth < 1024 || navigator.maxTouchPoints > 0;
-            if (isMobile && isLowEnd) {
-                console.log("Low-end mobile device detected. Defaulting to tiny 135M model.");
-            } else if (isMobile && !('deviceMemory' in navigator) && navigator.hardwareConcurrency <= 6) {
-                // Older iOS devices
-                isLowEnd = true;
+            // Check RAM & CPU
+            if (('deviceMemory' in navigator && (navigator as any).deviceMemory <= 4) || 
+                ('hardwareConcurrency' in navigator && (navigator as any).hardwareConcurrency <= 4)) {
+                tier = 3;
             }
 
-            let selectedModel = isLowEnd ? 'Qwen2-0.5B-Instruct-q4f16_1-MLC' : 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
-            setProgressText(`Hardware Profile: ${isLowEnd ? 'Low-End' : 'High-End'} | Loading ${selectedModel}...`);
+            // Check Mobile
+            if (/Mobi|Android/i.test(navigator.userAgent) && window.innerWidth <= 768) {
+                tier = 3;
+            }
+
+            // Check Internet Speed (if supported)
+            if (tier < 3 && 'connection' in navigator) {
+                const conn = (navigator as any).connection;
+                // If downlink is less than 15Mbps, fall back to Qwen to prevent massive download times
+                if (conn.downlink && conn.downlink < 15) {
+                    tier = 2;
+                }
+            } else if (tier < 3) {
+                // If we can't detect internet speed, default to Qwen to be safe on bandwidth
+                tier = 2;
+            }
+
+            let selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
+            if (tier === 1) selectedModel = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+            if (tier === 3) selectedModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
+            
+            setProgressText(`Hardware Tier: ${tier} | Loading ${selectedModel}...`);
             
             // 1. Check for custom dedicated server override
             // 2. Fallback to fast global mirror (hf-mirror.com) to bypass ISP throttling
@@ -78,8 +85,10 @@ export function useWebLLM() {
                     appConfig: customAppConfig
                 });
             } catch (engineError: any) {
-                console.warn(`Failed to load ${selectedModel} (Shader/WebGPU crash). Falling back to 135M model...`, engineError);
-                selectedModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
+                console.warn(`Failed to load ${selectedModel} (Shader/WebGPU crash). Falling back to lower tier model...`, engineError);
+                if (tier === 1) selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
+                else selectedModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
+                
                 setProgressText(`Recovering: Loading ${selectedModel}...`);
                 
                 try {
@@ -92,7 +101,10 @@ export function useWebLLM() {
                     });
                 } catch (fallbackError: any) {
                     console.warn(`Failed to load ${selectedModel} (f16 unsupported). Falling back to f32 model...`, fallbackError);
-                    selectedModel = isLowEnd ? 'Qwen2-0.5B-Instruct-q4f32_1-MLC' : 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+                    if (tier === 1) selectedModel = 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+                    else if (tier === 3) selectedModel = 'SmolLM2-135M-Instruct-q0f32-MLC';
+                    else selectedModel = 'Qwen2-0.5B-Instruct-q4f32_1-MLC';
+                    
                     setProgressText(`Recovering: Loading ${selectedModel} (f32 Compatibility Mode)...`);
                     
                     engine = await CreateMLCEngine(selectedModel, {
