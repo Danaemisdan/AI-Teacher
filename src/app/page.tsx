@@ -390,7 +390,7 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
 CRITICAL: You MUST dynamically draw a diagram on the blackboard to visually explain the concept! 
 Output a clean Mermaid.js diagram inside a [DRAW: ] block anywhere in your response. 
 Use flowchart, mindmap, or graph. Keep it simple.
-Format: [DRAW: graph TD; A-->B;]`;
+Format: [DRAW: (your mermaid code here) ]`;
 
         let cleanSpeech = '';
         try {

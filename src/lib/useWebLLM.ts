@@ -48,7 +48,7 @@ export function useWebLLM() {
                 isLowEnd = true;
             }
 
-            let selectedModel = isLowEnd ? 'SmolLM2-135M-Instruct-q0f16-MLC' : 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
+            let selectedModel = isLowEnd ? 'Qwen2-0.5B-Instruct-q4f16_1-MLC' : 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
             setProgressText(`Hardware Profile: ${isLowEnd ? 'Low-End' : 'High-End'} | Loading ${selectedModel}...`);
             
             // 1. Check for custom dedicated server override
@@ -92,7 +92,7 @@ export function useWebLLM() {
                     });
                 } catch (fallbackError: any) {
                     console.warn(`Failed to load ${selectedModel} (f16 unsupported). Falling back to f32 model...`, fallbackError);
-                    selectedModel = 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
+                    selectedModel = isLowEnd ? 'Qwen2-0.5B-Instruct-q4f32_1-MLC' : 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
                     setProgressText(`Recovering: Loading ${selectedModel} (f32 Compatibility Mode)...`);
                     
                     engine = await CreateMLCEngine(selectedModel, {
