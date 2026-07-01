@@ -388,20 +388,26 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching: "${moduleName}" for the topic "${topic}".
 Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech.
 CRITICAL: You MUST dynamically draw a diagram on the blackboard to visually explain the concept! 
-Output a beautiful, clean, modern SVG drawing inside a [DRAW: ] block anywhere in your response. 
-Use flat design, vibrant colors, and clear text labels.
-Format: [DRAW: <svg viewBox="0 0 500 400">...</svg>]`;
+Output a clean Mermaid.js diagram inside a [DRAW: ] block anywhere in your response. 
+Use flowchart, mindmap, or graph. Keep it simple.
+Format: [DRAW: graph TD; A-->B;]`;
 
         let cleanSpeech = '';
         try {
             let spokenSentencesCount = 0;
             const fullReply = await generateResponse([
                 { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: `Please start teaching ${moduleName} now.` }
+                { role: 'user', content: `Give a highly detailed lecture explaining ${moduleName}. Do not say okay. Start the explanation immediately.` }
             ], (chunk) => {
                 setCurrentReply(chunk);
                 
-                // Parse AI-generated diagram
+                // Parse AI-generated Mermaid/SVG diagram
+                const drawMatch = chunk.match(/\[DRAW:\s*([\s\S]*?)\]/i);
+                if (drawMatch && drawMatch[1]) {
+                    setCurrentHtmlGraphic(drawMatch[1].trim());
+                }
+
+                // Parse AI-generated Pollinations image
                 const imageMatches = [...chunk.matchAll(/\[IMAGE:\s*([\s\S]*?)\]/gi)].map(m => m[1].trim());
                 if (imageMatches.length > 0) {
                     setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify(imageMatches)}]`);
@@ -436,13 +442,14 @@ Format: [DRAW: <svg viewBox="0 0 500 400">...</svg>]`;
             setTeachingPhase('challenge');
             setCurrentReply("Assistant is generating a challenge...");
             
-            const CHALLENGE_PROMPT = `You are the Teaching Assistant. Based on the lecture:
+            const CHALLENGE_PROMPT = `You are the Teaching Assistant. Based ONLY on the lecture below:
 ${cleanSpeech}
-Pose a single, engaging, Socratic question to the user to test their understanding. Be conversational and slightly challenging. DO NOT output the answer.`;
+
+Pose a single, engaging, Socratic question to the user to test their understanding of the lecture. DO NOT output the answer. Be conversational.`;
 
             let challengeSpokenSentencesCount = 0;
             const challengeReply = await generateResponse([
-                { role: 'system', content: 'You are a Teaching Assistant.' },
+                { role: 'system', content: 'You are a Teaching Assistant. Ask exactly one engaging Socratic question based on the provided notes. Do not output anything else.' },
                 { role: 'user', content: CHALLENGE_PROMPT }
             ], (chunk) => {
                 setCurrentReply(chunk);
