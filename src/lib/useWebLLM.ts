@@ -26,17 +26,50 @@ export function useWebLLM() {
         }
 
         try {
-            let selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
-            setProgressText(`Loading ${selectedModel}...`);
+            // Hardware Heuristic: Proactively detect lower-end devices to assign the tiny model instantly
+            let isLowEnd = false;
             
-            // Optimize network by overriding the default HuggingFace CDN with a faster global mirror (hf-mirror.com)
-            // This prevents the 10-15 second ISP handshake stall before the download even begins!
+            // Check RAM (Supported on Chrome/Android)
+            if ('deviceMemory' in navigator && (navigator as any).deviceMemory <= 4) {
+                isLowEnd = true;
+            }
+            
+            // Check CPU Cores
+            if (!isLowEnd && navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) {
+                isLowEnd = true;
+            }
+            
+            // Aggressive mobile check
+            const isMobile = window.innerWidth < 1024 || navigator.maxTouchPoints > 0;
+            if (isMobile && isLowEnd) {
+                console.log("Low-end mobile device detected. Defaulting to tiny 135M model.");
+            } else if (isMobile && !('deviceMemory' in navigator) && navigator.hardwareConcurrency <= 6) {
+                // Older iOS devices
+                isLowEnd = true;
+            }
+
+            let selectedModel = isLowEnd ? 'SmolLM2-135M-Instruct-q0f16-MLC' : 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
+            setProgressText(`Hardware Profile: ${isLowEnd ? 'Low-End' : 'High-End'} | Loading ${selectedModel}...`);
+            
+            // 1. Check for custom dedicated server override
+            // 2. Fallback to fast global mirror (hf-mirror.com) to bypass ISP throttling
+            const customHost = process.env.NEXT_PUBLIC_MODEL_HOST;
+            
             const customAppConfig = {
                 ...prebuiltAppConfig,
-                model_list: prebuiltAppConfig.model_list.map(model => ({
-                    ...model,
-                    model_url: model.model_url ? model.model_url.replace('huggingface.co', 'hf-mirror.com') : model.model_url
-                })),
+                model_list: prebuiltAppConfig.model_list.map(model => {
+                    let newUrl = model.model_url;
+                    if (newUrl) {
+                        if (customHost) {
+                            // Extract the model repo name (e.g. "Qwen2-0.5B-Instruct-q4f16_1-MLC") from the URL
+                            const repoName = newUrl.split('/').pop();
+                            newUrl = `${customHost}/${repoName}`;
+                        } else {
+                            newUrl = newUrl.replace('huggingface.co', 'hf-mirror.com');
+                        }
+                    }
+                    return { ...model, model_url: newUrl };
+                }),
                 cacheBackend: "indexeddb"
             };
 
