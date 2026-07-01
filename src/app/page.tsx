@@ -383,14 +383,33 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         setCurrentHtmlGraphic(null);
         setCurrentModuleInfo(`Module ${idx + 1} of ${total}: ${moduleName}`);
         
-        // Phase 1: Teacher Lecture + Dynamic Diagram
+        // --- PHASE 1a: Diagram Generation (Task Decomposition for Tiny Models) ---
+        setCurrentLessonContent("Drawing diagram...");
+        try {
+            const DIAGRAM_PROMPT = `You are an expert diagram designer. Create a Mermaid.js flowchart explaining the core concepts of: "${moduleName}".
+RULES:
+1. ONLY output valid Mermaid.js code.
+2. Start with "graph TD;"
+3. DO NOT output any markdown blocks, conversational text, or explanations. Just the raw code.`;
+            
+            const diagramReply = await generateResponse([
+                { role: 'system', content: 'You only output raw Mermaid code. No text.' },
+                { role: 'user', content: DIAGRAM_PROMPT }
+            ], () => {});
+            
+            let cleanDiagram = diagramReply.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
+            if (!cleanDiagram.startsWith('graph') && !cleanDiagram.startsWith('mindmap')) {
+                cleanDiagram = `graph TD;\n${cleanDiagram}`; // Fallback injection
+            }
+            setCurrentHtmlGraphic(cleanDiagram);
+        } catch (e) {
+            console.warn("Diagram generation skipped due to error.", e);
+        }
+
+        // --- PHASE 1b: Teacher Lecture ---
         setCurrentLessonContent("Listening to Momentum...");
         const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching: "${moduleName}" for the topic "${topic}".
-Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech.
-CRITICAL: You MUST dynamically draw a diagram on the blackboard to visually explain the concept! 
-Output a clean Mermaid.js diagram inside a [DRAW: ] block anywhere in your response. 
-Use flowchart, mindmap, or graph. Keep it simple.
-Format: [DRAW: (your mermaid code here) ]`;
+Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech.`;
 
         let cleanSpeech = '';
         try {
@@ -401,20 +420,7 @@ Format: [DRAW: (your mermaid code here) ]`;
             ], (chunk) => {
                 setCurrentReply(chunk);
                 
-                // Parse AI-generated Mermaid/SVG diagram
-                const drawMatch = chunk.match(/\[DRAW:\s*([\s\S]*?)\]/i);
-                if (drawMatch && drawMatch[1]) {
-                    setCurrentHtmlGraphic(drawMatch[1].trim());
-                }
-
-                // Parse AI-generated Pollinations image
-                const imageMatches = [...chunk.matchAll(/\[IMAGE:\s*([\s\S]*?)\]/gi)].map(m => m[1].trim());
-                if (imageMatches.length > 0) {
-                    setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify(imageMatches)}]`);
-                }
-
-                const cleanText = chunk.replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[DRAW:[\s\S]*?\]/gi, '');
-                const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
+                const sentences = chunk.match(/[^.!?]+[.!?]+/g) || [];
                 while (sentences.length > spokenSentencesCount) {
                     const newSentence = sentences[spokenSentencesCount].trim();
                     spokenSentencesCount++;
@@ -424,9 +430,7 @@ Format: [DRAW: (your mermaid code here) ]`;
                 }
             });
             
-            cleanSpeech = fullReply.replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[DRAW:[\s\S]*?\]/gi, '');
-            // Aggressively strip markdown (hashes, asterisks, backticks) since the blackboard doesn't render markdown
-            cleanSpeech = cleanSpeech.replace(/#/g, '').replace(/\*/g, '').replace(/`/g, '').trim();
+            cleanSpeech = fullReply.replace(/#/g, '').replace(/\*/g, '').replace(/`/g, '').trim();
             const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
             const spokenLength = sentences.join('').length;
             if (cleanSpeech.length > spokenLength + 2) {
