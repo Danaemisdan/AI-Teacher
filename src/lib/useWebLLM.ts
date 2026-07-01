@@ -59,14 +59,9 @@ export function useWebLLM() {
                 ...prebuiltAppConfig,
                 model_list: prebuiltAppConfig.model_list.map(model => {
                     let newUrl = model.model;
-                    if (newUrl) {
-                        if (customHost) {
-                            // Extract the model repo name (e.g. "Qwen2-0.5B-Instruct-q4f16_1-MLC") from the URL
-                            const repoName = newUrl.split('/').pop();
-                            newUrl = `${customHost}/${repoName}`;
-                        } else {
-                            newUrl = newUrl.replace('huggingface.co', 'hf-mirror.com');
-                        }
+                    if (newUrl && customHost) {
+                        const repoName = newUrl.split('/').pop();
+                        newUrl = `${customHost}/${repoName}`;
                     }
                     return { ...model, model: newUrl };
                 }),
