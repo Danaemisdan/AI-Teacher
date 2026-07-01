@@ -383,14 +383,12 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         setCurrentHtmlGraphic(null);
         setCurrentModuleInfo(`Module ${idx + 1} of ${total}: ${moduleName}`);
         
-        // Phase 1: Graphics (Instant)
-        const imagePrompt = `${moduleName} concept diagram, educational infographic, clean minimal UI, flat design, white background`;
-        setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify([imagePrompt])}]`);
-
-        // Phase 1: Teacher Lecture
+        // Phase 1: Teacher Lecture + Dynamic Diagram
         setCurrentLessonContent("Listening to Momentum...");
         const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching: "${moduleName}" for the topic "${topic}".
-Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech.`;
+Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech.
+CRITICAL: You MUST dynamically generate a diagram for the blackboard to aid your explanation! Output a highly descriptive image prompt inside an [IMAGE: ] block anywhere in your response.
+Format: [IMAGE: description | Title | Short explanation]`;
 
         let cleanSpeech = '';
         try {
@@ -400,7 +398,14 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
                 { role: 'user', content: `Please start teaching ${moduleName} now.` }
             ], (chunk) => {
                 setCurrentReply(chunk);
-                const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '');
+                
+                // Parse AI-generated diagram
+                const imageMatches = [...chunk.matchAll(/\[IMAGE:\s*([\s\S]*?)\]/gi)].map(m => m[1].trim());
+                if (imageMatches.length > 0) {
+                    setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify(imageMatches)}]`);
+                }
+
+                const cleanText = chunk.replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[DRAW:[\s\S]*?\]/gi, '');
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
                 while (sentences.length > spokenSentencesCount) {
                     const newSentence = sentences[spokenSentencesCount].trim();
@@ -411,7 +416,7 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
                 }
             });
             
-            cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').trim();
+            cleanSpeech = fullReply.replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[DRAW:[\s\S]*?\]/gi, '').trim();
             const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
             const spokenLength = sentences.join('').length;
             if (cleanSpeech.length > spokenLength + 2) {
