@@ -1,6 +1,6 @@
 # AI School
 
-An interactive AI-powered learning environment built with Next.js, WebLLM, and Momentum
+An interactive AI-powered learning environment built with Next.js, WebLLM, and Momentum.
 
 ## Overview
 
