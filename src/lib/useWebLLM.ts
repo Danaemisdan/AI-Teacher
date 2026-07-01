@@ -58,7 +58,7 @@ export function useWebLLM() {
             const customAppConfig = {
                 ...prebuiltAppConfig,
                 model_list: prebuiltAppConfig.model_list.map(model => {
-                    let newUrl = model.model_url;
+                    let newUrl = model.model;
                     if (newUrl) {
                         if (customHost) {
                             // Extract the model repo name (e.g. "Qwen2-0.5B-Instruct-q4f16_1-MLC") from the URL
@@ -68,9 +68,9 @@ export function useWebLLM() {
                             newUrl = newUrl.replace('huggingface.co', 'hf-mirror.com');
                         }
                     }
-                    return { ...model, model_url: newUrl };
+                    return { ...model, model: newUrl };
                 }),
-                cacheBackend: "indexeddb"
+                cacheBackend: "indexeddb" as any
             };
 
             let engine;
