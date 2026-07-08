@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { v4 as uuidv4 } from 'uuid';
+import { safeJsonParse } from '@/lib/jsonHelper';
 import { useSpeech } from '@/lib/useSpeech';
 import { useWebLLM } from '@/lib/useWebLLM';
 import { Mic, MicOff, Loader2, Send, BookOpen, SquarePen, Search, Clock, Settings } from 'lucide-react';
@@ -9,7 +11,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 // Removed VTuberCanvas
 import LessonBoard from '@/components/LessonBoard';
+import ConceptDiagramEngine from '@/components/ConceptDiagramEngine';
+import AnatomyEngine from '@/components/AnatomyEngine';
 import { AgentFace } from '@/components/AgentFace';
+import { AssetManager } from '@/lib/AssetManager';
 
 export default function Home() {
     const { init, isLoaded, isLoading, progressText, generateResponse, interrupt, hasWebGPUError } = useWebLLM();
@@ -35,14 +40,20 @@ export default function Home() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [audioUrlToSpeak, setAudioUrlToSpeak] = useState<string | null>(null);
-    const [audioQueue, setAudioQueue] = useState<{url: string, text: string}[]>([]);
+    const [audioQueue, setAudioQueue] = useState<{url: string, text: string, highlight?: string}[]>([]);
     const [currentCaption, setCurrentCaption] = useState('');
+    const [currentHighlightId, setCurrentHighlightId] = useState<string | null>(null);
 
     // Audio Queue Processor: Plays sentences sequentially as they arrive!
     useEffect(() => {
         if (!isSpeaking && audioQueue.length > 0) {
             setAudioUrlToSpeak(audioQueue[0].url);
             setCurrentCaption(audioQueue[0].text);
+            if (audioQueue[0].highlight) {
+                setCurrentHighlightId(audioQueue[0].highlight);
+            } else {
+                setCurrentHighlightId(null);
+            }
             setIsSpeaking(true);
             setAudioQueue(prev => prev.slice(1));
         }
@@ -188,8 +199,10 @@ Example:
                     try {
                         const jsonMatch = quizReply.match(/\{[\s\S]*\}/);
                         if (jsonMatch) {
-                            const quizData = JSON.parse(jsonMatch[0]);
-                            setCurrentTestContent(JSON.stringify(quizData));
+                            const quizData = safeJsonParse(jsonMatch[0], null);
+                            if (quizData) {
+                                setCurrentTestContent(JSON.stringify(quizData));
+                            }
                         }
                     } catch(e) {}
                     
@@ -211,8 +224,17 @@ ${baseBrainKnowledge.join('\n')}
 User said: "${promptText}"
 Reply conversationally. End your response by asking a thought-provoking question to continue the lesson.
 DO NOT use bullet points, bold text, or lists. Just natural speech.
-CRITICAL: You can show graphics on the blackboard using [IMAGE: description | Title | Short explanation]
-You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seconds | true_or_false_for_mute]`;
+
+CRITICAL VISUAL RULE:
+You are powered by a multi-modal Engine Orchestrator! If the user's topic relates to ANY physical object, science topic, physics concept, biology concept, economic concept, or math equation, you MUST output a simple intent block at the VERY BEGINNING of your response.
+Format: [INTENT: topic_name]
+
+EXAMPLES:
+- If user asks about friction: [INTENT: friction]
+- If user asks about supply and demand: [INTENT: supply and demand]
+- If user asks about limits and continuity: [INTENT: limits and continuity]
+
+The Engine Orchestrator will automatically map your intent to the correct Lesson Strategy and sequence the visuals.`;
 
             const finalMessages = [
                 { role: 'user' as const, content: SYSTEM_PROMPT }
@@ -227,20 +249,15 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     if (drawMatch && drawMatch[1]) {
                         setCurrentHtmlGraphic(drawMatch[1]);
                     }
-                    
-                    // MULTIPLE IMAGES
-                    const imageMatches = [...chunk.matchAll(/\[IMAGE:\s*([\s\S]*?)\]/gi)].map(m => m[1].trim());
-                    if (imageMatches.length > 0) {
-                        setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify(imageMatches)}]`);
+                    // ENGINE ROUTER
+                    const engineMatch = chunk.match(/\[ENGINE:\s*([^\]]+)\]\s*([\s\S]*?)\s*\[\/ENGINE\]/i);
+                    if (engineMatch && engineMatch[1] && engineMatch[2]) {
+                        const engineName = engineMatch[1].trim();
+                        const queryContent = engineMatch[2].trim();
+                        setCurrentHtmlGraphic(`[ENGINE_ROUTER: ${engineName} | ${queryContent}]`);
                     }
                     
-                    // YOUTUBE VIDEO
-                    const videoMatch = chunk.match(/\[VIDEO:\s*(.*?)\s*\]/i);
-                    if (videoMatch && videoMatch[1]) {
-                        setCurrentHtmlGraphic(`[VIDEO: ${videoMatch[1]}]`);
-                    }
-
-                    const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '');
+                    const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[ENGINE:[\s\S]*?\[\/ENGINE\]/gi, '');
                     const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
                     while (sentences.length > spokenSentencesCount) {
                         const newSentence = sentences[spokenSentencesCount].trim();
@@ -251,7 +268,7 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
                     }
                 });
                 
-                const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').trim();
+                const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[ENGINE:[\s\S]*?\[\/ENGINE\]/gi, '').trim();
                 const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
                 const spokenLength = sentences.join('').length;
                 if (cleanSpeech.length > spokenLength + 2) {
@@ -310,11 +327,25 @@ You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seco
 
         const SYSTEM_PROMPT = `You are Momentum, a witty virtual teacher. 
 Respond naturally and conversationally. DO NOT use titles, formatting, or generate quizzes for normal chat.
-CRITICAL: You have the ability to show incredible graphics on the blackboard! If the student asks you to show or draw something, you MUST output a highly descriptive image prompt inside an [IMAGE: ] block anywhere in your response. 
-Format: [IMAGE: description | Title | Short explanation]
-You can output MULTIPLE [IMAGE: ] blocks if you want a carousel!
-You can also show a YouTube video: [VIDEO: youtube_id | start_seconds | end_seconds | true_or_false_for_mute]
-${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
+CRITICAL: You are now powered by a multi-modal Engine Orchestrator! If the student asks you to explain, show, or teach ANY complex topic, you MUST output a simple intent block at the VERY BEGINNING of your response.
+Format: [INTENT: topic_name]
+
+EXAMPLES:
+- If user asks for methane molecule: [INTENT: methane molecule]
+- If user asks for an equation (e.g. balance methane combustion): [INTENT: methane combustion]
+- If user asks for a physics concept like Boyle's Law: [INTENT: boyles law]
+- If user asks for Supply and Demand: [INTENT: supply and demand]
+- If user asks to teach photosynthesis: [INTENT: photosynthesis]
+
+The Engine Orchestrator will automatically map your intent to the correct Lesson Strategy (e.g., Scientific Process, Economic Principle) and sequence the Graph Engine, Molecular Engine, Anatomy Engine, etc.
+
+Available interactive assets in the Universal Education Asset Registry:
+${await AssetManager.getRegistryPromptContext()}
+${webContext ? `Use this context if helpful: ${webContext}` : ''}
+STRICT RULES:
+1. NEVER output raw markdown image links.
+2. NEVER output raw LaTeX equations like \[ \] or $$ in your conversational text.
+ALWAYS use the [INTENT: ...] tag to show visuals.`;
 
         const finalMessages = [
             { role: 'system' as const, content: SYSTEM_PROMPT },
@@ -343,7 +374,56 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
                     setCurrentHtmlGraphic(`[VIDEO: ${videoMatch[1]}]`);
                 }
 
-                const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '');
+                // EVERYTING AI ASSETS
+                const assetsMatch = chunk.match(/\[ASSETS:\s*(\[.*?\])\s*\]/i);
+                if (assetsMatch && assetsMatch[1]) {
+                    setCurrentHtmlGraphic(`[ASSETS: ${assetsMatch[1]}]`);
+                }
+                
+                // CHEMISTRY
+                const chemMatch = chunk.match(/\[CHEMISTRY:\s*(\{.*?\})\s*\]/i);
+                if (chemMatch && chemMatch[1]) {
+                    setCurrentHtmlGraphic(`[CHEMISTRY: ${chemMatch[1]}]`);
+                }
+
+                // SIMULATION
+                const simMatch = chunk.match(/\[SIMULATION:\s*(.*?)\s*\]/i);
+                if (simMatch && simMatch[1]) {
+                    setCurrentHtmlGraphic(`[SIMULATION: ${simMatch[1]}]`);
+                }
+
+                // CONCEPT
+                const conceptMatch = chunk.match(/\[CONCEPT:\s*(.*?)\s*\]/i);
+                if (conceptMatch && conceptMatch[1]) {
+                    setCurrentHtmlGraphic(`[CONCEPT: ${conceptMatch[1]}]`);
+                }
+
+                // GRAPH
+                const graphMatch = chunk.match(/\[GRAPH:\s*(\{[\s\S]*?\})\s*\]/i);
+                if (graphMatch && graphMatch[1]) {
+                    setCurrentHtmlGraphic(`[GRAPH: ${graphMatch[1]}]`);
+                }
+
+                // ANATOMY
+                const anatomyMatch = chunk.match(/\[ANATOMY:\s*(.*?)\s*\]/i);
+                if (anatomyMatch && anatomyMatch[1]) {
+                    setCurrentHtmlGraphic(`[ANATOMY: ${anatomyMatch[1]}]`);
+                }
+                
+                // INTENT
+                const intentMatch = chunk.match(/\[INTENT:\s*(.*?)\s*\]/i);
+                if (intentMatch && intentMatch[1]) {
+                    setCurrentHtmlGraphic(`[INTENT: ${intentMatch[1]}]`);
+                }
+
+                let cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').replace(/\[CHEMISTRY:[\s\S]*?\]/gi, '').replace(/\[SIMULATION:[\s\S]*?\]/gi, '').replace(/\[CONCEPT:[\s\S]*?\]/gi, '').replace(/\[ANATOMY:[\s\S]*?\]/gi, '').replace(/\[GRAPH:[\s\S]*?\]/gi, '').replace(/\[INTENT:[\s\S]*?\]/gi, '');
+                
+                // Strip raw markdown links and images so the AI doesn't read them aloud
+                cleanText = cleanText.replace(/!?\[.*?\]\(.*?\)/g, '');
+                
+                // Strip raw LaTeX equations so the AI doesn't read out slashes and braces
+                cleanText = cleanText.replace(/\\\[[\s\S]*?\\\]/g, '').replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\\\(.*?\\\)/g, '');
+                
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
                 while (sentences.length > spokenSentencesCount) {
                     const newSentence = sentences[spokenSentencesCount].trim();
@@ -354,7 +434,7 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
                 }
             });
             
-            const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').trim();
+            const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').trim();
             const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
             const spokenLength = sentences.join('').length;
             if (cleanSpeech.length > spokenLength + 2) {
@@ -383,33 +463,162 @@ ${webContext ? `Use this context if helpful: ${webContext}` : ''}`;
         setCurrentHtmlGraphic(null);
         setCurrentModuleInfo(`Module ${idx + 1} of ${total}: ${moduleName}`);
         
-        // --- PHASE 1a: Diagram Generation (Task Decomposition for Tiny Models) ---
-        setCurrentLessonContent("Drawing diagram...");
+        // --- PHASE 1a: Visual Aid Generation ---
+        setCurrentLessonContent("Classifying Master Intent...");
         try {
-            const DIAGRAM_PROMPT = `You are an expert diagram designer. Create a Mermaid.js flowchart explaining the core concepts of: "${moduleName}".
-RULES:
-1. ONLY output valid Mermaid.js code.
-2. Start with "graph TD;"
-3. DO NOT output any markdown blocks, conversational text, or explanations. Just the raw code.`;
-            
-            const diagramReply = await generateResponse([
-                { role: 'system', content: 'You only output raw Mermaid code. No text.' },
-                { role: 'user', content: DIAGRAM_PROMPT }
-            ], () => {});
-            
-            let cleanDiagram = diagramReply.replace(/```mermaid/gi, '').replace(/```/g, '').trim();
-            if (!cleanDiagram.startsWith('graph') && !cleanDiagram.startsWith('mindmap')) {
-                cleanDiagram = `graph TD;\n${cleanDiagram}`; // Fallback injection
+            // Check for direct match first to bypass LLM routing hallucinations
+            const directMatchId = await AssetManager.findBestRegistryMatch(topic, moduleName);
+            let parsed: any = null;
+
+            if (directMatchId) {
+                const entry = await AssetManager.getRegistryEntry(directMatchId);
+                parsed = {
+                    visualization_type: entry?.renderer || 'concept_diagram',
+                    query: directMatchId
+                };
+            } else {
+                const registryContext = await AssetManager.getRegistryPromptContext();
+                
+                const MASTER_PROMPT = `You are the Master Visualization Router.
+Curriculum Topic: "${topic}"
+Current Module: "${moduleName}"
+
+Classify the intent into EXACTLY ONE of these types:
+- concept_diagram (for established educational topics like photosynthesis, water cycle, human cell, DNA, plate tectonics)
+- anatomy (for human anatomy and 3D biological systems like heart, brain, skeleton, digestive system, respiratory system)
+- molecule_view (for viewing 3D molecules like Water, Methane, Caffeine)
+- equation (for balancing or showing chemical equations like 2H_2 + O_2 \\rightarrow 2H_2O)
+- periodic_table (for elements, atomic radius, periodic trends)
+- lab_simulation (for physics/math/chemistry labs like titration, ideal gas law, boyles law, circuits, gravity, friction)
+- graph (for math, statistics, economics, finance, business analytics like Supply Curve, Normal Distribution, Cartesian coordinates)
+- general_image (for history, english, computer science, or anything else that needs a simple image)
+
+IMPORTANT RULES:
+- If the type is 'equation', you MUST output strictly valid LaTeX formatting (e.g. use subscripts like H_2, and arrows like \\rightarrow).
+- If the type is 'concept_diagram', the 'query' MUST be EXACTLY one of the IDs from the AVAILABLE CONCEPTS list below. Do not guess or abbreviate. If the topic is about Plant Cells, output exactly "plant cell". If none match perfectly, fallback to general_image.
+AVAILABLE CONCEPTS:
+${registryContext}
+
+EXAMPLES:
+Topic: "Introduction to Carbon" -> {"visualization_type": "periodic_table", "query": "Carbon"}
+Topic: "Boyle's Law" -> {"visualization_type": "lab_simulation", "query": "boyles law"}
+Topic: "Photosynthesis" -> {"visualization_type": "concept_diagram", "query": "photosynthesis"}
+Topic: "The Water Cycle" -> {"visualization_type": "concept_diagram", "query": "water cycle"}
+Topic: "Structure of Water" -> {"visualization_type": "molecule_view", "query": "Water"}
+Topic: "Combustion of Methane" -> {"visualization_type": "equation", "query": "CH_4 + 2O_2 \\rightarrow CO_2 + 2H_2O"}
+Topic: "Human Cells" -> {"visualization_type": "concept_diagram", "query": "human cell"}
+Topic: "Supply and Demand" -> {"visualization_type": "graph", "query": "Supply and Demand"}
+
+Output a strictly valid JSON object matching this schema:
+{
+  "visualization_type": "string",
+  "query": "string (extract the specific molecule name, or the reaction equation, or the element name, or the core concept)"
+}
+
+DO NOT output conversational text. ONLY output the JSON object.`;
+
+                const routerReply = await generateResponse([
+                    { role: 'system', content: 'You are the Master Visualization Router. Output ONLY a valid JSON object. No markdown ticks.' },
+                    { role: 'user', content: MASTER_PROMPT }
+                ], () => {});
+                
+                try {
+                    // Try to clean up standard markdown wrapper
+                    let cleanJson = routerReply.replace(/```json/g, '').replace(/```/g, '').trim();
+                    parsed = safeJsonParse(cleanJson, null);
+                } catch(e) {}
             }
-            setCurrentHtmlGraphic(cleanDiagram);
+            
+            try {
+                if (parsed.visualization_type === 'concept_diagram' || parsed.visualization_type === 'anatomy') {
+                    const queryLower = (parsed.query || topic).toLowerCase();
+                    const assetPath = await AssetManager.getAsset(queryLower);
+                    
+                    if (assetPath) {
+                        const lessonData = await AssetManager.getLesson(assetPath);
+                        if (lessonData && lessonData.steps && lessonData.steps.length > 0) {
+                            // Script the audio queue
+                            const newQueue = lessonData.steps.map((s: any) => ({
+                                url: '/api/tts?text=' + encodeURIComponent(s.speech),
+                                text: s.speech,
+                                highlight: s.highlight
+                            }));
+                            
+                            if (parsed.visualization_type === 'anatomy') {
+                                setCurrentHtmlGraphic(`[ANATOMY: ${assetPath}]`);
+                            } else {
+                                setCurrentHtmlGraphic(`[CONCEPT: ${assetPath}]`);
+                            }
+                            
+                            setAudioQueue(newQueue);
+                            
+                            // Update brain state
+                            setBaseBrainKnowledge([`Topic: ${topic}`, `Module: ${moduleName}`, `Mode: ${parsed.visualization_type === 'anatomy' ? 'Anatomy Engine' : 'Concept Diagram'} Orchestration`]);
+                            setCurrentLessonContent(`Playing ${parsed.visualization_type === 'anatomy' ? 'Anatomy' : 'Concept Diagram'} Interactive Lesson...`);
+                            setIsGenerating(false);
+                            return; // SHORT-CIRCUIT Phase 1b! (No LLM generation needed)
+                        }
+                    }
+                    
+                    console.warn(`[AssetManager] Failed to load asset for '${queryLower}'. The asset path '${assetPath}' or its lesson.json is missing on the server.`);
+                    
+                    // Fallback if not found in registry or missing files: revert to general image using the ORIGINAL topic (not the hallucinated query)
+                    const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
+                    setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                    
+                } else if (parsed.visualization_type === 'lab_simulation') {
+                    const simKeywords = ['acid', 'base', 'titration', 'ph', 'concentration', 'molarity', 'solution', 'balance', 'equation', 'react', 'gas', 'boyle', 'charles', 'pressure', 'gravity', 'force', 'circuit', 'electricity', 'resistor', 'energy', 'skate', 'friction', 'matter', 'solid', 'liquid', 'atoms', 'properties', 'pendulum', 'oscillation', 'wave', 'interference', 'color', 'vision', 'light', 'fraction', 'math'];
+                    const isRealSim = simKeywords.some(kw => (parsed.query || topic).toLowerCase().includes(kw));
+                    if (isRealSim) {
+                        setCurrentHtmlGraphic(`[SIMULATION: ${parsed.query || topic}]`);
+                    } else {
+                        const cleanTopic = (parsed.query || topic).replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
+                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                    }
+                } else if (parsed.visualization_type === 'general_image') {
+                    const cleanTopic = (parsed.query || topic).replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
+                    setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                } else if (parsed.visualization_type === 'molecule_view' || parsed.visualization_type === 'equation' || parsed.visualization_type === 'periodic_table') {
+                    // It's a chemistry specific type (molecule_view, equation, periodic_table)
+                    setCurrentHtmlGraphic(`[CHEMISTRY: ${cleanJson}]`);
+                } else if (parsed.visualization_type === 'graph') {
+                    setCurrentLessonContent("Generating Graph Specification...");
+                    const graphPrompt = `You are a data visualization expert. Create a detailed graph specification for: "${topic}".
+Output ONLY a JSON block containing the full [GRAPH: {...}] tag as described:
+[GRAPH: {"title": "...", "graph_type": "...", "library": "plotly", "axes": {"x": "...", "y": "..."}, "curves": [{"name": "...", "type": "line", "points": [[1,2]], "func": "..."}], "explanation": "..."}]
+
+- Use "plotly" for statistics, distributions, 3D.
+- Use "echarts" for business, economics, line/bar/pie charts.
+- Use "jsxgraph" for pure math/geometry/calculus.
+- Set "func" ONLY for JSXGraph (e.g. "Math.pow(x, 2)").
+- Set "points" array for ECharts/Plotly data lines.
+- CRITICAL: Ensure ALL quotes inside strings are escaped. DO NOT use unescaped newlines in strings.
+Output ONLY the raw tag.`;
+                    const graphReply = await generateResponse([
+                        { role: 'system', content: 'Output only the raw tag.' },
+                        { role: 'user', content: graphPrompt }
+                    ], () => {});
+                    const match = graphReply.match(/\[GRAPH:\s*(\{[\s\S]*\})\s*\]/i);
+                    if (match && match[1]) {
+                        setCurrentHtmlGraphic(`[GRAPH: ${match[1]}]`);
+                    } else {
+                        const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
+                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                    }
+                }
+            } catch(e) {
+                // Fallback if AI messes up the JSON
+                const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
+                setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+            }
         } catch (e) {
-            console.warn("Diagram generation skipped due to error.", e);
+            console.warn("Visual generation skipped due to error.", e);
         }
 
         // --- PHASE 1b: Teacher Lecture ---
         setCurrentLessonContent("Listening to Momentum...");
         const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching: "${moduleName}" for the topic "${topic}".
-Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech.`;
+Provide a fascinating, highly detailed introductory explanation. DO NOT use formatting, lists, or markdown. Use natural speech. Start the explanation immediately.`;
 
         let cleanSpeech = '';
         try {
@@ -420,7 +629,28 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
             ], (chunk) => {
                 setCurrentReply(chunk);
                 
-                const sentences = chunk.match(/[^.!?]+[.!?]+/g) || [];
+                // DYNAMIC KNOWLEDGE ENGINE (Mid-lecture visual changes)
+                const show3dMatch = chunk.match(/\[(?:SHOW_3D|3D):\s*(.+?)\]/i);
+                if (show3dMatch && show3dMatch[1]) {
+                    setCurrentHtmlGraphic(prev => {
+                        if (!prev || prev.includes('image |') || prev.includes('anatomy_3d |')) {
+                            return `[INTENT: anatomy_3d | ${show3dMatch[1]}]`;
+                        }
+                        return prev;
+                    });
+                }
+                const showImageMatch = chunk.match(/\[(?:SHOW_IMAGE|IMAGE):\s*(.+?)\]/i);
+                if (showImageMatch && showImageMatch[1]) {
+                    setCurrentHtmlGraphic(prev => {
+                        if (!prev || prev.includes('image |') || prev.includes('anatomy_3d |')) {
+                            return `[INTENT: image | ${showImageMatch[1]}]`;
+                        }
+                        return prev;
+                    });
+                }
+                
+                const cleanText = chunk.replace(/\[(?:SHOW_3D|3D|SHOW_IMAGE|IMAGE):[\s\S]*?\]/gi, '');
+                const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
                 while (sentences.length > spokenSentencesCount) {
                     const newSentence = sentences[spokenSentencesCount].trim();
                     spokenSentencesCount++;
@@ -430,7 +660,7 @@ Provide a fascinating, highly detailed introductory explanation. DO NOT use form
                 }
             });
             
-            cleanSpeech = fullReply.replace(/#/g, '').replace(/\*/g, '').replace(/`/g, '').trim();
+            cleanSpeech = fullReply.replace(/#/g, '').replace(/\*/g, '').replace(/`/g, '').replace(/\[(?:SHOW_3D|3D|SHOW_IMAGE|IMAGE):[\s\S]*?\]/gi, '').trim();
             const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
             const spokenLength = sentences.join('').length;
             if (cleanSpeech.length > spokenLength + 2) {
@@ -491,11 +721,17 @@ Pose a single, engaging, Socratic question to the user to test their understandi
         setIsGenerating(true);
         setCurrentLessonTitle("Planning Curriculum...");
         setCurrentLessonContent("Thinking...");
+        const registryContext = await AssetManager.getRegistryPromptContext();
         const MODULE_PROMPT = `Analyze the student's request: "${rawPrompt}".
 Extract the core educational topic they want to learn. Then, generate a 3-module syllabus.
 Output ONLY a strict JSON object.
 Format exactly like this:
-{"topic": "The Core Topic", "modules": ["1. Introduction to [Topic]", "2. Core concepts of [Topic]", "3. Advanced [Topic]"]}`;
+{"topic": "The Core Topic", "modules": ["1. Introduction to [Topic]", "2. Core concepts of [Topic]", "3. Advanced [Topic]"]}
+
+AVAILABLE CONCEPTS:
+${registryContext}
+
+CRITICAL: If the student's request is closely related to one of the AVAILABLE CONCEPTS, you MUST set the "topic" field to the EXACT string from the AVAILABLE CONCEPTS list. Do not use a generic topic if a matching concept exists.`;
         
         let extractedTopic = rawPrompt;
         let modules = ["1. Introduction & Basics", "2. Core Concepts", "3. Real-World Applications"];
@@ -507,13 +743,13 @@ Format exactly like this:
             
             const jsonMatch = reply.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                try {
-                    const parsed = JSON.parse(jsonMatch[0]);
-                    if (parsed.topic) extractedTopic = parsed.topic;
-                    if (Array.isArray(parsed.modules) && parsed.modules.length > 0) {
-                        modules = parsed.modules.map((item: any) => String(item));
+                    const parsed = safeJsonParse(jsonMatch[0], null);
+                    if (parsed) {
+                        if (parsed.topic) extractedTopic = parsed.topic;
+                        if (Array.isArray(parsed.modules) && parsed.modules.length > 0) {
+                            modules = parsed.modules.map((item: any) => String(item));
+                        }
                     }
-                } catch (e) {}
             }
         } catch(e) {
             console.warn("Curriculum generation failed (WebGPU Crash or Timeout):", e);
@@ -535,6 +771,7 @@ Format exactly like this:
                 setAudioQueue([]);
                 setAudioUrlToSpeak(null);
                 setIsSpeaking(false);
+                setCurrentHighlightId(null);
             }
             processPrompt(inputText.trim());
             setInputText('');
@@ -550,6 +787,7 @@ Format exactly like this:
             setAudioUrlToSpeak(null); // Instantly stops her audio and resets her mouth!
             setIsSpeaking(false);
             setIsGenerating(false);
+            setCurrentHighlightId(null);
         }
 
         if (isListening) {
@@ -636,30 +874,33 @@ Format exactly like this:
                     <div className={`absolute left-1/2 -translate-x-1/2 top-12 w-[600px] h-[300px] rounded-[100%] blur-[120px] pointer-events-none transition-all duration-1000 z-10 ${isSpeaking ? 'bg-purple-600/50 animate-pulse' : 'bg-transparent'}`}></div>
 
                     {/* Blackboard - Massive Slate */}
-                    <div className={`hidden lg:flex transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] flex-col justify-center w-[95vw] h-[85vh] max-w-[1600px] z-20 ${currentLessonTitle ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none absolute'}`}>
-                        <LessonBoard 
-                            title={currentLessonTitle} 
-                            content={currentLessonContent} 
-                            mediaUrl={currentMediaUrl}
-                            videoId={currentVideoId}
-                            testContent={currentTestContent}
-                            moduleInfo={currentModuleInfo}
-                            htmlGraphic={currentHtmlGraphic}
-                            isSpeaking={isSpeaking || audioQueue.length > 0}
-                            onNextModule={handleNextModule}
-                        />
+                    <div className={`flex transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] flex-col justify-center w-[95vw] h-[85vh] max-w-[1600px] z-20 ${(currentLessonTitle || currentHtmlGraphic) ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none absolute'}`}>
+                            <LessonBoard 
+                                title={currentLessonTitle} 
+                                content={currentLessonContent} 
+                                mediaUrl={currentMediaUrl}
+                                videoId={currentVideoId}
+                                testContent={currentTestContent}
+                                moduleInfo={currentModuleInfo}
+                                htmlGraphic={currentHtmlGraphic}
+                                highlightId={currentHighlightId}
+                                isSpeaking={isSpeaking || isGenerating}
+                                isGenerating={isGenerating}
+                                onNextModule={handleNextModule}
+                                generateResponse={generateResponse}
+                            />
                     </div>
 
                     {/* Agent Face Floating Over Blackboard or Fullscreen */}
                     <div className={`absolute left-1/2 -translate-x-1/2 transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 flex flex-col items-center gap-4 ${
-                        currentLessonTitle 
+                        (currentLessonTitle || currentHtmlGraphic)
                             ? 'top-1/2 -translate-y-1/2 w-full h-full scale-100 lg:-top-8 lg:-translate-y-0 lg:w-auto lg:h-auto lg:scale-[0.50]' 
                             : 'top-1/2 -translate-y-1/2 w-full h-full scale-100'
                     }`}>
                         <AgentFace 
                             state={isGenerating ? 'thinking' : isSpeaking ? 'speaking' : 'idle'} 
                             className={`shadow-[0_0_80px_rgba(139,92,246,0.5)] transition-all duration-1000 rounded-none border-0 w-full h-full ${
-                                currentLessonTitle ? 'lg:rounded-[3rem] lg:border-4 lg:border-white/10 lg:w-[280px] lg:h-[280px]' : ''
+                                (currentLessonTitle || currentHtmlGraphic) ? 'lg:rounded-[3rem] lg:border-4 lg:border-white/10 lg:w-[280px] lg:h-[280px]' : ''
                             }`}
                         />
 

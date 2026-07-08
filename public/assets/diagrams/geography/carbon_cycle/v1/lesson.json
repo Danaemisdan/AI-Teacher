@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "respiration",
+      "speech": "Animals and plants release carbon dioxide back into the atmosphere through cellular respiration."
+    },
+    {
+      "highlight": "emissions",
+      "speech": "Human activities, such as burning fossil fuels in factories and cars, release massive amounts of carbon emissions into the air."
+    },
+    {
+      "highlight": "absorption",
+      "speech": "To balance this, trees and plants absorb atmospheric CO2 through photosynthesis, acting as a crucial carbon sink."
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "highlight": "fission",
+      "speech": "In Nuclear Fission, a slow-moving neutron strikes a heavy, unstable nucleus like Uranium. The nucleus splits into two smaller nuclei, releasing a massive amount of energy."
+    },
+    {
+      "highlight": "fusion",
+      "speech": "In Nuclear Fusion, two light nuclei, like isotopes of hydrogen, are forced together under extreme heat and pressure to form a heavier nucleus. This is the process that powers our Sun!"
+    }
+  ]
+}

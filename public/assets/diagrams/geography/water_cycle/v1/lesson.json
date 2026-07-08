@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "evaporation",
+      "speech": "The water cycle begins with evaporation. The sun heats up water in rivers, lakes, and oceans, turning it into water vapor that rises into the air."
+    },
+    {
+      "highlight": "condensation",
+      "speech": "As the water vapor rises higher, it cools down and condenses to form clouds. This process is called condensation."
+    },
+    {
+      "highlight": "precipitation",
+      "speech": "When the clouds become too heavy, the water falls back to Earth as rain, snow, sleet, or hail. This is known as precipitation."
+    }
+  ]
+}

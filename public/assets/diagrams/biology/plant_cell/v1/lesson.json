@@ -1,0 +1,48 @@
+{
+    "title": "Plant Cell Structure",
+    "description": "An interactive tour of a plant cell, highlighting the unique features that separate it from animal cells.",
+    "steps": [
+        {
+            "id": "step_intro",
+            "speech": "Welcome to the plant cell! While it shares many similarities with the animal cell we just saw, it has three very distinct features that allow plants to survive.",
+            "highlight": null,
+            "duration": 9000
+        },
+        {
+            "id": "step_cell_wall",
+            "speech": "First is the rigid cell wall on the outside. This thick green barrier gives the plant structural support, allowing trees to grow hundreds of feet tall without a skeleton.",
+            "highlight": "cell_wall",
+            "duration": 10000
+        },
+        {
+            "id": "step_vacuole",
+            "speech": "Notice that massive blue sac taking up most of the space? That's the central vacuole. It stores water and nutrients, and keeps the cell plump so the plant doesn't wilt.",
+            "highlight": "central_vacuole",
+            "duration": 10000
+        },
+        {
+            "id": "step_chloroplasts",
+            "speech": "These bright green ovals are chloroplasts. They are the solar panels of the cell, using sunlight to create food through photosynthesis.",
+            "highlight": "chloroplasts",
+            "duration": 9000
+        },
+        {
+            "id": "step_nucleus",
+            "speech": "Just like the animal cell, it also contains a nucleus to store DNA...",
+            "highlight": "nucleus",
+            "duration": 4000
+        },
+        {
+            "id": "step_mitochondria",
+            "speech": "...and mitochondria to break down the food the chloroplasts make into usable energy.",
+            "highlight": "mitochondria",
+            "duration": 5000
+        },
+        {
+            "id": "step_outro",
+            "speech": "Those three unique structures—the cell wall, vacuole, and chloroplasts—are what make plant life possible on Earth!",
+            "highlight": null,
+            "duration": 7000
+        }
+    ]
+}

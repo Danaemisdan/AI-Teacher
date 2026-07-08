@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "solid",
+      "speech": "In a solid, particles are packed tightly together in a fixed, rigid arrangement. They can vibrate, but they cannot move past each other."
+    },
+    {
+      "highlight": "liquid",
+      "speech": "In a liquid, particles are still close together, but they have enough energy to slide past one another, allowing the liquid to take the shape of its container."
+    },
+    {
+      "highlight": "gas",
+      "speech": "In a gas, particles have high energy and are spread far apart, bouncing rapidly and filling up any available space."
+    }
+  ]
+}

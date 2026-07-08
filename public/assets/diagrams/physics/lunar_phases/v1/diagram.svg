@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <rect width="800" height="600" fill="#1e1e2f" rx="20"/>
+  <circle cx="400" cy="300" r="50" fill="#4dabf7"/> <!-- Earth -->
+  <text x="375" y="305" fill="white" font-size="16">Earth</text>
+  
+  <g id="new_moon">
+    <circle cx="400" cy="120" r="30" fill="#343a40" stroke="#f1f3f5" stroke-width="1"/>
+    <text x="360" y="70" fill="white" font-size="18">New Moon</text>
+  </g>
+  
+  <g id="quarter_moon">
+    <!-- Right side illuminated -->
+    <circle cx="600" cy="300" r="30" fill="#343a40"/>
+    <path d="M 600 270 A 30 30 0 0 1 600 330 Z" fill="#f1f3f5"/>
+    <text x="640" y="305" fill="white" font-size="18">First Quarter</text>
+  </g>
+  
+  <g id="full_moon">
+    <circle cx="400" cy="480" r="30" fill="#f1f3f5"/>
+    <text x="360" y="540" fill="white" font-size="18">Full Moon</text>
+  </g>
+  
+  <!-- Sunlight arrows -->
+  <path d="M 100 100 L 200 100 M 100 300 L 200 300 M 100 500 L 200 500" stroke="#fcc419" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="50" y="305" fill="#fcc419" font-size="20">Sunlight</text>
+</svg>

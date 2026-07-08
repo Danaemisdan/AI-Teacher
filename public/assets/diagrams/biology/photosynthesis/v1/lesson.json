@@ -1,0 +1,28 @@
+{
+    "steps":[
+        {
+            "highlight":"sun",
+            "speech": "Photosynthesis begins when sunlight reaches the leaf. The sun provides the radiant energy required for this entire process."
+        },
+        {
+            "highlight":"co2",
+            "speech": "Carbon dioxide from the atmosphere enters the plant through tiny pores called stomata."
+        },
+        {
+            "highlight":"water",
+            "speech": "Meanwhile, water is absorbed through the roots and travels up the stem to the leaves."
+        },
+        {
+            "highlight":"chloroplast",
+            "speech": "Inside the leaf cells, organelles called chloroplasts use the sunlight to convert the carbon dioxide and water into chemical energy."
+        },
+        {
+            "highlight":"glucose",
+            "speech": "This remarkable chemical reaction produces glucose, a sugar that serves as the plant's food and energy source."
+        },
+        {
+            "highlight":"oxygen",
+            "speech": "Finally, as a byproduct, pure oxygen is released back into the atmosphere, which is essential for animals and humans to breathe!"
+        }
+    ]
+}

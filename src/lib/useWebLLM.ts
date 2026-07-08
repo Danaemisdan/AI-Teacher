@@ -52,7 +52,7 @@ export function useWebLLM() {
                 tier = 2;
             }
 
-            let selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
+            let selectedModel = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
             if (tier === 1) selectedModel = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
             if (tier === 3) selectedModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
             
@@ -86,7 +86,7 @@ export function useWebLLM() {
                 });
             } catch (engineError: any) {
                 console.warn(`Failed to load ${selectedModel} (Shader/WebGPU crash). Falling back to lower tier model...`, engineError);
-                if (tier === 1) selectedModel = 'Qwen2-0.5B-Instruct-q4f16_1-MLC';
+                if (tier === 1) selectedModel = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
                 else selectedModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
                 
                 setProgressText(`Recovering: Loading ${selectedModel}...`);
@@ -103,7 +103,7 @@ export function useWebLLM() {
                     console.warn(`Failed to load ${selectedModel} (f16 unsupported). Falling back to f32 model...`, fallbackError);
                     if (tier === 1) selectedModel = 'Llama-3.2-1B-Instruct-q4f32_1-MLC';
                     else if (tier === 3) selectedModel = 'SmolLM2-135M-Instruct-q0f32-MLC';
-                    else selectedModel = 'Qwen2-0.5B-Instruct-q4f32_1-MLC';
+                    else selectedModel = 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
                     
                     setProgressText(`Recovering: Loading ${selectedModel} (f32 Compatibility Mode)...`);
                     

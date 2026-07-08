@@ -2,6 +2,8 @@ import { Inter, Outfit, Geist } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { cn } from "@/lib/utils";
+import StartupManager from '@/components/StartupManager';
+import RendererDashboard from '@/components/ui/RendererDashboard';
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -40,6 +42,8 @@ export default function RootLayout({
       <body className="min-h-[100dvh] bg-black text-gray-100 font-sans antialiased overflow-hidden">
         <Script src="https://cubism.live2d.com/sdk-web/cubismcore/live2dcubismcore.min.js" />
         <Script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js" />
+        <StartupManager />
+        <RendererDashboard />
         {children}
       </body>
     </html>

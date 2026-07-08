@@ -1,0 +1,24 @@
+{
+  "steps": [
+    {
+      "highlight": "igneous_rock",
+      "speech": "The rock cycle often starts with Igneous rock, formed when magma cools and solidifies."
+    },
+    {
+      "highlight": "weathering",
+      "speech": "Over millions of years, wind and water break down the rock through weathering and erosion."
+    },
+    {
+      "highlight": "sedimentary_rock",
+      "speech": "These fragments compress to form layered Sedimentary rock."
+    },
+    {
+      "highlight": "heat_pressure",
+      "speech": "When pushed deep underground, intense heat and pressure transform it."
+    },
+    {
+      "highlight": "metamorphic_rock",
+      "speech": "It becomes Metamorphic rock. If it gets hot enough, it melts back into magma, and the cycle continues!"
+    }
+  ]
+}

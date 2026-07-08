@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <radialGradient id="heartRed" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ff6b6b"/>
+      <stop offset="100%" stop-color="#c92a2a"/>
+    </radialGradient>
+    <radialGradient id="heartBlue" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4dabf7"/>
+      <stop offset="100%" stop-color="#1864ab"/>
+    </radialGradient>
+    
+    <radialGradient id="lungGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fcc419"/>
+      <stop offset="100%" stop-color="#e67700"/>
+    </radialGradient>
+    
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ced4da"/>
+      <stop offset="100%" stop-color="#868e96"/>
+    </linearGradient>
+
+    <!-- Arrow head markers -->
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#fa5252"/>
+    </marker>
+    <marker id="arrowBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#228be6"/>
+    </marker>
+  </defs>
+
+  <rect width="800" height="600" fill="#f8f9fa" rx="20"/>
+  <text x="50" y="50" font-family="monospace" font-size="20" fill="#666">Cardiovascular Circulation</text>
+
+  <g id="heart">
+    <!-- Heart background shape -->
+    <path d="M 380 250 Q 340 200 300 250 Q 280 300 400 400 Q 520 300 500 250 Q 460 200 420 250 Z" fill="#e9ecef" stroke="#adb5bd" stroke-width="4"/>
+    
+    <!-- Right side (Deoxygenated / Blue) - Actually anatomical right is on the left side of diagram -->
+    <path d="M 380 250 Q 340 200 300 250 Q 280 300 400 400 L 400 270 Z" fill="url(#heartBlue)" stroke="#1864ab" stroke-width="2"/>
+    
+    <!-- Left side (Oxygenated / Red) - Anatomical left is on the right side of diagram -->
+    <path d="M 420 250 Q 460 200 500 250 Q 520 300 400 400 L 400 270 Z" fill="url(#heartRed)" stroke="#c92a2a" stroke-width="2"/>
+    
+    <!-- Septum -->
+    <line x1="400" y1="260" x2="400" y2="400" stroke="#f8f9fa" stroke-width="6" stroke-linecap="round"/>
+    
+    <!-- Heart labels -->
+    <text x="330" y="320" font-family="sans-serif" font-size="14" fill="#fff" font-weight="bold">Right</text>
+    <text x="330" y="340" font-family="sans-serif" font-size="12" fill="#fff">Atrium/Ventricle</text>
+    
+    <text x="430" y="320" font-family="sans-serif" font-size="14" fill="#fff" font-weight="bold">Left</text>
+    <text x="430" y="340" font-family="sans-serif" font-size="12" fill="#fff">Atrium/Ventricle</text>
+  </g>
+
+  <g id="lungs">
+    <!-- Left Lung -->
+    <path d="M 200 150 C 250 100, 280 150, 250 250 C 200 250, 150 200, 200 150 Z" fill="url(#lungGrad)" stroke="#d9480f" stroke-width="3" opacity="0.8"/>
+    <!-- Right Lung -->
+    <path d="M 600 150 C 550 100, 520 150, 550 250 C 600 250, 650 200, 600 150 Z" fill="url(#lungGrad)" stroke="#d9480f" stroke-width="3" opacity="0.8"/>
+    
+    <text x="210" y="190" font-family="sans-serif" font-size="16" fill="#fff" font-weight="bold">Lungs</text>
+    <text x="560" y="190" font-family="sans-serif" font-size="16" fill="#fff" font-weight="bold">Lungs</text>
+  </g>
+
+  <g id="body_tissues">
+    <!-- Body capillary bed representation -->
+    <rect x="250" y="480" width="300" height="60" rx="30" fill="url(#bodyGrad)" stroke="#495057" stroke-width="3"/>
+    <text x="400" y="515" font-family="sans-serif" font-size="16" fill="#fff" font-weight="bold" text-anchor="middle">Body Tissues (Systemic)</text>
+    
+    <!-- Capillary transition -->
+    <line x1="280" y1="510" x2="350" y2="510" stroke="#fa5252" stroke-width="4"/>
+    <line x1="350" y1="510" x2="450" y2="510" stroke="#a61e4d" stroke-width="4"/> <!-- transition -->
+    <line x1="450" y1="510" x2="520" y2="510" stroke="#228be6" stroke-width="4"/>
+  </g>
+
+  <g id="pulmonary_circuit">
+    <!-- Deoxygenated blood from Right Ventricle to Lungs -->
+    <path d="M 330 250 C 300 200, 250 250, 250 200" stroke="#228be6" stroke-width="8" fill="none" marker-end="url(#arrowBlue)"/>
+    <path d="M 350 250 C 400 150, 500 180, 550 200" stroke="#228be6" stroke-width="8" fill="none" marker-end="url(#arrowBlue)"/>
+    <text x="320" y="160" font-family="sans-serif" font-size="12" fill="#1864ab" font-weight="bold">Pulmonary Artery</text>
+    
+    <!-- Oxygenated blood from Lungs to Left Atrium -->
+    <path d="M 230 220 C 300 280, 420 200, 440 250" stroke="#fa5252" stroke-width="8" fill="none" marker-end="url(#arrowRed)"/>
+    <path d="M 570 220 C 500 280, 470 200, 460 250" stroke="#fa5252" stroke-width="8" fill="none" marker-end="url(#arrowRed)"/>
+    <text x="470" y="160" font-family="sans-serif" font-size="12" fill="#c92a2a" font-weight="bold">Pulmonary Veins</text>
+  </g>
+
+  <g id="systemic_circuit">
+    <!-- Oxygenated blood from Left Ventricle to Body (Aorta) -->
+    <path d="M 470 350 C 550 400, 600 450, 520 490" stroke="#fa5252" stroke-width="10" fill="none" marker-end="url(#arrowRed)"/>
+    <text x="560" y="420" font-family="sans-serif" font-size="14" fill="#c92a2a" font-weight="bold">Aorta</text>
+    
+    <!-- Deoxygenated blood from Body to Right Atrium (Vena Cava) -->
+    <path d="M 280 490 C 200 450, 250 400, 330 350" stroke="#228be6" stroke-width="10" fill="none" marker-end="url(#arrowBlue)"/>
+    <text x="210" y="420" font-family="sans-serif" font-size="14" fill="#1864ab" font-weight="bold">Vena Cava</text>
+  </g>
+
+</svg>

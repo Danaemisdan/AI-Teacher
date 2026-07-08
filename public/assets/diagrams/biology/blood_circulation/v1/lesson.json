@@ -1,0 +1,48 @@
+{
+    "title": "Blood Circulation",
+    "description": "Trace the path of a red blood cell as it travels through the heart, lungs, and body.",
+    "steps": [
+        {
+            "id": "step_intro",
+            "speech": "Your heart is an incredibly powerful double-pump that keeps you alive by circulating blood. Let's trace its journey.",
+            "highlight": "heart",
+            "duration": 6000
+        },
+        {
+            "id": "step_vena_cava",
+            "speech": "Deoxygenated blood, carrying carbon dioxide from your body, enters the right side of the heart through the Vena Cava.",
+            "highlight": "systemic_circuit, heart",
+            "duration": 8500
+        },
+        {
+            "id": "step_pulmonary_artery",
+            "speech": "The right ventricle pumps this blue, oxygen-poor blood out through the pulmonary artery.",
+            "highlight": "pulmonary_circuit",
+            "duration": 6000
+        },
+        {
+            "id": "step_lungs",
+            "speech": "It travels straight to the lungs. Here, you exhale carbon dioxide and inhale fresh oxygen, turning the blood bright red!",
+            "highlight": "lungs, pulmonary_circuit",
+            "duration": 9000
+        },
+        {
+            "id": "step_pulmonary_vein",
+            "speech": "This oxygen-rich blood returns to the left side of the heart via the pulmonary veins.",
+            "highlight": "pulmonary_circuit, heart",
+            "duration": 7000
+        },
+        {
+            "id": "step_aorta",
+            "speech": "Now for the big squeeze! The muscular left ventricle pumps the oxygenated blood out through the Aorta—the largest artery in your body.",
+            "highlight": "systemic_circuit",
+            "duration": 9000
+        },
+        {
+            "id": "step_body",
+            "speech": "The oxygen is delivered to all your body tissues, muscles, and organs. As they use the oxygen, the blood becomes deoxygenated again, and the cycle repeats!",
+            "highlight": "body_tissues",
+            "duration": 10000
+        }
+    ]
+}

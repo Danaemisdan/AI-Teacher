@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Caveat } from 'next/font/google';
-import MermaidDiagram from './MermaidDiagram';
+import AssetViewer from './AssetViewer';
+import SimulationEngine from './SimulationEngine';
+import ChemistryRouter from './ChemistryRouter';
+import ConceptDiagramEngine from './ConceptDiagramEngine';
+import AnatomyEngine from './AnatomyEngine';
+import GraphEngine from './GraphEngine';
+import EngineOrchestrator from './orchestration/EngineOrchestrator';
+import { TeachingInteractionProvider } from './orchestration/TeachingInteractionLayer';
+import { safeJsonParse } from '@/lib/jsonHelper';
 
 const chalkFont = Caveat({ subsets: ['latin'], weight: ['400', '700'] });
 
@@ -13,13 +21,16 @@ interface LessonBoardProps {
     testContent?: string | null;
     moduleInfo?: string | null;
     htmlGraphic?: string | null;
+    highlightId?: string | null;
     isSpeaking: boolean;
+    isGenerating?: boolean;
     onNextModule?: () => void;
+    generateResponse?: any; // To avoid bringing in complex MLCEngine types
 }
 
 type TabType = 'media' | 'notes' | 'test';
 
-export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic, isSpeaking, onNextModule }: LessonBoardProps) {
+export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic, highlightId, isSpeaking, isGenerating, onNextModule, generateResponse }: LessonBoardProps) {
     const [step, setStep] = useState(0);
     const [activeTab, setActiveTab] = useState<TabType>('notes');
     const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -66,8 +77,9 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
         : [];
 
     return (
-        <AnimatePresence>
-            {title && (
+        <TeachingInteractionProvider>
+            <AnimatePresence>
+                {title && (
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -133,8 +145,9 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                         <div className="w-full h-full p-6 flex items-center justify-center relative">
                                             {(() => {
                                                 try {
-                                                    // Handle dynamic SVGs drawn by the AI!
-                                                    if (htmlGraphic.trim().toLowerCase().startsWith('<svg')) {
+                                                    // Handle dynamic SVGs or MathML drawn by the AI!
+                                                    const trimmedGraphic = htmlGraphic.trim().toLowerCase();
+                                                    if (trimmedGraphic.startsWith('<svg') || trimmedGraphic.startsWith('<math')) {
                                                         return (
                                                             <div 
                                                                 className="w-full h-full flex items-center justify-center p-8 [&>svg]:w-full [&>svg]:max-h-full [&>svg]:max-w-[800px] [&>svg]:drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all duration-1000" 
@@ -143,88 +156,48 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         );
                                                     }
                                                     
-                                                    // Handle YOUTUBE VIDEOS
-                                                    if (htmlGraphic.trim().startsWith('[VIDEO:')) {
-                                                        const videoContent = htmlGraphic.replace(/\[VIDEO:([\s\S]*?)\]/gi, '$1').trim();
-                                                        const parts = videoContent.split('|').map(p => p.trim());
-                                                        const vId = parts[0];
-                                                        const start = parts[1] ? `&start=${parts[1]}` : '';
-                                                        const end = parts[2] ? `&end=${parts[2]}` : '';
-                                                        const mute = parts[3] === 'true' ? '&mute=1' : '';
-                                                        
-                                                        const isSearch = vId.startsWith('search:');
-                                                        const srcUrl = isSearch 
-                                                            ? `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(vId.replace('search:', '').trim())}&autoplay=1` 
-                                                            : `https://www.youtube.com/embed/${vId}?enablejsapi=1&autoplay=1${start}${end}${mute}&controls=1&rel=0`;
-
-                                                        return (
-                                                            <div className="w-full h-full border-4 border-white/40 rounded-xl overflow-hidden relative shadow-[0_0_20px_rgba(255,255,255,0.2)]">
-                                                                <iframe 
-                                                                    id="yt-player"
-                                                                    width="100%" 
-                                                                    height="100%" 
-                                                                    src={srcUrl} 
-                                                                    title="YouTube video player" 
-                                                                    frameBorder="0" 
-                                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                                                                    allowFullScreen
-                                                                ></iframe>
-                                                            </div>
-                                                        );
-                                                    }
-
-                                                    // Handle MULTIPLE Pollinations AI images
-                                                    if (htmlGraphic.trim().startsWith('[IMAGES:')) {
-                                                        const arrayStr = htmlGraphic.replace(/\[IMAGES:\s*(\[[\s\S]*?\])\s*\]/gi, '$1');
-                                                        let imagePrompts: string[] = [];
-                                                        try {
-                                                            imagePrompts = JSON.parse(arrayStr);
-                                                        } catch(e) {}
-                                                        
-                                                        if (imagePrompts.length === 0) return null;
-                                                        
-                                                        const currentPromptStr = imagePrompts[activeImageIndex];
-                                                        const parts = currentPromptStr.split('|').map(p => p.trim());
-                                                        const prompt = parts[0];
-                                                        const imageTitle = parts[1] || '';
-                                                        const explanation = parts[2] || '';
-
-                                                        return (
-                                                            <div className="w-full h-full flex flex-col items-center justify-center p-2 relative">
-                                                                <div className="w-full max-h-full flex flex-col items-center bg-white/5 p-4 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden">
-                                                                    {imageTitle && <h3 className="text-2xl font-bold text-white mb-2" style={{ textShadow: '0 0 10px rgba(0,0,0,0.8)' }}>{imageTitle}</h3>}
-                                                                    <div className="flex-1 w-full relative min-h-[300px]">
-                                                                        <img 
-                                                                            src={`https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1200&height=800&nologo=true`} 
-                                                                            alt={prompt}
-                                                                            className="absolute inset-0 w-full h-full object-contain drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]"
-                                                                        />
-                                                                    </div>
-                                                                    {explanation && <p className="mt-4 text-center text-white/90 text-lg bg-black/60 p-4 rounded-xl border border-white/10">{explanation}</p>}
-                                                                </div>
-                                                                
-                                                                {imagePrompts.length > 1 && (
-                                                                    <div className="absolute bottom-[-10px] flex gap-3 bg-black/60 px-6 py-3 rounded-full backdrop-blur-xl border border-white/20">
-                                                                        {imagePrompts.map((_, i) => (
-                                                                            <button 
-                                                                                key={i} 
-                                                                                onClick={() => setActiveImageIndex(i)}
-                                                                                className={`w-4 h-4 rounded-full transition-all ${i === activeImageIndex ? 'bg-purple-400 scale-125 shadow-[0_0_15px_rgba(168,85,247,0.8)]' : 'bg-white/30 hover:bg-white/50'}`}
-                                                                            />
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        );
+                                                    // Handle CONCEPT DIAGRAM
+                                                    const conceptMatch = htmlGraphic.match(/\[CONCEPT:\s*([^\]]+)\]/i);
+                                                    if (conceptMatch && conceptMatch[1]) {
+                                                        return <ConceptDiagramEngine path={conceptMatch[1].trim()} highlightId={highlightId || null} />;
                                                     }
                                                     
-                                                    // Handle Mermaid Diagrams
-                                                    const isMermaid = ['graph', 'mindmap', 'pie', 'sequenceDiagram', 'flowchart', 'stateDiagram'].some(keyword => htmlGraphic.trim().toLowerCase().startsWith(keyword.toLowerCase()));
-                                                    if (isMermaid) {
-                                                        return <MermaidDiagram chart={htmlGraphic} />;
+                                                    // Handle SIMULATION
+                                                    const simMatch = htmlGraphic.match(/\[SIMULATION:\s*([^\]]+)\]/i);
+                                                    if (simMatch && simMatch[1]) {
+                                                        return <SimulationEngine query={simMatch[1].trim()} />;
+                                                    }
+                                                    
+                                                    const anatomyMatch = htmlGraphic.match(/\[ANATOMY:\s*([^\]]+)\]/i);
+                                                    if (anatomyMatch) {
+                                                        return <AnatomyEngine path={anatomyMatch[1]} highlightId={highlightId} />;
                                                     }
 
-                                                    const concepts = JSON.parse(htmlGraphic);
+                                                    // Handle CHEMISTRY
+                                                    const chemMatch = htmlGraphic.match(/\[CHEMISTRY:\s*([\s\S]+)\]/i);
+                                                    if (chemMatch && chemMatch[1]) {
+                                                        return <ChemistryRouter spec={chemMatch[1].trim()} />;
+                                                    }
+
+                                                    // Handle IMAGE
+                                                    const imgMatch = htmlGraphic.match(/\[IMAGE:\s*([^\]]+)\]/i);
+                                                    if (imgMatch && imgMatch[1]) {
+                                                        return <AssetViewer query={imgMatch[1].trim()} mode="image" />;
+                                                    }
+
+                                                    // Handle INTENT
+                                                    const intentMatch = htmlGraphic.match(/\[INTENT:\s*([^\]]+)\]/i);
+                                                    if (intentMatch && intentMatch[1]) {
+                                                        return <EngineOrchestrator intent={intentMatch[1].trim()} generateResponse={generateResponse} isGenerating={isGenerating} />;
+                                                    }
+
+                                                    // Handle GRAPH
+                                                    const graphMatch = htmlGraphic.match(/\[GRAPH:\s*(\{[\s\S]*\})\s*\]/i);
+                                                    if (graphMatch && graphMatch[1]) {
+                                                        return <GraphEngine spec={graphMatch[1].trim()} />;
+                                                    }
+
+                                                    const concepts = safeJsonParse(htmlGraphic, null);
                                                     if (Array.isArray(concepts)) {
                                                         return (
                                                             <div className="grid grid-cols-2 gap-12 w-full max-w-5xl h-full py-8">
@@ -249,7 +222,7 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         );
                                                     }
                                                 } catch(e) {}
-                                                return <MermaidDiagram chart={htmlGraphic} />; // Fallback
+                                                return <AssetViewer query={htmlGraphic} mode="image" />; // Fallback
                                             })()}
                                         </div>
                                     ) : mediaUrl ? (
@@ -311,7 +284,9 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                 >
                                     {testContent ? (() => {
                                         let quizObj: any = null;
-                                        try { quizObj = JSON.parse(testContent); } catch(e) {}
+                                        if (testContent) {
+                                            quizObj = safeJsonParse(testContent, null);
+                                        }
                                         if (quizObj && quizObj.options) {
                                             return (
                                                 <div className="h-full flex flex-col">
@@ -373,5 +348,6 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                 </motion.div>
             )}
         </AnimatePresence>
+        </TeachingInteractionProvider>
     );
 }

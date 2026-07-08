@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+    <defs>
+        <filter id="glow">
+            <feGaussianBlur stdDeviation="2.5" result="coloredBlur"/>
+            <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+    
+    <!-- Background -->
+    <rect width="800" height="600" fill="#1e1e2f" rx="20" />
+
+    <!-- Soil -->
+    <rect x="0" y="450" width="800" height="150" fill="#3e2723" rx="20"/>
+
+    <!-- Roots -->
+    <g stroke="#8d6e63" stroke-width="6" fill="none" stroke-linecap="round">
+        <path d="M 400 450 Q 380 500 350 550" />
+        <path d="M 400 450 Q 420 500 450 550" />
+        <path d="M 380 500 Q 360 520 330 530" />
+        <path d="M 420 500 Q 440 520 470 530" />
+    </g>
+
+    <!-- Stem -->
+    <path d="M 400 450 C 390 350 410 250 400 150" stroke="#4caf50" stroke-width="12" fill="none" stroke-linecap="round"/>
+
+    <!-- Leaf 1 (Left) -->
+    <path d="M 395 300 C 350 280 250 250 250 320 C 250 360 300 380 395 300" fill="#81c784" stroke="#388e3c" stroke-width="4"/>
+    
+    <!-- Leaf 2 (Right) -->
+    <path d="M 405 200 C 450 180 550 150 550 220 C 550 260 500 280 405 200" fill="#81c784" stroke="#388e3c" stroke-width="4"/>
+
+    <!-- Flower -->
+    <circle cx="400" cy="150" r="40" fill="#ffeb3b" />
+    <circle cx="400" cy="150" r="25" fill="#f57f17" />
+    
+    <!-- Sun -->
+    <g id="sun">
+        <circle cx="100" cy="100" r="50" fill="#ffea00" filter="url(#glow)"/>
+        <line x1="160" y1="160" x2="220" y2="220" stroke="#ffea00" stroke-width="6" stroke-linecap="round" filter="url(#glow)"/>
+        <line x1="180" y1="140" x2="250" y2="190" stroke="#ffea00" stroke-width="6" stroke-linecap="round" filter="url(#glow)"/>
+        <line x1="140" y1="180" x2="190" y2="250" stroke="#ffea00" stroke-width="6" stroke-linecap="round" filter="url(#glow)"/>
+        <text x="170" y="270" fill="#ffea00" font-size="24" font-family="sans-serif" font-weight="bold">Light Energy</text>
+    </g>
+
+    <!-- CO2 -->
+    <g id="co2">
+        <path d="M 150 350 Q 200 320 280 330" fill="none" stroke="#e0e0e0" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-co2)"/>
+        <text x="70" y="360" fill="#e0e0e0" font-size="24" font-family="sans-serif" font-weight="bold">CO₂ In</text>
+    </g>
+
+    <!-- Oxygen -->
+    <g id="oxygen">
+        <path d="M 500 180 Q 580 150 650 160" fill="none" stroke="#64b5f6" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-o2)"/>
+        <text x="660" y="170" fill="#64b5f6" font-size="24" font-family="sans-serif" font-weight="bold">O₂ Out</text>
+    </g>
+
+    <!-- Water -->
+    <g id="water">
+        <path d="M 200 550 Q 300 520 350 480" fill="none" stroke="#29b6f6" stroke-width="6" stroke-linecap="round" marker-end="url(#arrow-water)"/>
+        <circle cx="220" cy="540" r="6" fill="#29b6f6" />
+        <circle cx="240" cy="560" r="8" fill="#29b6f6" />
+        <circle cx="260" cy="520" r="5" fill="#29b6f6" />
+        <text x="100" y="560" fill="#29b6f6" font-size="24" font-family="sans-serif" font-weight="bold">H₂O In</text>
+    </g>
+
+    <!-- Chloroplast -->
+    <g id="chloroplast">
+        <ellipse cx="320" cy="300" rx="20" ry="10" fill="#2e7d32" stroke="#1b5e20" stroke-width="2"/>
+        <circle cx="310" cy="300" r="3" fill="#4caf50" />
+        <circle cx="320" cy="300" r="3" fill="#4caf50" />
+        <circle cx="330" cy="300" r="3" fill="#4caf50" />
+        <text x="260" y="340" fill="#a5d6a7" font-size="20" font-family="sans-serif" font-weight="bold">Chloroplast</text>
+    </g>
+
+    <!-- Glucose -->
+    <g id="glucose">
+        <path d="M 450 300 Q 550 350 650 330" fill="none" stroke="#ff9800" stroke-width="6" stroke-linecap="round" stroke-dasharray="8,8" marker-end="url(#arrow-glucose)"/>
+        <circle cx="680" cy="325" r="15" fill="#ffb74d" />
+        <circle cx="665" cy="315" r="15" fill="#ffb74d" />
+        <circle cx="665" cy="335" r="15" fill="#ffb74d" />
+        <text x="710" y="335" fill="#ffb74d" font-size="24" font-family="sans-serif" font-weight="bold">Glucose</text>
+    </g>
+
+    <!-- Markers -->
+    <defs>
+        <marker id="arrow-co2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#e0e0e0" />
+        </marker>
+        <marker id="arrow-o2" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#64b5f6" />
+        </marker>
+        <marker id="arrow-water" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#29b6f6" />
+        </marker>
+        <marker id="arrow-glucose" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#ff9800" />
+        </marker>
+    </defs>
+</svg>

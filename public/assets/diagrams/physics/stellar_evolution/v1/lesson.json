@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "nebula",
+      "speech": "Every star begins as a stellar nebula, a massive cloud of dust and hydrogen gas that slowly collapses under its own gravity."
+    },
+    {
+      "highlight": "main_sequence",
+      "speech": "As it collapses, it ignites nuclear fusion and becomes a main sequence star. A massive star will burn extremely hot and bright for millions of years."
+    },
+    {
+      "highlight": "supernova",
+      "speech": "When a massive star runs out of fuel, its core collapses instantly, triggering a colossal and spectacular explosion known as a Supernova."
+    }
+  ]
+}

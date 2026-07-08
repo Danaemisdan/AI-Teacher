@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "gamma",
+      "speech": "On the far left, we have Gamma and X-rays. These have the shortest wavelengths and pack the most intense energy, which is why X-rays can pass through your skin!"
+    },
+    {
+      "highlight": "visible",
+      "speech": "In the middle is a tiny sliver known as Visible Light. This contains all the colors of the rainbow and is the only part of the spectrum our eyes can actually see."
+    },
+    {
+      "highlight": "radio",
+      "speech": "On the far right are Microwaves and Radio waves. They have very long wavelengths and low energy, perfect for carrying music to your car radio or heating up your food."
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "magma_chamber",
+      "speech": "Deep beneath the volcano lies the magma chamber, a large underground pool of molten rock."
+    },
+    {
+      "highlight": "vent",
+      "speech": "When pressure builds, magma rises through the main vent, a central tube connecting the chamber to the surface."
+    },
+    {
+      "highlight": "ash_cloud",
+      "speech": "Upon eruption, explosive gases launch fragmented rock into the air, creating a massive, dark ash cloud that can block out the sun."
+    }
+  ]
+}

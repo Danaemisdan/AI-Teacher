@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <rect width="800" height="600" fill="#000000" rx="20"/>
+  
+  <g id="sun">
+    <circle cx="0" cy="300" r="150" fill="#ff922b"/>
+    <text x="160" y="305" fill="#ffd8a8" font-size="20">The Sun</text>
+  </g>
+  
+  <g id="terrestrial">
+    <circle cx="220" cy="300" r="5" fill="#868e96"/> <!-- Mercury -->
+    <circle cx="260" cy="300" r="10" fill="#fcc419"/> <!-- Venus -->
+    <circle cx="310" cy="300" r="12" fill="#4dabf7"/> <!-- Earth -->
+    <circle cx="360" cy="300" r="8" fill="#fa5252"/> <!-- Mars -->
+    <text x="250" y="250" fill="#fff" font-size="16">Terrestrial Planets</text>
+  </g>
+  
+  <g id="gas_giants">
+    <circle cx="480" cy="300" r="40" fill="#f4a261"/> <!-- Jupiter -->
+    <circle cx="620" cy="300" r="30" fill="#e9c46a"/> <!-- Saturn -->
+    <ellipse cx="620" cy="300" rx="45" ry="10" fill="none" stroke="#fff" stroke-width="2" transform="rotate(20, 620, 300)"/>
+    <circle cx="710" cy="300" r="20" fill="#2a9d8f"/> <!-- Uranus -->
+    <circle cx="770" cy="300" r="18" fill="#264653"/> <!-- Neptune -->
+    <text x="560" y="200" fill="#fff" font-size="16">Gas & Ice Giants</text>
+  </g>
+</svg>

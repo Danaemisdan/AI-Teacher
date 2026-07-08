@@ -1,0 +1,24 @@
+{
+  "steps": [
+    {
+      "highlight": "sun",
+      "speech": "The process begins with the sun, which radiates energy towards our planet."
+    },
+    {
+      "highlight": "solar_radiation",
+      "speech": "This solar radiation passes through the atmosphere and warms the Earth's surface."
+    },
+    {
+      "highlight": "reflected_heat",
+      "speech": "The Earth absorbs some energy, but reflects the rest back towards space as heat."
+    },
+    {
+      "highlight": "atmosphere",
+      "speech": "However, our atmosphere contains greenhouse gases like carbon dioxide and methane."
+    },
+    {
+      "highlight": "trapped_heat",
+      "speech": "These gases trap a portion of the reflected heat, keeping our planet warm enough to sustain life."
+    }
+  ]
+}

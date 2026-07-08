@@ -1,0 +1,156 @@
+{
+  "dna replication": {
+    "asset": "diagrams/biology/dna_replication",
+    "renderer": "concept_diagram"
+  },
+  "human cell": {
+    "asset": "diagrams/biology/human_cell",
+    "renderer": "concept_diagram"
+  },
+  "plant cell": {
+    "asset": "diagrams/biology/plant_cell",
+    "renderer": "concept_diagram"
+  },
+  "photosynthesis": {
+    "asset": "diagrams/biology/photosynthesis",
+    "renderer": "concept_diagram"
+  },
+  "water cycle": {
+    "asset": "diagrams/geography/water_cycle",
+    "renderer": "concept_diagram"
+  },
+  "methane": {
+    "asset": "molecules/methane",
+    "renderer": "3dmol"
+  },
+  "supply_demand": {
+    "asset": "graphs/economics/supply_demand",
+    "renderer": "jsxgraph"
+  },
+  "carbon cycle": {
+    "asset": "diagrams/geography/carbon_cycle",
+    "renderer": "concept_diagram"
+  },
+  "plate tectonics": {
+    "asset": "diagrams/geography/plate_tectonics",
+    "renderer": "concept_diagram"
+  },
+  "volcanic eruption": {
+    "asset": "diagrams/geography/volcanic_eruption",
+    "renderer": "concept_diagram"
+  },
+  "layers of earth": {
+    "asset": "diagrams/geography/layers_of_earth",
+    "renderer": "concept_diagram"
+  },
+  "em spectrum": {
+    "asset": "diagrams/physics/em_spectrum",
+    "renderer": "concept_diagram"
+  },
+  "atomic structure": {
+    "asset": "diagrams/physics/atomic_structure",
+    "renderer": "concept_diagram"
+  },
+  "states of matter": {
+    "asset": "diagrams/physics/states_of_matter",
+    "renderer": "concept_diagram"
+  },
+  "nuclear fission": {
+    "asset": "diagrams/physics/nuclear_fission_fusion",
+    "renderer": "concept_diagram"
+  },
+  "nuclear fusion": {
+    "asset": "diagrams/physics/nuclear_fission_fusion",
+    "renderer": "concept_diagram"
+  },
+  "solar system": {
+    "asset": "diagrams/physics/solar_system",
+    "renderer": "concept_diagram"
+  },
+  "lunar phases": {
+    "asset": "diagrams/physics/lunar_phases",
+    "renderer": "concept_diagram"
+  },
+  "stellar evolution": {
+    "asset": "diagrams/physics/stellar_evolution",
+    "renderer": "concept_diagram"
+  },
+  "greenhouse effect": {
+    "asset": "diagrams/geography/greenhouse_effect",
+    "renderer": "concept_diagram"
+  },
+  "rock cycle": {
+    "asset": "diagrams/geography/rock_cycle",
+    "renderer": "concept_diagram"
+  },
+  "skeleton": {
+    "asset": "anatomy/skeleton",
+    "renderer": "anatomy",
+    "title": "The Human Skeleton"
+  },
+  "muscular_system": {
+    "asset": "anatomy/muscular_system",
+    "renderer": "anatomy",
+    "title": "The Muscular System"
+  },
+  "nervous_system": {
+    "asset": "anatomy/nervous_system",
+    "renderer": "anatomy",
+    "title": "The Nervous System"
+  },
+  "digestive_system": {
+    "asset": "anatomy/digestive_system",
+    "renderer": "anatomy",
+    "title": "The Digestive System"
+  },
+  "respiratory_system": {
+    "asset": "anatomy/respiratory_system",
+    "renderer": "anatomy",
+    "title": "The Respiratory System"
+  },
+  "cardiovascular_system": {
+    "asset": "anatomy/cardiovascular_system",
+    "renderer": "anatomy",
+    "title": "The Cardiovascular System"
+  },
+  "brain": {
+    "asset": "anatomy/brain",
+    "renderer": "anatomy",
+    "title": "The Human Brain"
+  },
+  "heart": {
+    "asset": "anatomy/heart",
+    "renderer": "anatomy",
+    "title": "The Human Heart"
+  },
+  "kidney": {
+    "asset": "anatomy/kidney",
+    "renderer": "anatomy",
+    "title": "The Kidney"
+  },
+  "liver": {
+    "asset": "anatomy/liver",
+    "renderer": "anatomy",
+    "title": "The Liver"
+  },
+  "eyes": {
+    "asset": "anatomy/eyes",
+    "renderer": "anatomy",
+    "title": "The Human Eye"
+  },
+  "ears": {
+    "asset": "anatomy/ears",
+    "renderer": "anatomy",
+    "title": "The Human Ear"
+  },
+  "bones": {
+    "asset": "anatomy/bones",
+    "renderer": "anatomy",
+    "title": "Bone Structure"
+  },
+  "joints": {
+    "asset": "anatomy/joints",
+    "renderer": "anatomy",
+    "title": "Joint Types"
+  }
+}

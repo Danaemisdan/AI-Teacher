@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "highlight": "nucleus",
+      "speech": "At the center of every atom is the nucleus. It is tightly packed with positively charged Protons and neutral Neutrons."
+    },
+    {
+      "highlight": "electrons",
+      "speech": "Buzzing around the nucleus at incredible speeds are the Electrons. They carry a negative charge and exist in cloud-like orbitals."
+    }
+  ]
+}

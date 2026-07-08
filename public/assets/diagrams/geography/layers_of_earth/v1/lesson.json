@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "crust",
+      "speech": "The outermost layer is the crust. It's relatively thin, solid, and is where all life on Earth exists."
+    },
+    {
+      "highlight": "mantle",
+      "speech": "Beneath the crust is the mantle, a thick layer of semi-solid rock that flows slowly over millions of years."
+    },
+    {
+      "highlight": "core",
+      "speech": "At the very center is the core, split into a liquid outer core and a solid inner core made mostly of scorching hot iron."
+    }
+  ]
+}

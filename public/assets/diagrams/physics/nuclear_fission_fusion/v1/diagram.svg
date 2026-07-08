@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <rect width="800" height="600" fill="#212529" rx="20"/>
+  
+  <g id="fission">
+    <text x="200" y="100" fill="white" font-size="24" text-anchor="middle">Nuclear Fission</text>
+    <circle cx="100" cy="300" r="10" fill="#fab005"/> <!-- Neutron -->
+    <path d="M 120 300 L 180 300" stroke="white" stroke-dasharray="5,5" fill="none"/>
+    <circle cx="220" cy="300" r="40" fill="#fa5252"/> <!-- Heavy Nucleus -->
+    <path d="M 270 280 L 320 220" stroke="white" stroke-dasharray="5,5" fill="none"/>
+    <path d="M 270 320 L 320 380" stroke="white" stroke-dasharray="5,5" fill="none"/>
+    <circle cx="340" cy="200" r="25" fill="#fa5252"/>
+    <circle cx="340" cy="400" r="25" fill="#fa5252"/>
+  </g>
+  
+  <line x1="400" y1="50" x2="400" y2="550" stroke="#495057" stroke-width="2"/>
+  
+  <g id="fusion">
+    <text x="600" y="100" fill="white" font-size="24" text-anchor="middle">Nuclear Fusion</text>
+    <circle cx="500" cy="200" r="15" fill="#4dabf7"/>
+    <circle cx="500" cy="400" r="15" fill="#4dabf7"/>
+    <path d="M 520 220 L 580 280" stroke="white" stroke-dasharray="5,5" fill="none"/>
+    <path d="M 520 380 L 580 320" stroke="white" stroke-dasharray="5,5" fill="none"/>
+    <circle cx="620" cy="300" r="30" fill="#74c0fc"/> <!-- Fused Nucleus -->
+    <path d="M 660 300 L 720 300" stroke="#ffeb3b" stroke-width="4" fill="none"/>
+    <text x="740" y="305" fill="#ffeb3b" font-size="18">ENERGY!</text>
+  </g>
+</svg>

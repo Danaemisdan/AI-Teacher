@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "sun",
+      "speech": "At the center of our solar system is the Sun, a massive main-sequence star that contains over 99 percent of the mass in the entire solar system."
+    },
+    {
+      "highlight": "terrestrial",
+      "speech": "Orbiting closest to the Sun are the terrestrial planets: Mercury, Venus, Earth, and Mars. They are relatively small and have solid, rocky surfaces."
+    },
+    {
+      "highlight": "gas_giants",
+      "speech": "Further out are the giants. Jupiter and Saturn are massive gas giants, while Uranus and Neptune are freezing cold ice giants."
+    }
+  ]
+}

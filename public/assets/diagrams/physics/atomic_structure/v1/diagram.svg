@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <rect width="800" height="600" fill="#f4f6f8" rx="20"/>
+  
+  <g id="nucleus">
+    <!-- Protons -->
+    <circle cx="390" cy="290" r="20" fill="#fa5252"/>
+    <circle cx="410" cy="310" r="20" fill="#fa5252"/>
+    <circle cx="415" cy="285" r="20" fill="#fa5252"/>
+    <!-- Neutrons -->
+    <circle cx="410" cy="290" r="20" fill="#868e96"/>
+    <circle cx="390" cy="310" r="20" fill="#868e96"/>
+    <circle cx="385" cy="285" r="20" fill="#868e96"/>
+    
+    <text x="480" y="300" fill="#333" font-size="20">Nucleus (Protons & Neutrons)</text>
+  </g>
+  
+  <g id="electrons">
+    <!-- Orbits -->
+    <ellipse cx="400" cy="300" rx="150" ry="50" fill="none" stroke="#228be6" stroke-width="2" transform="rotate(30, 400, 300)"/>
+    <ellipse cx="400" cy="300" rx="150" ry="50" fill="none" stroke="#228be6" stroke-width="2" transform="rotate(-30, 400, 300)"/>
+    
+    <!-- Electron particles -->
+    <circle cx="530" cy="375" r="10" fill="#339af0"/>
+    <circle cx="270" cy="225" r="10" fill="#339af0"/>
+    <text x="560" y="400" fill="#1864ab" font-size="20">Electrons in Orbit</text>
+  </g>
+</svg>

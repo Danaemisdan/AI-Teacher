@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4facfe"/>
+      <stop offset="100%" stop-color="#00f2fe"/>
+    </linearGradient>
+    <linearGradient id="oceanGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0250c5"/>
+      <stop offset="100%" stop-color="#2a0845"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#skyGrad)" rx="20"/>
+  <!-- Ocean -->
+  <path d="M 0 450 Q 200 420 400 450 T 800 450 L 800 600 L 0 600 Z" fill="url(#oceanGrad)"/>
+  
+  <g id="evaporation">
+    <path d="M 600 420 Q 620 300 600 200" stroke="rgba(255,255,255,0.7)" stroke-width="4" stroke-dasharray="10,10" fill="none"/>
+    <path d="M 650 430 Q 670 320 650 220" stroke="rgba(255,255,255,0.7)" stroke-width="4" stroke-dasharray="10,10" fill="none"/>
+    <text x="660" y="320" fill="white" font-size="20">Evaporation</text>
+  </g>
+  
+  <g id="condensation">
+    <ellipse cx="400" cy="150" rx="120" ry="50" fill="rgba(255,255,255,0.9)"/>
+    <ellipse cx="450" cy="120" rx="80" ry="40" fill="rgba(255,255,255,0.9)"/>
+    <ellipse cx="330" cy="130" rx="90" ry="45" fill="rgba(255,255,255,0.9)"/>
+    <text x="340" y="140" fill="#333" font-size="20">Condensation</text>
+  </g>
+  
+  <g id="precipitation">
+    <line x1="300" y1="200" x2="280" y2="350" stroke="#00f2fe" stroke-width="4" stroke-dasharray="10,5"/>
+    <line x1="350" y1="200" x2="330" y2="350" stroke="#00f2fe" stroke-width="4" stroke-dasharray="10,5"/>
+    <line x1="400" y1="200" x2="380" y2="350" stroke="#00f2fe" stroke-width="4" stroke-dasharray="10,5"/>
+    <text x="210" y="280" fill="white" font-size="20">Precipitation</text>
+  </g>
+</svg>

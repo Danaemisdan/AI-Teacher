@@ -1,0 +1,48 @@
+{
+    "title": "The Digestive System",
+    "description": "Follow the incredible journey of food as your body breaks it down into energy.",
+    "steps": [
+        {
+            "id": "step_intro",
+            "speech": "Ever wonder what happens to your food after you swallow it? Let's take a trip down the digestive tract!",
+            "highlight": null,
+            "duration": 6000
+        },
+        {
+            "id": "step_mouth",
+            "speech": "Digestion actually begins in the mouth, where chewing and saliva start breaking down the food. It then travels down a long tube called the esophagus.",
+            "highlight": "mouth_esophagus",
+            "duration": 9000
+        },
+        {
+            "id": "step_stomach",
+            "speech": "It drops into the stomach, a muscular bag filled with strong acids that churn and dissolve the food into a liquid paste.",
+            "highlight": "stomach",
+            "duration": 8000
+        },
+        {
+            "id": "step_liver",
+            "speech": "Next door is the liver and gallbladder. They produce and store bile, a special fluid that helps digest fats.",
+            "highlight": "liver_gallbladder",
+            "duration": 7500
+        },
+        {
+            "id": "step_pancreas",
+            "speech": "Hidden just beneath the stomach is the pancreas, which squirts powerful enzymes into the intestines to further break down proteins and carbs.",
+            "highlight": "pancreas",
+            "duration": 8500
+        },
+        {
+            "id": "step_small",
+            "speech": "The food then winds through the small intestine. Despite its name, it's incredibly long! This is where most nutrients are absorbed into your bloodstream.",
+            "highlight": "small_intestine",
+            "duration": 10000
+        },
+        {
+            "id": "step_large",
+            "speech": "Finally, the leftover waste enters the large intestine. Water is absorbed back into the body, and the solid waste is eventually expelled.",
+            "highlight": "large_intestine",
+            "duration": 9000
+        }
+    ]
+}

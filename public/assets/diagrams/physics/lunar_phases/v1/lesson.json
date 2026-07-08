@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "new_moon",
+      "speech": "During a New Moon, the moon is between the Earth and the Sun. The side facing us is completely in shadow, making it invisible in the night sky."
+    },
+    {
+      "highlight": "quarter_moon",
+      "speech": "As the moon orbits Earth, we see a First Quarter moon. Half of the moon's visible surface is illuminated by sunlight."
+    },
+    {
+      "highlight": "full_moon",
+      "speech": "When the Earth is between the moon and the Sun, we see a Full Moon, where the entire Earth-facing side is brightly lit."
+    }
+  ]
+}

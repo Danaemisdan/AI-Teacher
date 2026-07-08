@@ -1,0 +1,16 @@
+{
+  "steps": [
+    {
+      "highlight": "divergent",
+      "speech": "At divergent boundaries, tectonic plates move apart from each other. This often creates new crust as magma rises to the surface."
+    },
+    {
+      "highlight": "convergent",
+      "speech": "At convergent boundaries, plates collide. One plate is often pushed under the other, creating deep trenches or massive mountain ranges."
+    },
+    {
+      "highlight": "transform",
+      "speech": "At transform boundaries, plates slide horizontally past one another, building up tension that is often released as earthquakes."
+    }
+  ]
+}

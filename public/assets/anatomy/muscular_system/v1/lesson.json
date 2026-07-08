@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "highlight": "core",
+      "speech": "Welcome to the 3D Anatomy module for The Muscular System. We are now loading the primary structures."
+    },
+    {
+      "highlight": "vessels",
+      "speech": "Notice the complex vascular network surrounding the organ, providing crucial blood flow and nutrients."
+    }
+  ]
+}

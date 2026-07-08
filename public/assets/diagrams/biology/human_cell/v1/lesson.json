@@ -1,0 +1,54 @@
+{
+    "title": "The Human Cell (Animal Cell)",
+    "description": "An interactive tour of the microscopic building block of human life.",
+    "steps": [
+        {
+            "id": "step_intro",
+            "speech": "Welcome to the microscopic world of the human cell! This is an animal cell, the fundamental building block of your body. Let's explore its anatomy.",
+            "highlight": null,
+            "duration": 7000
+        },
+        {
+            "id": "step_membrane",
+            "speech": "First, we have the cell membrane. It acts like a security gate, controlling what enters and leaves the cell to keep the internal environment stable.",
+            "highlight": "cell_membrane",
+            "duration": 8000
+        },
+        {
+            "id": "step_nucleus",
+            "speech": "At the center lies the nucleus. This is the command center of the cell, housing all of your DNA and genetic blueprints.",
+            "highlight": "nucleus",
+            "duration": 7000
+        },
+        {
+            "id": "step_mitochondria",
+            "speech": "These orange, bean-shaped structures are the mitochondria. Often called the powerhouses of the cell, they generate the energy needed to power cellular functions.",
+            "highlight": "mitochondria",
+            "duration": 8500
+        },
+        {
+            "id": "step_er_ribosomes",
+            "speech": "Surrounding the nucleus is the endoplasmic reticulum, studded with tiny blue dots called ribosomes. Together, they act as a factory, synthesizing proteins.",
+            "highlight": "endoplasmic_reticulum, ribosomes",
+            "duration": 9000
+        },
+        {
+            "id": "step_golgi",
+            "speech": "Once proteins are made, they travel to the Golgi apparatus—the green stacked structure. It packages and ships proteins to their final destinations.",
+            "highlight": "golgi_apparatus",
+            "duration": 8000
+        },
+        {
+            "id": "step_lysosomes",
+            "speech": "Finally, the red spheres are lysosomes. They contain enzymes that break down waste materials, acting as the cell's recycling center.",
+            "highlight": "lysosomes",
+            "duration": 8000
+        },
+        {
+            "id": "step_outro",
+            "speech": "And there you have it! All of these organelles work together in perfect harmony to keep you alive.",
+            "highlight": null,
+            "duration": 5000
+        }
+    ]
+}

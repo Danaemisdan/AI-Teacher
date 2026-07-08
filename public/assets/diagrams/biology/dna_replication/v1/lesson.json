@@ -1,0 +1,48 @@
+{
+    "title": "DNA Replication",
+    "description": "Discover how cells copy their genetic code before dividing.",
+    "steps": [
+        {
+            "id": "step_intro",
+            "speech": "Before a cell can divide, it must make an exact copy of its DNA. This process is called DNA replication, and it involves a team of incredible microscopic machines.",
+            "highlight": null,
+            "duration": 8500
+        },
+        {
+            "id": "step_parental",
+            "speech": "It starts with the original, double-stranded parental DNA. The two strands are held together by complementary base pairs.",
+            "highlight": "parental_dna",
+            "duration": 7000
+        },
+        {
+            "id": "step_helicase",
+            "speech": "To copy the DNA, we first have to unzip it! An enzyme called Helicase acts like a wedge, breaking the bonds between base pairs and creating a replication fork.",
+            "highlight": "helicase, replication_fork",
+            "duration": 10000
+        },
+        {
+            "id": "step_polymerase",
+            "speech": "Once unzipped, DNA Polymerase swoops in. This enzyme reads the exposed bases and attaches matching nucleotides to build the new strands.",
+            "highlight": "dna_polymerase",
+            "duration": 9000
+        },
+        {
+            "id": "step_leading",
+            "speech": "Because DNA is directional, one strand is built continuously, following the helicase. This is the leading strand.",
+            "highlight": "leading_strand",
+            "duration": 7000
+        },
+        {
+            "id": "step_lagging",
+            "speech": "The other strand is built backwards in short chunks called Okazaki fragments. This is the lagging strand. Eventually, these fragments are glued together.",
+            "highlight": "lagging_strand",
+            "duration": 9500
+        },
+        {
+            "id": "step_outro",
+            "speech": "By the end of the process, one parental helix becomes two identical daughter helices, ready for cell division!",
+            "highlight": null,
+            "duration": 6000
+        }
+    ]
+}
