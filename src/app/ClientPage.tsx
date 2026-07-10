@@ -340,27 +340,28 @@ EXAMPLES:
         }
         setIsSourcing(false);
 
-        const SYSTEM_PROMPT = `You are Momentum, a witty virtual teacher. 
+        const SYSTEM_PROMPT = curriculum?.isTeaching ? `You are Momentum, a virtual teacher. You are currently teaching the student about "${curriculum.topic}".
+The student just replied to your question. Evaluate their understanding.
+If they are confused or wrong, gently correct them and explain the concept simpler and slower.
+If they are correct, praise them and move on to the next chunk of the lesson!
+
+CRITICAL RULES FOR CHUNKED TEACHING:
+1. Explain ONE small, digestible concept. Keep your total response under 4 sentences!
+2. You MUST end your response with a question checking if the student understood.
+3. You MUST format your entire response as a sequence of tags: [SPEECH] and [NOTE].
+4. For spoken narration, you MUST use [SPEECH] text [/SPEECH]. IF YOU DO NOT USE THIS TAG, THERE WILL BE NO VOICE.
+5. For concise educational bullet points to appear on the blackboard, use [NOTE] bullet point [/NOTE].
+6. DO NOT output ANY conversational text outside of these tags!
+7. Be natural and Socratic in your [SPEECH] blocks. Sound like a human teacher!` : `You are Momentum, a witty virtual teacher. 
 Respond naturally and conversationally. DO NOT use titles, formatting, or generate quizzes for normal chat.
-CRITICAL: You are now powered by a multi-modal Engine Orchestrator! If the student asks you to explain, show, or teach ANY complex topic, you MUST output a simple intent block at the VERY BEGINNING of your response.
-Format: [INTENT: topic_name]
-
-EXAMPLES:
-- If user asks for methane molecule: [INTENT: methane molecule]
-- If user asks for an equation (e.g. balance methane combustion): [INTENT: methane combustion]
-- If user asks for a physics concept like Boyle's Law: [INTENT: boyles law]
-- If user asks for Supply and Demand: [INTENT: supply and demand]
-- If user asks to teach photosynthesis: [INTENT: photosynthesis]
-
-The Engine Orchestrator will automatically map your intent to the correct Lesson Strategy (e.g., Scientific Process, Economic Principle) and sequence the Graph Engine, Molecular Engine, Anatomy Engine, etc.
 
 Available interactive assets in the Universal Education Asset Registry:
 ${await AssetManager.getRegistryPromptContext()}
 ${webContext ? `Use this context if helpful: ${webContext}` : ''}
+
 STRICT RULES:
 1. NEVER output raw markdown image links.
-2. NEVER output raw LaTeX equations like \[ \] or $$ in your conversational text.
-ALWAYS use the [INTENT: ...] tag to show visuals.`;
+2. NEVER output raw LaTeX equations like \\[ \\] or $$ in your conversational text.`;
 
         const finalMessages = [
             { role: 'system' as const, content: SYSTEM_PROMPT },
@@ -369,92 +370,130 @@ ALWAYS use the [INTENT: ...] tag to show visuals.`;
 
         try {
             let spokenSentencesCount = 0;
+            let parsedFramesCount = 0;
+            
             const fullReply = await generateResponse(finalMessages, (chunk) => {
                 setCurrentReply(chunk);
                 
-                const drawMatch = chunk.match(/\[DRAW:\s*(<svg[\s\S]*?<\/svg>)\s*\]/i);
-                if (drawMatch && drawMatch[1]) {
-                    setCurrentHtmlGraphic(drawMatch[1]);
-                }
-                
-                // MULTIPLE IMAGES
-                const imageMatches = [...chunk.matchAll(/\[IMAGE:\s*([\s\S]*?)\]/gi)].map(m => m[1].trim());
-                if (imageMatches.length > 0) {
-                    setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify(imageMatches)}]`);
-                }
-                
-                // YOUTUBE VIDEO
-                const videoMatch = chunk.match(/\[VIDEO:\s*([\s\S]*?)\s*\]/i);
-                if (videoMatch && videoMatch[1]) {
-                    setCurrentHtmlGraphic(`[VIDEO: ${videoMatch[1]}]`);
-                }
+                if (curriculum?.isTeaching) {
+                    // --- Socratic Interactive Teaching Parser ---
+                    const frames = [...chunk.matchAll(/\[(SPEECH|NOTE|HIGHLIGHT|QUIZ)\]([\s\S]*?)\[\/\1\]/gi)];
+                    
+                    while (frames.length > parsedFramesCount) {
+                        const frame = frames[parsedFramesCount];
+                        parsedFramesCount++;
+                        const type = frame[1].toUpperCase();
+                        const content = frame[2].trim();
+                        
+                        if (type === 'SPEECH' || type === 'NOTE') {
+                            const rawChunks = content.match(/[^.!?\n]+[.!?\n]+/g) || [content];
+                            const finalChunks: string[] = [];
+                            
+                            rawChunks.forEach(rawChunk => {
+                                let remaining = rawChunk;
+                                while (remaining.length > 200) {
+                                    let splitIndex = remaining.lastIndexOf(' ', 200);
+                                    if (splitIndex === -1) splitIndex = 200;
+                                    finalChunks.push(remaining.substring(0, splitIndex));
+                                    remaining = remaining.substring(splitIndex).trim();
+                                }
+                                if (remaining.trim()) {
+                                    finalChunks.push(remaining.trim());
+                                }
+                            });
 
-                // EVERYTING AI ASSETS
-                const assetsMatch = chunk.match(/\[ASSETS:\s*([\s\S]*?)\s*\]/i);
-                if (assetsMatch && assetsMatch[1]) {
-                    setCurrentHtmlGraphic(`[ASSETS: ${assetsMatch[1]}]`);
-                }
-                
-                // CHEMISTRY
-                const chemMatch = chunk.match(/\[CHEMISTRY:\s*([\s\S]*?)\s*\]/i);
-                if (chemMatch && chemMatch[1]) {
-                    setCurrentHtmlGraphic(`[CHEMISTRY: ${chemMatch[1]}]`);
-                }
+                            finalChunks.forEach((chunkText, index) => {
+                                if (chunkText.trim()) {
+                                    setAudioQueue(prev => [...prev, {
+                                        url: '/api/tts?text=' + encodeURIComponent(chunkText.trim()), 
+                                        text: chunkText.trim(),
+                                        note: (type === 'NOTE' && index === 0) ? content.trim() : undefined
+                                    }]);
+                                }
+                            });
+                        } else if (type === 'HIGHLIGHT') {
+                            setAudioQueue(prev => [...prev, { highlight: content }]);
+                        } else if (type === 'QUIZ') {
+                            const parsedQuiz = safeJsonParse(content, null);
+                            if (parsedQuiz) setAudioQueue(prev => [...prev, { quiz: parsedQuiz }]);
+                        }
+                    }
+                } else {
+                    // --- Normal Chat Parser ---
+                    const drawMatch = chunk.match(/\[DRAW:\s*(<svg[\s\S]*?<\/svg>)\s*\]/i);
+                    if (drawMatch && drawMatch[1]) {
+                        setCurrentHtmlGraphic(drawMatch[1]);
+                    }
+                    
+                    const imageMatches = [...chunk.matchAll(/\[IMAGE:\s*([\s\S]*?)\]/gi)].map(m => m[1].trim());
+                    if (imageMatches.length > 0) {
+                        setCurrentHtmlGraphic(`[IMAGES: ${JSON.stringify(imageMatches)}]`);
+                    }
+                    
+                    const videoMatch = chunk.match(/\[VIDEO:\s*([\s\S]*?)\s*\]/i);
+                    if (videoMatch && videoMatch[1]) {
+                        setCurrentHtmlGraphic(`[VIDEO: ${videoMatch[1]}]`);
+                    }
 
-                // SIMULATION
-                const simMatch = chunk.match(/\[SIMULATION:\s*([\s\S]*?)\s*\]/i);
-                if (simMatch && simMatch[1]) {
-                    setCurrentHtmlGraphic(`[SIMULATION: ${simMatch[1]}]`);
-                }
+                    const assetsMatch = chunk.match(/\[ASSETS:\s*([\s\S]*?)\s*\]/i);
+                    if (assetsMatch && assetsMatch[1]) {
+                        setCurrentHtmlGraphic(`[ASSETS: ${assetsMatch[1]}]`);
+                    }
+                    
+                    const chemMatch = chunk.match(/\[CHEMISTRY:\s*([\s\S]*?)\s*\]/i);
+                    if (chemMatch && chemMatch[1]) {
+                        setCurrentHtmlGraphic(`[CHEMISTRY: ${chemMatch[1]}]`);
+                    }
 
-                // CONCEPT
-                const conceptMatch = chunk.match(/\[CONCEPT:\s*([\s\S]*?)\s*\]/i);
-                if (conceptMatch && conceptMatch[1]) {
-                    setCurrentHtmlGraphic(`[CONCEPT: ${conceptMatch[1]}]`);
-                }
+                    const simMatch = chunk.match(/\[SIMULATION:\s*([\s\S]*?)\s*\]/i);
+                    if (simMatch && simMatch[1]) {
+                        setCurrentHtmlGraphic(`[SIMULATION: ${simMatch[1]}]`);
+                    }
 
-                // GRAPH
-                const graphMatch = chunk.match(/\[GRAPH:\s*([\s\S]*?)\s*\]/i);
-                if (graphMatch && graphMatch[1]) {
-                    setCurrentHtmlGraphic(`[GRAPH: ${graphMatch[1]}]`);
-                }
+                    const conceptMatch = chunk.match(/\[CONCEPT:\s*([\s\S]*?)\s*\]/i);
+                    if (conceptMatch && conceptMatch[1]) {
+                        setCurrentHtmlGraphic(`[CONCEPT: ${conceptMatch[1]}]`);
+                    }
 
-                // ANATOMY
-                const anatomyMatch = chunk.match(/\[ANATOMY:\s*([\s\S]*?)\s*\]/i);
-                if (anatomyMatch && anatomyMatch[1]) {
-                    setCurrentHtmlGraphic(`[ANATOMY: ${anatomyMatch[1]}]`);
-                }
-                
-                // INTENT
-                const intentMatch = chunk.match(/\[INTENT:\s*([\s\S]*?)\s*\]/i);
-                if (intentMatch && intentMatch[1]) {
-                    setCurrentHtmlGraphic(`[INTENT: ${intentMatch[1]}]`);
-                }
+                    const graphMatch = chunk.match(/\[GRAPH:\s*([\s\S]*?)\s*\]/i);
+                    if (graphMatch && graphMatch[1]) {
+                        setCurrentHtmlGraphic(`[GRAPH: ${graphMatch[1]}]`);
+                    }
 
-                let cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').replace(/\[CHEMISTRY:[\s\S]*?\]/gi, '').replace(/\[SIMULATION:[\s\S]*?\]/gi, '').replace(/\[CONCEPT:[\s\S]*?\]/gi, '').replace(/\[ANATOMY:[\s\S]*?\]/gi, '').replace(/\[GRAPH:[\s\S]*?\]/gi, '').replace(/\[INTENT:[\s\S]*?\]/gi, '');
-                
-                // Strip raw markdown links and images so the AI doesn't read them aloud
-                cleanText = cleanText.replace(/!?\[.*?\]\(.*?\)/g, '');
-                
-                // Strip raw LaTeX equations so the AI doesn't read out slashes and braces
-                cleanText = cleanText.replace(/\\\[[\s\S]*?\\\]/g, '').replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\\\(.*?\\\)/g, '');
-                
-                const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
-                while (sentences.length > spokenSentencesCount) {
-                    const newSentence = sentences[spokenSentencesCount].trim();
-                    spokenSentencesCount++;
-                    if (newSentence.length > 2) {
-                        setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(newSentence), text: newSentence }]);
+                    const anatomyMatch = chunk.match(/\[ANATOMY:\s*([\s\S]*?)\s*\]/i);
+                    if (anatomyMatch && anatomyMatch[1]) {
+                        setCurrentHtmlGraphic(`[ANATOMY: ${anatomyMatch[1]}]`);
+                    }
+                    
+                    const intentMatch = chunk.match(/\[INTENT:\s*([\s\S]*?)\s*\]/i);
+                    if (intentMatch && intentMatch[1]) {
+                        setCurrentHtmlGraphic(`[INTENT: ${intentMatch[1]}]`);
+                    }
+
+                    let cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').replace(/\[CHEMISTRY:[\s\S]*?\]/gi, '').replace(/\[SIMULATION:[\s\S]*?\]/gi, '').replace(/\[CONCEPT:[\s\S]*?\]/gi, '').replace(/\[ANATOMY:[\s\S]*?\]/gi, '').replace(/\[GRAPH:[\s\S]*?\]/gi, '').replace(/\[INTENT:[\s\S]*?\]/gi, '');
+                    
+                    cleanText = cleanText.replace(/!?\[.*?\]\(.*?\)/g, '');
+                    cleanText = cleanText.replace(/\\\[[\s\S]*?\\\]/g, '').replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\\\(.*?\\\)/g, '');
+                    
+                    const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
+                    while (sentences.length > spokenSentencesCount) {
+                        const newSentence = sentences[spokenSentencesCount].trim();
+                        spokenSentencesCount++;
+                        if (newSentence.length > 2) {
+                            setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(newSentence), text: newSentence }]);
+                        }
                     }
                 }
             });
             
-            const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').trim();
-            const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
-            const spokenLength = sentences.join('').length;
-            if (cleanSpeech.length > spokenLength + 2) {
-                 const finalSentence = cleanSpeech.substring(spokenLength).trim();
-                 setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(finalSentence), text: finalSentence }]);
+            if (!curriculum?.isTeaching) {
+                const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').trim();
+                const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
+                const spokenLength = sentences.join('').length;
+                if (cleanSpeech.length > spokenLength + 2) {
+                     const finalSentence = cleanSpeech.substring(spokenLength).trim();
+                     setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(finalSentence), text: finalSentence }]);
+                }
             }
             
             setMessages([...newMessages, { role: 'assistant', content: fullReply }]);
@@ -509,10 +548,11 @@ Classify the intent into EXACTLY ONE of these types:
 - lab_simulation (for physics/math/chemistry labs like titration, ideal gas law, boyles law, circuits, gravity, friction)
 - graph (for math, statistics, economics, finance, business analytics like Supply Curve, Normal Distribution, Cartesian coordinates)
 - general_image (for history, english, computer science, or anything else that needs a simple image)
+- mermaid_diagram (for logic, flowcharts, processes, architecture, or general topics that can be visualized as a flowchart or mindmap)
 
 IMPORTANT RULES:
 - If the type is 'equation', you MUST output strictly valid LaTeX formatting (e.g. use subscripts like H_2, and arrows like \\rightarrow).
-- If the type is 'concept_diagram', the 'query' MUST be EXACTLY one of the IDs from the AVAILABLE CONCEPTS list below. Do not guess or abbreviate. If the topic is about Plant Cells, output exactly "plant cell". If none match perfectly, fallback to general_image.
+- If the type is 'concept_diagram', the 'query' MUST be EXACTLY one of the IDs from the AVAILABLE CONCEPTS list below. Do not guess or abbreviate. If the topic is about Plant Cells, output exactly "plant cell". If none match perfectly, USE mermaid_diagram INSTEAD!
 AVAILABLE CONCEPTS:
 ${registryContext}
 
@@ -580,9 +620,32 @@ DO NOT output conversational text. ONLY output the JSON object.`;
                     
                     console.warn(`[AssetManager] Failed to load asset for '${queryLower}'. The asset path '${assetPath}' or its lesson.json is missing on the server.`);
                     
-                    // Fallback if not found in registry or missing files: revert to general image using the ORIGINAL topic (not the hallucinated query)
-                    const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
-                    setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                    // Fallback if not found in registry or missing files: revert to mermaid diagram using the ORIGINAL topic
+                    parsed.visualization_type = 'mermaid_diagram';
+                    // We don't return here so it falls through to the mermaid_diagram block!
+                    // Wait, since we are inside a if-else chain, we need to explicitly run the mermaid code if we change it here.
+                    // Instead of duplicating, we will just set the type and let a separate function handle it?
+                    // Actually, we can just duplicate the mermaid logic here, or redirect it.
+                    setCurrentLessonContent("Generating Concept Diagram...");
+                    const mermaidPrompt = `Create a detailed Mermaid flowchart or mindmap explaining the concept of "${topic}".
+Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].
+Do not use markdown backticks around the tag.
+Example:
+[MERMAID]
+graph TD;
+A-->B;
+[/MERMAID]`;
+                    const mermaidReply = await generateResponse([
+                        { role: 'system', content: 'Output only the raw tag.' },
+                        { role: 'user', content: mermaidPrompt }
+                    ], () => {});
+                    const match = mermaidReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i) || mermaidReply.match(/\[MERMAID:\s*([\s\S]*?)\s*\]/i);
+                    if (match && match[1]) {
+                        setCurrentHtmlGraphic(`[MERMAID: ${match[1]}]`);
+                    } else {
+                        const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
+                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                    }
                     
                 } else if (parsed.visualization_type === 'lab_simulation') {
                     const simKeywords = ['acid', 'base', 'titration', 'ph', 'concentration', 'molarity', 'solution', 'balance', 'equation', 'react', 'gas', 'boyle', 'charles', 'pressure', 'gravity', 'force', 'circuit', 'electricity', 'resistor', 'energy', 'skate', 'friction', 'matter', 'solid', 'liquid', 'atoms', 'properties', 'pendulum', 'oscillation', 'wave', 'interference', 'color', 'vision', 'light', 'fraction', 'math'];
@@ -591,6 +654,27 @@ DO NOT output conversational text. ONLY output the JSON object.`;
                         setCurrentHtmlGraphic(`[SIMULATION: ${parsed.query || topic}]`);
                     } else {
                         const cleanTopic = (parsed.query || topic).replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
+                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                    }
+                } else if (parsed.visualization_type === 'mermaid_diagram') {
+                    setCurrentLessonContent("Generating Concept Diagram...");
+                    const mermaidPrompt = `Create a detailed Mermaid flowchart or mindmap explaining the concept of "${topic}".
+Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].
+Do not use markdown backticks around the tag.
+Example:
+[MERMAID]
+graph TD;
+A-->B;
+[/MERMAID]`;
+                    const mermaidReply = await generateResponse([
+                        { role: 'system', content: 'Output only the raw tag.' },
+                        { role: 'user', content: mermaidPrompt }
+                    ], () => {});
+                    const match = mermaidReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i) || mermaidReply.match(/\[MERMAID:\s*([\s\S]*?)\s*\]/i);
+                    if (match && match[1]) {
+                        setCurrentHtmlGraphic(`[MERMAID: ${match[1]}]`);
+                    } else {
+                        const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
                         setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
                     }
                 } else if (parsed.visualization_type === 'general_image') {
@@ -636,25 +720,22 @@ Output ONLY the raw tag.`;
         // --- PHASE 1b: Synchronized Presentation Layer ---
         setCurrentLessonContent("Listening to Momentum...");
         const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching: "${moduleName}" for the topic "${topic}".
-Provide a fascinating, highly detailed lecture. 
+Provide a fascinating, interactive lesson chunk. DO NOT EXPLAIN EVERYTHING AT ONCE!
 
-CRITICAL RULES FOR SYNCHRONIZATION:
-1. You MUST format your entire response as a sequence of tags: [SPEECH], [NOTE], [HIGHLIGHT], [QUIZ].
-2. For spoken narration, you MUST use [SPEECH] text [/SPEECH]. (Keep each SPEECH block to 1-2 sentences max!). IF YOU DO NOT USE THIS TAG, THERE WILL BE NO VOICE.
-3. For concise educational bullet points to appear on the blackboard, use [NOTE] bullet point [/NOTE]. Do NOT put the entire lecture in a NOTE tag.
-4. To highlight a specific diagram element, use [HIGHLIGHT] element_id [/HIGHLIGHT].
-5. At the very end of the lecture, you MUST generate an interactive pop quiz using:
-[QUIZ] 
-{"question": "...", "options": ["...", "..."], "answer": "..."}
-[/QUIZ]
+CRITICAL RULES FOR CHUNKED TEACHING:
+1. Explain ONE small, digestible concept. Keep your total response under 4 sentences!
+2. You MUST end your response with a question checking if the student understood.
+3. You MUST format your entire response as a sequence of tags: [SPEECH] and [NOTE].
+4. For spoken narration, you MUST use [SPEECH] text [/SPEECH]. IF YOU DO NOT USE THIS TAG, THERE WILL BE NO VOICE.
+5. For concise educational bullet points to appear on the blackboard, use [NOTE] bullet point [/NOTE].
 6. DO NOT output ANY conversational text outside of these tags!
-7. Be natural and Socratic in your [SPEECH] blocks. Do NOT say "Loading renderer" or "Generating quiz". Sound like a human teacher!`;
+7. Be natural and Socratic in your [SPEECH] blocks. Sound like a human teacher!`;
 
         try {
             let parsedFramesCount = 0;
             const fullReply = await generateResponse([
                 { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: `Give a highly detailed, interactive lecture on ${moduleName} using the requested tag format.` }
+                { role: 'user', content: `Start teaching the first chunk of ${moduleName}. Keep it short and ask a question at the end using the required tags.` }
             ], (chunk) => {
                 setCurrentReply(chunk);
                 
@@ -738,7 +819,7 @@ CRITICAL RULES FOR SYNCHRONIZATION:
         setCurrentLessonNotes([]);
         setIsGenerating(true);
         setCurrentLessonTitle("Planning Curriculum...");
-        setCurrentLessonContent("Thinking...");
+        setCurrentLessonContent("Brainstorming curriculum...");
         const registryContext = await AssetManager.getRegistryPromptContext();
         const MODULE_PROMPT = `Analyze the student's request: "${rawPrompt}".
 Extract the core educational topic they want to learn. Then, generate a 3-module syllabus.
@@ -892,7 +973,7 @@ CRITICAL: If the student's request is closely related to one of the AVAILABLE CO
                     <div className={`absolute left-1/2 -translate-x-1/2 top-12 w-[600px] h-[300px] rounded-[100%] blur-[120px] pointer-events-none transition-all duration-1000 z-10 ${isSpeaking ? 'bg-purple-600/50 animate-pulse' : 'bg-transparent'}`}></div>
 
                     {/* Blackboard - Massive Slate */}
-                    <div className={`flex transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] flex-col justify-center w-[95vw] h-[85vh] max-w-[1600px] z-20 ${(currentLessonTitle || currentHtmlGraphic) ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none absolute'}`}>
+                    <div className={`fixed inset-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] flex-col justify-center w-screen h-screen z-20 ${(currentLessonTitle || currentHtmlGraphic) ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none absolute'}`}>
                             <LessonBoard 
                                 title={currentLessonTitle} 
                                 content={currentLessonContent} 
@@ -926,9 +1007,9 @@ CRITICAL: If the student's request is closely related to one of the AVAILABLE CO
 
                         {/* Status Indicator Below Face */}
                         {(isSourcing || (!isLoaded && isLoading) || isGenerating || (!isLoaded && progressText.includes('Error'))) && (
-                            <div className={`flex items-center gap-2 text-sm font-semibold bg-[#111]/80 backdrop-blur-md px-5 py-2 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/5 ${progressText.includes('Error') ? 'text-red-400' : 'text-purple-300'}`}>
-                                {(!progressText.includes('Error') || isLoading) && <Loader2 className="w-4 h-4 animate-spin" />}
-                                {isSourcing ? "Sourcing live data..." : !isLoaded ? (progressText || 'Booting AI Engine...') : "Thinking..."}
+                            <div className={`flex items-center gap-3 text-lg lg:text-2xl font-bold bg-[#111]/80 backdrop-blur-md px-6 py-3 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/5 ${progressText.includes('Error') ? 'text-red-400' : 'text-purple-300'}`}>
+                                {(!progressText.includes('Error') || isLoading) && <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 animate-spin" />}
+                                {isSourcing ? "Sourcing live data..." : !isLoaded ? (progressText || 'Booting AI Engine...') : "Generating..."}
                                 {!isLoading && progressText.includes('Error') && (
                                     <button onClick={() => window.location.reload()} className="ml-2 px-3 py-1 bg-white/10 rounded-md hover:bg-white/20 transition-colors text-xs text-white border border-white/20">Retry</button>
                                 )}
@@ -1046,7 +1127,7 @@ CRITICAL: If the student's request is closely related to one of the AVAILABLE CO
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 disabled={!isLoaded || isGenerating}
-                                placeholder={isGenerating ? "Thinking..." : "Type your message or ask a question..."}
+                                placeholder={isGenerating ? "Generating..." : "Type your message or ask a question..."}
                                 className="flex-1 bg-transparent border-none outline-none px-6 text-gray-200 placeholder-gray-500 font-medium text-[16px] disabled:opacity-50"
                             />
                         

@@ -44,7 +44,7 @@ export default function ConceptDiagramEngine({ path, highlightId }: ConceptDiagr
     }
 
     return (
-        <div className="w-full h-full relative rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(255,200,100,0.1)] border border-orange-500/20 bg-[#111] flex flex-col items-center justify-center p-8">
+        <div className="w-full h-full relative flex flex-col items-center justify-center p-4 lg:p-8">
             <div className="absolute top-6 left-6 z-10 pointer-events-none">
                 <motion.div 
                     initial={{ opacity: 0, x: -20 }}
@@ -64,8 +64,12 @@ export default function ConceptDiagramEngine({ path, highlightId }: ConceptDiagr
             <style dangerouslySetInnerHTML={{__html: `
                 .concept-svg-container svg {
                     width: 100%;
-                    max-height: 100%;
+                    height: 100%;
                     transition: all 0.5s ease;
+                }
+                /* Hide the hardcoded SVG background rectangle so it blends with the full-screen blackboard */
+                .concept-svg-container svg > rect:first-of-type {
+                    display: none;
                 }
                 .concept-svg-container svg * {
                     transition: opacity 0.5s ease, filter 0.5s ease, transform 0.5s ease;
