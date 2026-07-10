@@ -170,7 +170,7 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                     
                                                     const anatomyMatch = htmlGraphic.match(/\[ANATOMY:\s*([^\]]+)\]/i);
                                                     if (anatomyMatch) {
-                                                        return <AnatomyEngine path={anatomyMatch[1]} highlightId={highlightId} />;
+                                                        return <AnatomyEngine path={anatomyMatch[1]} highlightId={highlightId || null} />;
                                                     }
 
                                                     // Handle CHEMISTRY
@@ -197,7 +197,7 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         return <GraphEngine spec={graphMatch[1].trim()} />;
                                                     }
 
-                                                    const concepts = safeJsonParse(htmlGraphic, null);
+                                                    const concepts = safeJsonParse<any[] | null>(htmlGraphic, null);
                                                     if (Array.isArray(concepts)) {
                                                         return (
                                                             <div className="grid grid-cols-2 gap-12 w-full max-w-5xl h-full py-8">

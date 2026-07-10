@@ -39,8 +39,8 @@ export default function JSXGraphAdapter({ spec, onError }: AdapterProps) {
                     if (generatedScript) {
                         const func = new Function('board', 'JXG', generatedScript);
                         func(board, JXG);
-                    } else if (spec.script) {
-                        const func = new Function('board', 'JXG', spec.script);
+                    } else if ((spec as any).script) {
+                        const func = new Function('board', 'JXG', (spec as any).script);
                         func(board, JXG);
                     }
                 } catch (e: any) {

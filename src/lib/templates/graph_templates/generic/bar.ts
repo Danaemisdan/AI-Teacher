@@ -1,4 +1,4 @@
-import { GraphTemplate } from '../GraphTemplateRegistry';
+import { GraphTemplate } from '../../GraphTemplateRegistry';
 
 export const GenericBarTemplate: GraphTemplate = {
     id: 'Generic_Bar',
@@ -22,7 +22,7 @@ export const GenericBarTemplate: GraphTemplate = {
                 name: 'Category Data',
                 type: 'bar',
                 color: '#10b981', // Emerald
-                points: [["A", 10], ["B", 20], ["C", 15], ["D", 30]] // Bulletproof default points
+                points: [["A", 10], ["B", 20], ["C", 15], ["D", 30]] as any // Bulletproof default points
             }
         ]
     },

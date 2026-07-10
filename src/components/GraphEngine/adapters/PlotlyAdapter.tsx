@@ -11,6 +11,7 @@ export default function PlotlyAdapter({ spec, onError, animationStep }: AdapterP
         const init = async () => {
             try {
                 // Lazy load
+                // @ts-ignore
                 const Plotly = (await import('plotly.js-dist-min')).default;
                 const createPlotlyComponent = (await import('react-plotly.js/factory')).default;
                 
