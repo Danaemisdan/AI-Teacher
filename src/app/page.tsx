@@ -743,7 +743,7 @@ CRITICAL: If the student's request is closely related to one of the AVAILABLE CO
             
             const jsonMatch = reply.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                    const parsed = safeJsonParse(jsonMatch[0], null);
+                    const parsed = safeJsonParse<any>(jsonMatch[0], null);
                     if (parsed) {
                         if (parsed.topic) extractedTopic = parsed.topic;
                         if (Array.isArray(parsed.modules) && parsed.modules.length > 0) {
