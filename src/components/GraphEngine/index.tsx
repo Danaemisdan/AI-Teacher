@@ -15,9 +15,10 @@ import { BlockMath } from 'react-katex';
 
 interface GraphEngineProps {
     spec: string;
+    autoAdvance?: boolean;
 }
 
-export default function GraphEngine({ spec }: GraphEngineProps) {
+export default function GraphEngine({ spec, autoAdvance }: GraphEngineProps) {
     const [parsed, setParsed] = useState<GraphSpec | null>(null);
     const [activeRenderer, setActiveRenderer] = useState<string | null>(null);
     const [hasError, setHasError] = useState(false);
@@ -58,13 +59,18 @@ export default function GraphEngine({ spec }: GraphEngineProps) {
             } else {
                 setActiveRenderer('formula');
             }
+
+            if (autoAdvance) {
+                // Skip the manual "Step Forward" interaction for conversational queries
+                setTimeout(() => interactionAPI.animateStep(999), 100);
+            }
         } catch (e: any) {
             console.warn("Failed to parse/validate Graph spec: " + e.message);
             setErrorMsg(e.message);
             setParsed(null);
             setHasError(true);
         }
-    }, [spec]);
+    }, [spec, autoAdvance, interactionAPI]);
 
     const handleAdapterError = (err: Error) => {
         if (!parsed || !activeRenderer) return;
@@ -79,10 +85,13 @@ export default function GraphEngine({ spec }: GraphEngineProps) {
     };
 
     if (hasError) {
+        // Silently fallback to a generic placeholder rather than showing a red error
         return (
-            <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-rose-900/20 border border-rose-500/30 rounded-xl">
-                <div className="text-rose-400 font-mono mb-2">Graph Engine Error</div>
-                <div className="text-sm text-slate-400 max-w-md text-center">{errorMsg}</div>
+            <div className="w-full h-full flex flex-col items-center justify-center relative">
+                <img src={`https://source.unsplash.com/1200x800/?math,graph`} alt="Concept Visualization" className="w-full h-full object-cover opacity-30 mix-blend-overlay" />
+                <div className="absolute text-white/50 font-medium text-lg drop-shadow-md">
+                    Abstract Representation
+                </div>
             </div>
         );
     }

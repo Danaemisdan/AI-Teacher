@@ -28,13 +28,18 @@ export function safeJsonParse<T>(jsonString: string, fallback: T): T {
     // Fix trailing commas in arrays and objects, a very common LLM hallucination
     cleanStr = cleanStr.replace(/,\s*([}\]])/g, '$1');
 
-    // Replace literal newlines and tabs with spaces to prevent String literal parsing errors
-    cleanStr = cleanStr.replace(/[\n\r\t]/g, ' ');
-
     try {
+        // Try parsing cleanly first to preserve any valid formatting
         return JSON.parse(cleanStr) as T;
     } catch (e: any) {
-        console.warn("[safeJsonParse] Failed to parse JSON safely:", e.message, "Raw string:", jsonString);
-        return fallback;
+        // If it fails, it might be due to unescaped literal newlines inside string values.
+        // We apply the aggressive newline strip as a last resort.
+        const flatStr = cleanStr.replace(/[\n\r\t]/g, ' ');
+        try {
+            return JSON.parse(flatStr) as T;
+        } catch (fallbackError: any) {
+            console.warn("[safeJsonParse] Failed to parse JSON safely:", e.message, "Raw string:", jsonString);
+            return fallback;
+        }
     }
 }

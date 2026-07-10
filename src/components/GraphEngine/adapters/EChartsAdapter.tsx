@@ -27,7 +27,9 @@ export default function EChartsAdapter({ spec, onError, animationStep }: Adapter
 
     try {
         const isBarChart = spec.curves?.[0]?.type === 'bar';
-        const xAxisData = isBarChart ? spec.curves?.[0]?.points?.map(p => p[0]) : undefined;
+        const firstXValue = spec.curves?.[0]?.points?.[0]?.[0];
+        const isCategoricalX = typeof firstXValue === 'string' || isBarChart;
+        const xAxisData = isCategoricalX ? spec.curves?.[0]?.points?.map(p => p[0]) : undefined;
 
         const mappedSeries = spec.curves?.filter((_, index) => {
             // Animate: show 1 curve per step (step 0 = axes only, step 1 = curve 1, step 2 = curve 2)
@@ -36,17 +38,15 @@ export default function EChartsAdapter({ spec, onError, animationStep }: Adapter
         }).map(curve => {
             let data: any[] = [];
             if (curve.points) {
-                if (isBarChart) {
+                if (isCategoricalX) {
                     data = curve.points.map(p => p[1]);
                 } else {
                     data = curve.points.map(p => [p[0], p[1]]);
                 }
             }
-
             return {
-                name: curve.name || 'Trace',
+                name: curve.name,
                 type: curve.type === 'area' ? 'line' : curve.type,
-                areaStyle: curve.type === 'area' ? {} : undefined,
                 data,
                 itemStyle: { color: curve.color },
                 smooth: curve.type === 'line' || curve.type === 'area',
@@ -56,10 +56,10 @@ export default function EChartsAdapter({ spec, onError, animationStep }: Adapter
 
         const mappedOption = {
             title: { text: spec.title, textStyle: { color: '#cbd5e1' }, left: 'center' },
-            tooltip: { trigger: isBarChart ? 'axis' : 'item' },
+            tooltip: { trigger: isCategoricalX ? 'axis' : 'item' },
             xAxis: {
                 name: spec.axes?.x,
-                type: isBarChart ? 'category' : 'value',
+                type: isCategoricalX ? 'category' : 'value',
                 data: xAxisData,
                 axisLine: { lineStyle: { color: '#94a3b8' } },
                 nameTextStyle: { color: '#94a3b8' }

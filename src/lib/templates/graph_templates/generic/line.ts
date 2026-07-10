@@ -1,4 +1,4 @@
-import { GraphTemplate } from '../../GraphTemplateRegistry';
+import { GraphTemplate } from '../GraphTemplateRegistry';
 
 export const GenericLineTemplate: GraphTemplate = {
     id: 'Generic_Line',

@@ -25,6 +25,9 @@ export function useWebLLM() {
             return;
         }
 
+        // Define outside try block so it is available in finally block
+        const originalConsoleError = console.error;
+
         try {
             // 3-Tier Hardware & Network Heuristic
             let tier = 1; // 1 = High (Llama), 2 = Mid/Slow-Net (Qwen), 3 = Low (SmolLM)
@@ -73,6 +76,15 @@ export function useWebLLM() {
                     return { ...model, model: newUrl };
                 }),
                 cacheBackend: "indexeddb" as any
+            };
+
+            // Suppress Next.js dev overlay for expected GPU crashes during model fallback
+            console.error = (...args) => {
+                if (args[0] && typeof args[0] === 'string' && args[0].includes('Device was lost')) {
+                    console.warn('[WebLLM] Suppressed expected GPU crash error:', ...args);
+                    return;
+                }
+                originalConsoleError.apply(console, args);
             };
 
             let engine;
@@ -139,6 +151,8 @@ export function useWebLLM() {
                 setProgressText('Error: ' + (error.message || 'Failed to load AI'));
             }
         } finally {
+            // Restore console.error
+            console.error = originalConsoleError;
             setIsLoading(false);
         }
     }, [isLoaded, isLoading]);

@@ -24,13 +24,6 @@ export default function EngineOrchestrator({ intent, generateResponse, isGenerat
     useEffect(() => {
         // Map intent to strategy (or directly use a generic strategy)
         let strategyId = LessonStrategyRegistry.determineStrategyForIntent(intent);
-        if (intent.toLowerCase().includes('supply') || intent.toLowerCase().includes('demand')) {
-            strategyId = 'economic_principle';
-        } else if (!strategyId) {
-            // Default to generic lesson if no specific strategy matches
-            strategyId = 'economic_principle'; 
-        }
-        
         const strat = LessonStrategyRegistry.getStrategy(strategyId);
         
         if (strat) {
@@ -67,15 +60,14 @@ DO NOT add any conversational text. Just the raw tag.`;
                     fullText = chunk;
                 });
                 
-                const match = fullText.match(/\[GRAPH:\s*(\{[\s\S]*\})\s*\]/i);
-                if (match && match[1]) {
-                    const rawJson = match[1].trim();
+                const match = fullText.match(/\[GRAPH:\s*(\{[\s\S]*?\})\s*\]/i) || fullText.match(/\{[\s\S]*?\}/);
+                if (match && (match[1] || match[0])) {
+                    const rawJson = (match[1] || match[0]).trim();
                     const parsedSafe = safeJsonParse(rawJson, null);
                     if (!parsedSafe) {
                         console.warn("Extracted graph JSON is entirely invalid and unrecoverable:", rawJson);
                         throw new Error("Extracted JSON is invalid");
                     }
-                    // Since safeJsonParse cleans it up (removes trailing commas etc), stringify it back!
                     setDynamicGraphSpec(JSON.stringify(parsedSafe));
                 } else {
                     throw new Error("No graph tag found in response");
@@ -86,15 +78,14 @@ DO NOT add any conversational text. Just the raw tag.`;
                 if (intent.toLowerCase().includes('supply') || intent.toLowerCase().includes('demand')) {
                     setDynamicGraphSpec('{"templateId": "Supply_Demand"}');
                 } else {
-                    setDynamicGraphSpec('{"templateId": "Generic_Line", "title": "Fallback: ' + intent + '", "curves": [{"type": "line", "name": "Data", "points": [[0,0], [1,1]]}]}');
+                    setDynamicGraphSpec(`{"templateId": "${intent.toLowerCase().includes('bar') ? 'Generic_Bar' : 'Generic_Line'}", "title": "${intent}", "curves": [{"name": "${intent}", "type": "line", "points": [[0,0], [1,1]]}]}`);
                 }
-            } finally {
-                setIsGeneratingGraph(false);
             }
+            setIsGeneratingGraph(false);
         };
         
         generateGraph();
-    }, [isGraphEngine, dynamicGraphSpec, isGeneratingGraph, generateResponse, intent, isGenerating]);
+    }, [intent, isGraphEngine, dynamicGraphSpec, isGeneratingGraph, generateResponse, isGenerating]);
 
     if (error) {
         return <div className="text-rose-500 font-mono text-center p-8 border border-rose-500/30 rounded-xl bg-rose-900/20">{error}</div>;
@@ -128,7 +119,7 @@ DO NOT add any conversational text. Just the raw tag.`;
                                 <div className="text-slate-400 font-mono text-sm">LLM Generating Graph Data for "{intent}"...</div>
                             </div>
                         ) : dynamicGraphSpec ? (
-                            <GraphEngine spec={dynamicGraphSpec} />
+                            <GraphEngine spec={dynamicGraphSpec} autoAdvance={true} />
                         ) : null
                     ) : (
                         <div className="w-full h-full border-2 border-dashed border-slate-600 rounded-xl flex flex-col items-center justify-center bg-slate-800/50">

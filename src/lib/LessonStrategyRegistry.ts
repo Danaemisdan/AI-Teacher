@@ -81,6 +81,20 @@ class LessonStrategyRegistryImpl {
             interactionStyle: 'logical_progression',
             learningObjectives: ['Understand proofs', 'Visualize functions']
         });
+
+        this.register({
+            id: 'data_analysis',
+            name: 'Data Analysis',
+            description: 'Visualizing datasets and finding trends.',
+            flow: [
+                { engineId: 'graph', durationEstimate: 20000, autoAdvance: false },
+                { engineId: 'formula', durationEstimate: 5000, autoAdvance: true },
+                { engineId: 'quiz', durationEstimate: 0, autoAdvance: false }
+            ],
+            assessmentType: 'analytical',
+            interactionStyle: 'exploratory',
+            learningObjectives: ['Interpret charts', 'Identify trends in data']
+        });
     }
 
     public register(strategy: LessonStrategy) {
@@ -100,20 +114,42 @@ class LessonStrategyRegistryImpl {
      */
     public determineStrategyForIntent(intent: string): string {
         const i = intent.toLowerCase();
-        if (i.includes('photosynthesis') || i.includes('projectile') || i.includes('physics') || i.includes('chemical')) {
-            return 'scientific_process';
+
+        // 1. Explicit Modality Overrides (Highest Priority)
+        // If they explicitly ask for a graph, chart, or data plot, we MUST give them a graph strategy.
+        if (i.includes('graph') || i.includes('chart') || i.includes('plot') || i.includes('data') || i.includes('statistics')) {
+            // If it's an economics graph, we can use the economic principle strategy which has a graph.
+            if (i.includes('supply') || i.includes('demand') || i.includes('inflation') || i.includes('economy')) {
+                return 'economic_principle';
+            }
+            return 'data_analysis';
         }
+
+        // If they explicitly ask for anatomy, organ, or body
+        if (i.includes('anatomy') || i.includes('organ') || i.includes('body') || i.includes('heart') || i.includes('brain')) {
+            return 'biological_structure';
+        }
+
+        // If they explicitly ask for molecular, chemistry, atom
+        if (i.includes('molecule') || i.includes('atom') || i.includes('chemical') || i.includes('chemistry')) {
+            return 'scientific_process'; // (Scientific process mounts the molecular engine)
+        }
+
+        // 2. Subject-Based Fallbacks
         if (i.includes('supply') || i.includes('demand') || i.includes('inflation') || i.includes('economy')) {
             return 'economic_principle';
         }
-        if (i.includes('dna') || i.includes('heart') || i.includes('brain') || i.includes('biology')) {
-            return 'biological_structure';
-        }
-        if (i.includes('calculus') || i.includes('algebra') || i.includes('geometry') || i.includes('theorem')) {
+        if (i.includes('calculus') || i.includes('algebra') || i.includes('geometry') || i.includes('theorem') || i.includes('math') || i.includes('derive')) {
             return 'mathematical_derivation';
         }
+        if (i.includes('biology') || i.includes('dna') || i.includes('cell')) {
+            return 'biological_structure';
+        }
+        if (i.includes('physics') || i.includes('projectile') || i.includes('photosynthesis')) {
+            return 'scientific_process';
+        }
         
-        // Fallback generic strategy
+        // 3. Fallback generic strategy
         return 'scientific_process';
     }
 }

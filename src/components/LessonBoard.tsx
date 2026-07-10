@@ -9,6 +9,7 @@ import AnatomyEngine from './AnatomyEngine';
 import GraphEngine from './GraphEngine';
 import EngineOrchestrator from './orchestration/EngineOrchestrator';
 import { TeachingInteractionProvider } from './orchestration/TeachingInteractionLayer';
+import ErrorBoundary from './ErrorBoundary';
 import { safeJsonParse } from '@/lib/jsonHelper';
 
 const chalkFont = Caveat({ subsets: ['latin'], weight: ['400', '700'] });
@@ -26,11 +27,13 @@ interface LessonBoardProps {
     isGenerating?: boolean;
     onNextModule?: () => void;
     generateResponse?: any; // To avoid bringing in complex MLCEngine types
+    notes?: string[];
+    onQuizAnswered?: () => void;
 }
 
 type TabType = 'media' | 'notes' | 'test';
 
-export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic, highlightId, isSpeaking, isGenerating, onNextModule, generateResponse }: LessonBoardProps) {
+export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic, highlightId, isSpeaking, isGenerating, onNextModule, generateResponse, notes, onQuizAnswered }: LessonBoardProps) {
     const [step, setStep] = useState(0);
     const [activeTab, setActiveTab] = useState<TabType>('notes');
     const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -72,14 +75,16 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
         }
     }, [isSpeaking]);
 
-    const bulletPoints = content 
-        ? content.split('\n').filter(line => line.trim().length > 0).map(line => line.replace(/^-\s*/, '').trim())
-        : [];
+    const bulletPoints = notes && notes.length > 0 
+        ? notes 
+        : content 
+            ? content.split('\n').filter(line => line.trim().length > 0).map(line => line.replace(/^-\s*/, '').trim())
+            : [];
 
     return (
         <TeachingInteractionProvider>
             <AnimatePresence>
-                {title && (
+                {(title || htmlGraphic || mediaUrl || videoId) && (
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.9, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -98,7 +103,9 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                             {moduleInfo && (
                                 <span className="text-sm lg:text-base font-bold text-white/90 uppercase tracking-widest" style={{ textShadow: '0 0 10px rgba(255,255,255,0.5)' }}>{moduleInfo}</span>
                             )}
-                            <h2 className="text-2xl lg:text-4xl font-bold text-white tracking-wide line-clamp-2 text-ellipsis overflow-hidden" style={{ textShadow: '0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.6)' }}>{title}</h2>
+                            <h2 className="text-2xl lg:text-4xl font-bold text-white tracking-wide line-clamp-2 text-ellipsis overflow-hidden" style={{ textShadow: '0 0 15px rgba(255,255,255,0.8), 0 0 30px rgba(255,255,255,0.6)' }}>
+                                {title || "Interactive Visualization"}
+                            </h2>
                         </div>
 
                         {/* Chalk Tabs */}
@@ -145,59 +152,89 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                         <div className="w-full h-full p-6 flex items-center justify-center relative">
                                             {(() => {
                                                 try {
+                                                    // Handle GRAPH
+                                                    const graphMatch = htmlGraphic.match(/\[GRAPH:\s*(\{[\s\S]*\})\s*\]/i);
+                                                    if (graphMatch && graphMatch[1]) {
+                                                        return (
+                                                            <ErrorBoundary>
+                                                                <GraphEngine spec={graphMatch[1].trim()} autoAdvance={true} />
+                                                            </ErrorBoundary>
+                                                        );
+                                                    }
+
                                                     // Handle dynamic SVGs or MathML drawn by the AI!
                                                     const trimmedGraphic = htmlGraphic.trim().toLowerCase();
                                                     if (trimmedGraphic.startsWith('<svg') || trimmedGraphic.startsWith('<math')) {
                                                         return (
-                                                            <div 
-                                                                className="w-full h-full flex items-center justify-center p-8 [&>svg]:w-full [&>svg]:max-h-full [&>svg]:max-w-[800px] [&>svg]:drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all duration-1000" 
-                                                                dangerouslySetInnerHTML={{ __html: htmlGraphic }} 
-                                                            />
+                                                            <ErrorBoundary>
+                                                                <div 
+                                                                    className="w-full h-full flex items-center justify-center p-8 [&>svg]:w-full [&>svg]:max-h-full [&>svg]:max-w-[800px] [&>svg]:drop-shadow-[0_0_30px_rgba(255,255,255,0.3)] transition-all duration-1000" 
+                                                                    dangerouslySetInnerHTML={{ __html: htmlGraphic }} 
+                                                                />
+                                                            </ErrorBoundary>
                                                         );
                                                     }
                                                     
                                                     // Handle CONCEPT DIAGRAM
-                                                    const conceptMatch = htmlGraphic.match(/\[CONCEPT:\s*([^\]]+)\]/i);
+                                                    const conceptMatch = htmlGraphic.match(/\[CONCEPT:\s*([\s\S]*?)\s*\]/i);
                                                     if (conceptMatch && conceptMatch[1]) {
-                                                        return <ConceptDiagramEngine path={conceptMatch[1].trim()} highlightId={highlightId || null} />;
+                                                        return (
+                                                            <ErrorBoundary>
+                                                                <ConceptDiagramEngine path={conceptMatch[1].trim()} highlightId={highlightId || null} />
+                                                            </ErrorBoundary>
+                                                        );
                                                     }
                                                     
                                                     // Handle SIMULATION
-                                                    const simMatch = htmlGraphic.match(/\[SIMULATION:\s*([^\]]+)\]/i);
+                                                    const simMatch = htmlGraphic.match(/\[SIMULATION:\s*([\s\S]*?)\s*\]/i);
                                                     if (simMatch && simMatch[1]) {
-                                                        return <SimulationEngine query={simMatch[1].trim()} />;
+                                                        return (
+                                                            <ErrorBoundary>
+                                                                <SimulationEngine query={simMatch[1].trim()} />
+                                                            </ErrorBoundary>
+                                                        );
                                                     }
                                                     
-                                                    const anatomyMatch = htmlGraphic.match(/\[ANATOMY:\s*([^\]]+)\]/i);
+                                                    const anatomyMatch = htmlGraphic.match(/\[ANATOMY:\s*([\s\S]*?)\s*\]/i);
                                                     if (anatomyMatch) {
-                                                        return <AnatomyEngine path={anatomyMatch[1]} highlightId={highlightId || null} />;
+                                                        return (
+                                                            <ErrorBoundary>
+                                                                <AnatomyEngine path={anatomyMatch[1]} highlightId={highlightId} />
+                                                            </ErrorBoundary>
+                                                        );
                                                     }
 
                                                     // Handle CHEMISTRY
-                                                    const chemMatch = htmlGraphic.match(/\[CHEMISTRY:\s*([\s\S]+)\]/i);
+                                                    const chemMatch = htmlGraphic.match(/\[CHEMISTRY:\s*([\s\S]*?)\s*\]/i);
                                                     if (chemMatch && chemMatch[1]) {
-                                                        return <ChemistryRouter spec={chemMatch[1].trim()} />;
+                                                        return (
+                                                            <ErrorBoundary>
+                                                                <ChemistryRouter spec={chemMatch[1].trim()} />
+                                                            </ErrorBoundary>
+                                                        );
                                                     }
 
                                                     // Handle IMAGE
-                                                    const imgMatch = htmlGraphic.match(/\[IMAGE:\s*([^\]]+)\]/i);
+                                                    const imgMatch = htmlGraphic.match(/\[IMAGE:\s*([\s\S]*?)\s*\]/i);
                                                     if (imgMatch && imgMatch[1]) {
-                                                        return <AssetViewer query={imgMatch[1].trim()} mode="image" />;
+                                                        return (
+                                                            <ErrorBoundary>
+                                                                <AssetViewer query={imgMatch[1].trim()} mode="image" />
+                                                            </ErrorBoundary>
+                                                        );
                                                     }
 
                                                     // Handle INTENT
-                                                    const intentMatch = htmlGraphic.match(/\[INTENT:\s*([^\]]+)\]/i);
+                                                    const intentMatch = htmlGraphic.match(/\[INTENT:\s*([\s\S]*?)\s*\]/i);
                                                     if (intentMatch && intentMatch[1]) {
-                                                        return <EngineOrchestrator intent={intentMatch[1].trim()} generateResponse={generateResponse} isGenerating={isGenerating} />;
+                                                        return (
+                                                            <ErrorBoundary>
+                                                                <EngineOrchestrator intent={intentMatch[1].trim()} generateResponse={generateResponse} isGenerating={isGenerating} />
+                                                            </ErrorBoundary>
+                                                        );
                                                     }
 
-                                                    // Handle GRAPH
-                                                    const graphMatch = htmlGraphic.match(/\[GRAPH:\s*(\{[\s\S]*\})\s*\]/i);
-                                                    if (graphMatch && graphMatch[1]) {
-                                                        return <GraphEngine spec={graphMatch[1].trim()} />;
-                                                    }
-
-                                                    const concepts = safeJsonParse<any[] | null>(htmlGraphic, null);
+                                                    const concepts = safeJsonParse(htmlGraphic, null);
                                                     if (Array.isArray(concepts)) {
                                                         return (
                                                             <div className="grid grid-cols-2 gap-12 w-full max-w-5xl h-full py-8">
@@ -254,18 +291,15 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                     className="absolute inset-0 flex flex-col p-4 gap-8 overflow-y-auto pr-6"
                                 >
                                     {bulletPoints.map((point, index) => (
-                                        <AnimatePresence key={index}>
-                                            {step > index && (
-                                                <motion.div
-                                                    initial={{ opacity: 0, x: -20, filter: 'blur(5px)' }}
-                                                    animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
-                                                    className="flex items-start gap-5 text-3xl"
-                                                >
-                                                    <span className="text-white/80 mt-1" style={{ textShadow: '0 0 15px rgba(255,255,255,0.8)' }}>*</span>
-                                                    <p className="leading-relaxed text-white/95" style={{ textShadow: '0 0 8px rgba(255,255,255,0.5)' }}>{point}</p>
-                                                </motion.div>
-                                            )}
-                                        </AnimatePresence>
+                                        <motion.div
+                                            key={index}
+                                            initial={{ opacity: 0, x: -20, filter: 'blur(5px)' }}
+                                            animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+                                            className="flex items-start gap-5 text-3xl"
+                                        >
+                                            <span className="text-white/80 mt-1" style={{ textShadow: '0 0 15px rgba(255,255,255,0.8)' }}>*</span>
+                                            <p className="leading-relaxed text-white/95" style={{ textShadow: '0 0 8px rgba(255,255,255,0.5)' }}>{point}</p>
+                                        </motion.div>
                                     ))}
                                     {bulletPoints.length === 0 && (
                                         <div className="text-center text-white/40 text-4xl animate-pulse mt-16 font-bold" style={{ textShadow: '0 0 15px rgba(255,255,255,0.3)' }}>Writing notes...</div>
@@ -296,7 +330,10 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         {quizObj.options.map((opt: string) => (
                                                             <button 
                                                                 key={opt}
-                                                                onClick={() => setSelectedQuizOption(opt)}
+                                                                onClick={() => {
+                                                                    setSelectedQuizOption(opt);
+                                                                    if (onQuizAnswered) onQuizAnswered();
+                                                                }}
                                                                 className={`p-5 text-left text-2xl rounded-2xl border transition-all ${selectedQuizOption === opt ? (opt === quizObj.answer ? 'bg-green-500/50 border-green-400 shadow-[0_0_20px_rgba(74,222,128,0.5)]' : 'bg-red-500/50 border-red-400 shadow-[0_0_20px_rgba(248,113,113,0.5)]') : 'bg-white/10 border-white/20 hover:bg-white/20'}`}
                                                             >
                                                                 {opt}
