@@ -580,7 +580,7 @@ DO NOT output conversational text. ONLY output the JSON object.`;
                     setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
                 } else if (parsed.visualization_type === 'molecule_view' || parsed.visualization_type === 'equation' || parsed.visualization_type === 'periodic_table') {
                     // It's a chemistry specific type (molecule_view, equation, periodic_table)
-                    setCurrentHtmlGraphic(`[CHEMISTRY: ${cleanJson}]`);
+                    setCurrentHtmlGraphic(`[CHEMISTRY: ${JSON.stringify(parsed)}]`);
                 } else if (parsed.visualization_type === 'graph') {
                     setCurrentLessonContent("Generating Graph Specification...");
                     const graphPrompt = `You are a data visualization expert. Create a detailed graph specification for: "${topic}".
