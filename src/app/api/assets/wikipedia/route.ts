@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     }
 
     try {
+        require('fs').appendFileSync('/Users/sanjeevn/Downloads/AI-Teacher/wiki_log.txt', new Date().toISOString() + ' | Query: ' + query + '\n');
         // First search Wikipedia for the closest page title
         const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(query)}&utf8=&format=json&origin=*`);
         const searchData = await searchRes.json();

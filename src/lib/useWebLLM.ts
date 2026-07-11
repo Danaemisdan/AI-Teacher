@@ -1,6 +1,13 @@
 import { useState, useRef, useCallback } from 'react';
 import { CreateMLCEngine, MLCEngine, ChatCompletionMessageParam, prebuiltAppConfig } from '@mlc-ai/web-llm';
 
+// Helper to hide real model names
+const formatProgress = (text: string) => {
+    return text.replace(/Llama[^ ]*/gi, 'Momentum-Max')
+               .replace(/Qwen[^ ]*/gi, 'Momentum-Standard')
+               .replace(/SmolLM[^ ]*/gi, 'Momentum-Tiny');
+};
+
 export function useWebLLM() {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -59,7 +66,7 @@ export function useWebLLM() {
             if (tier === 1) selectedModel = 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
             if (tier === 3) selectedModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
             
-            setProgressText(`Hardware Tier: ${tier} | Loading ${selectedModel}...`);
+            setProgressText(formatProgress(`Hardware Tier: ${tier} | Loading ${selectedModel}...`));
             
             // 1. Check for custom dedicated server override
             // 2. Fallback to fast global mirror (hf-mirror.com) to bypass ISP throttling
@@ -92,7 +99,7 @@ export function useWebLLM() {
                 engine = await CreateMLCEngine(selectedModel, {
                     initProgressCallback: (info) => {
                         setProgress(info.progress);
-                        setProgressText(info.text);
+                        setProgressText(formatProgress(info.text));
                     },
                     appConfig: customAppConfig
                 });
@@ -101,13 +108,13 @@ export function useWebLLM() {
                 if (tier === 1) selectedModel = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
                 else selectedModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
                 
-                setProgressText(`Recovering: Loading ${selectedModel}...`);
+                setProgressText(formatProgress(`Recovering: Loading ${selectedModel}...`));
                 
                 try {
                     engine = await CreateMLCEngine(selectedModel, {
                         initProgressCallback: (info) => {
                             setProgress(info.progress);
-                            setProgressText(info.text);
+                            setProgressText(formatProgress(info.text));
                         },
                         appConfig: customAppConfig
                     });
@@ -117,12 +124,12 @@ export function useWebLLM() {
                     else if (tier === 3) selectedModel = 'SmolLM2-135M-Instruct-q0f32-MLC';
                     else selectedModel = 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
                     
-                    setProgressText(`Recovering: Loading ${selectedModel} (f32 Compatibility Mode)...`);
+                    setProgressText(formatProgress(`Recovering: Loading ${selectedModel} (f32 Compatibility Mode)...`));
                     
                     engine = await CreateMLCEngine(selectedModel, {
                         initProgressCallback: (info) => {
                             setProgress(info.progress);
-                            setProgressText(info.text);
+                            setProgressText(formatProgress(info.text));
                         },
                         appConfig: customAppConfig
                     });
@@ -187,7 +194,7 @@ export function useWebLLM() {
             console.warn("AI generation crashed. Attempting to fall back to a smaller model...", error);
             
             const fallbackModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
-            setProgressText(`Recovering: Loading ${fallbackModel}...`);
+            setProgressText(formatProgress(`Recovering: Loading ${fallbackModel}...`));
             try {
                 await engineRef.current.reload(fallbackModel);
                 setProgressText('Ready (Fallback Mode)');

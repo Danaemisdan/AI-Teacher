@@ -21,6 +21,7 @@ interface GraphEngineProps {
 export default function GraphEngine({ spec, autoAdvance }: GraphEngineProps) {
     const [parsed, setParsed] = useState<GraphSpec | null>(null);
     const [activeRenderer, setActiveRenderer] = useState<string | null>(null);
+    const [failedRenderers, setFailedRenderers] = useState<Set<string>>(new Set());
     const [hasError, setHasError] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const interactionAPI = useTeachingInteraction();
@@ -74,21 +75,30 @@ export default function GraphEngine({ spec, autoAdvance }: GraphEngineProps) {
 
     const handleAdapterError = (err: Error) => {
         if (!parsed || !activeRenderer) return;
-        console.warn(`[GraphEngine] ${activeRenderer} failed. Attempting fallback...`);
-        const nextRenderer = RendererHealthManager.recommendFallback('graph', activeRenderer);
-        if (nextRenderer !== activeRenderer) {
-            setActiveRenderer(nextRenderer);
-        } else {
-            setErrorMsg("No healthy renderer found.");
-            setHasError(true);
-        }
+        
+        setFailedRenderers(prev => {
+            const nextFailed = new Set(prev).add(activeRenderer);
+            console.warn(`[GraphEngine] ${activeRenderer} failed. Attempting fallback...`);
+            
+            // Try to find a fallback that hasn't failed yet
+            const possibleFallback = RendererHealthManager.recommendFallback('graph', activeRenderer);
+            
+            if (possibleFallback !== activeRenderer && !nextFailed.has(possibleFallback)) {
+                setActiveRenderer(possibleFallback);
+            } else {
+                // If the recommended fallback has also already failed, give up to prevent infinite loop.
+                setErrorMsg("All available renderers failed.");
+                setHasError(true);
+            }
+            return nextFailed;
+        });
     };
 
     if (hasError) {
         // Silently fallback to a generic placeholder rather than showing a red error
         return (
             <div className="w-full h-full flex flex-col items-center justify-center relative">
-                <img src={`https://source.unsplash.com/1200x800/?math,graph`} alt="Concept Visualization" className="w-full h-full object-cover opacity-30 mix-blend-overlay" />
+                <img src={`https://picsum.photos/1200/800?blur=2`} alt="Concept Visualization" className="w-full h-full object-cover opacity-30 mix-blend-overlay" />
                 <div className="absolute text-white/50 font-medium text-lg drop-shadow-md">
                     Abstract Representation
                 </div>

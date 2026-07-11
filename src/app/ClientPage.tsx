@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { v4 as uuidv4 } from 'uuid';
+import { getBaseTeacherPrompt, DomainSoftwareMap, getMasterRouterPrompt } from '@/config/TeacherConfig';
 import { safeJsonParse } from '@/lib/jsonHelper';
 import { useSpeech } from '@/lib/useSpeech';
 import { useWebLLM } from '@/lib/useWebLLM';
@@ -303,7 +304,7 @@ EXAMPLES:
         }
 
         // Intercept teaching/explaining requests in normal chat and start a curriculum lesson
-        const isQuestion = lower.includes("explain") || lower.includes("teach") || lower.includes("what is") || lower.includes("how does") || lower.includes("learn") || lower.includes("tell me") || lower.includes("who is") || lower.includes("why");
+        const isQuestion = /^(can you )?(please )?(explain|teach|tell me about|what is|how does|what are|I want to learn) /i.test(lower);
         if (!curriculum && isQuestion) {
             await startCurriculum(promptText);
             return;
@@ -339,30 +340,9 @@ EXAMPLES:
             }
         }
         setIsSourcing(false);
-
-        const SYSTEM_PROMPT = curriculum?.isTeaching ? `You are Momentum, a virtual teacher. You are currently teaching the student about "${curriculum.topic}".
-The student just replied to your question. Evaluate their understanding.
-If they are confused or wrong, gently correct them and explain the concept simpler and slower.
-If they are correct, praise them and move on to the next chunk of the lesson!
-
-CRITICAL RULES FOR CHUNKED TEACHING:
-1. Explain ONE small, digestible concept. Keep your total response under 4 sentences!
-2. You MUST end your response with a question checking if the student understood.
-3. You MUST format your entire response as a sequence of tags: [SPEECH] and [NOTE].
-4. For spoken narration, you MUST use [SPEECH] text [/SPEECH]. IF YOU DO NOT USE THIS TAG, THERE WILL BE NO VOICE.
-5. For concise educational bullet points to appear on the blackboard, use [NOTE] bullet point [/NOTE].
-6. DO NOT output ANY conversational text outside of these tags!
-7. Be natural and Socratic in your [SPEECH] blocks. Sound like a human teacher!` : `You are Momentum, a witty virtual teacher. 
-Respond naturally and conversationally. DO NOT use titles, formatting, or generate quizzes for normal chat.
-
-Available interactive assets in the Universal Education Asset Registry:
-${await AssetManager.getRegistryPromptContext()}
-${webContext ? `Use this context if helpful: ${webContext}` : ''}
-
-STRICT RULES:
-1. NEVER output raw markdown image links.
-2. NEVER output raw LaTeX equations like \\[ \\] or $$ in your conversational text.`;
-
+        const SYSTEM_PROMPT = curriculum?.isTeaching 
+            ? getBaseTeacherPrompt(curriculum.topic, true, `The student just replied to your question. Evaluate their understanding.\nIf they are confused or wrong, mock them playfully, correct them, and explain the concept again simply.\nIf they are correct, give them sarcastic praise and move on to the next chunk of the lesson!`)
+            : getBaseTeacherPrompt(promptText, false) + (webContext ? `\nUse this context if helpful: ${webContext}` : '');
         const finalMessages = [
             { role: 'system' as const, content: SYSTEM_PROMPT },
             ...newMessages
@@ -377,7 +357,7 @@ STRICT RULES:
                 
                 if (curriculum?.isTeaching) {
                     // --- Socratic Interactive Teaching Parser ---
-                    const frames = [...chunk.matchAll(/\[(SPEECH|NOTE|HIGHLIGHT|QUIZ)\]([\s\S]*?)\[\/\1\]/gi)];
+                    const frames = [...chunk.matchAll(/\[\s*(SPEECH|NOTE|HIGHLIGHT|QUIZ)\s*\]([\s\S]*?)\[\s*\/\s*\1\s*\]/gi)];
                     
                     while (frames.length > parsedFramesCount) {
                         const frame = frames[parsedFramesCount];
@@ -386,7 +366,12 @@ STRICT RULES:
                         const content = frame[2].trim();
                         
                         if (type === 'SPEECH' || type === 'NOTE') {
-                            const rawChunks = content.match(/[^.!?\n]+[.!?\n]+/g) || [content];
+                            let rawChunks = content.match(/[^.!?\n]+[.!?\n]+/g) || [];
+                            const matchedLen = rawChunks.join('').length;
+                            if (content.length > matchedLen) {
+                                rawChunks.push(content.substring(matchedLen));
+                            }
+                            if (rawChunks.length === 0) rawChunks = [content];
                             const finalChunks: string[] = [];
                             
                             rawChunks.forEach(rawChunk => {
@@ -474,6 +459,7 @@ STRICT RULES:
                     
                     cleanText = cleanText.replace(/!?\[.*?\]\(.*?\)/g, '');
                     cleanText = cleanText.replace(/\\\[[\s\S]*?\\\]/g, '').replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\\\(.*?\\\)/g, '');
+                    cleanText = cleanText.replace(/\[\s*\/?\s*(?:SPEECH|NOTE|HIGHLIGHT|QUIZ)\s*\]/gi, '');
                     
                     const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
                     while (sentences.length > spokenSentencesCount) {
@@ -533,46 +519,7 @@ STRICT RULES:
                     query: directMatchId
                 };
             } else {
-                const registryContext = await AssetManager.getRegistryPromptContext();
-                
-                const MASTER_PROMPT = `You are the Master Visualization Router.
-Curriculum Topic: "${topic}"
-Current Module: "${moduleName}"
-
-Classify the intent into EXACTLY ONE of these types:
-- concept_diagram (for established educational topics like photosynthesis, water cycle, human cell, DNA, plate tectonics)
-- anatomy (for human anatomy and 3D biological systems like heart, brain, skeleton, digestive system, respiratory system)
-- molecule_view (for viewing 3D molecules like Water, Methane, Caffeine)
-- equation (for balancing or showing chemical equations like 2H_2 + O_2 \\rightarrow 2H_2O)
-- periodic_table (for elements, atomic radius, periodic trends)
-- lab_simulation (for physics/math/chemistry labs like titration, ideal gas law, boyles law, circuits, gravity, friction)
-- graph (for math, statistics, economics, finance, business analytics like Supply Curve, Normal Distribution, Cartesian coordinates)
-- general_image (for history, english, computer science, or anything else that needs a simple image)
-- mermaid_diagram (for logic, flowcharts, processes, architecture, or general topics that can be visualized as a flowchart or mindmap)
-
-IMPORTANT RULES:
-- If the type is 'equation', you MUST output strictly valid LaTeX formatting (e.g. use subscripts like H_2, and arrows like \\rightarrow).
-- If the type is 'concept_diagram', the 'query' MUST be EXACTLY one of the IDs from the AVAILABLE CONCEPTS list below. Do not guess or abbreviate. If the topic is about Plant Cells, output exactly "plant cell". If none match perfectly, USE mermaid_diagram INSTEAD!
-AVAILABLE CONCEPTS:
-${registryContext}
-
-EXAMPLES:
-Topic: "Introduction to Carbon" -> {"visualization_type": "periodic_table", "query": "Carbon"}
-Topic: "Boyle's Law" -> {"visualization_type": "lab_simulation", "query": "boyles law"}
-Topic: "Photosynthesis" -> {"visualization_type": "concept_diagram", "query": "photosynthesis"}
-Topic: "The Water Cycle" -> {"visualization_type": "concept_diagram", "query": "water cycle"}
-Topic: "Structure of Water" -> {"visualization_type": "molecule_view", "query": "Water"}
-Topic: "Combustion of Methane" -> {"visualization_type": "equation", "query": "CH_4 + 2O_2 \\rightarrow CO_2 + 2H_2O"}
-Topic: "Human Cells" -> {"visualization_type": "concept_diagram", "query": "human cell"}
-Topic: "Supply and Demand" -> {"visualization_type": "graph", "query": "Supply and Demand"}
-
-Output a strictly valid JSON object matching this schema:
-{
-  "visualization_type": "string",
-  "query": "string (extract the specific molecule name, or the reaction equation, or the element name, or the core concept)"
-}
-
-DO NOT output conversational text. ONLY output the JSON object.`;
+                const MASTER_PROMPT = getMasterRouterPrompt(topic, moduleName);
 
                 const routerReply = await generateResponse([
                     { role: 'system', content: 'You are the Master Visualization Router. Output ONLY a valid JSON object. No markdown ticks.' },
@@ -580,136 +527,118 @@ DO NOT output conversational text. ONLY output the JSON object.`;
                 ], () => {});
                 
                 try {
-                    // Try to clean up standard markdown wrapper
                     let cleanJson = routerReply.replace(/```json/g, '').replace(/```/g, '').trim();
                     parsed = safeJsonParse(cleanJson, null);
                 } catch(e) {}
             }
             
+            // Routing Engine Logic
             try {
-                if (parsed.visualization_type === 'concept_diagram' || parsed.visualization_type === 'anatomy') {
+                if (parsed) {
                     const queryLower = (parsed.query || topic).toLowerCase();
-                    const assetPath = await AssetManager.getAsset(queryLower);
+                    let cleanTopic = queryLower.replace(/_/g, ' ');
                     
-                    if (assetPath) {
-                        const lessonData = await AssetManager.getLesson(assetPath);
-                        if (lessonData && lessonData.steps && lessonData.steps.length > 0) {
-                            // Script the audio queue
-                            const newQueue = lessonData.steps.map((s: any) => ({
-                                url: '/api/tts?text=' + encodeURIComponent(s.speech),
-                                text: s.speech,
-                                highlight: s.highlight,
-                                note: s.speech
-                            }));
-                            
-                            if (parsed.visualization_type === 'anatomy') {
-                                setCurrentHtmlGraphic(`[ANATOMY: ${assetPath}]`);
+                    // Try Registry First
+                    const bestMatch = await AssetManager.findBestRegistryMatch(queryLower);
+                    if (bestMatch) {
+                        const entry = await AssetManager.getRegistryEntry(bestMatch);
+                        if (entry) {
+                            parsed.visualization_type = entry.renderer;
+                            parsed.query = bestMatch;
+                        }
+                    } else {
+                        // Fallback to domain-specific heuristic if not in registry
+                        if (parsed.domain === 'math') {
+                            parsed.visualization_type = 'graph';
+                        } else if (parsed.domain === 'chemistry') {
+                            if (cleanTopic.includes('->') || cleanTopic.includes('+') || cleanTopic.includes('equation')) {
+                                parsed.visualization_type = 'equation';
                             } else {
-                                setCurrentHtmlGraphic(`[CONCEPT: ${assetPath}]`);
+                                parsed.visualization_type = 'molecule_view';
                             }
-                            
-                            setAudioQueue(newQueue);
-                            
-                            // Update brain state
-                            setBaseBrainKnowledge([`Topic: ${topic}`, `Module: ${moduleName}`, `Mode: ${parsed.visualization_type === 'anatomy' ? 'Anatomy Engine' : 'Concept Diagram'} Orchestration`]);
-                            setCurrentLessonContent(`Playing ${parsed.visualization_type === 'anatomy' ? 'Anatomy' : 'Concept Diagram'} Interactive Lesson...`);
-                            setIsGenerating(false);
-                            return; // SHORT-CIRCUIT Phase 1b! (No LLM generation needed)
+                        } else {
+                            if (cleanTopic.includes('process') || cleanTopic.includes('flow') || cleanTopic.includes('cycle') || cleanTopic.includes('architecture')) {
+                                parsed.visualization_type = 'mermaid_diagram';
+                            } else {
+                                parsed.visualization_type = 'general_image';
+                            }
                         }
                     }
                     
-                    console.warn(`[AssetManager] Failed to load asset for '${queryLower}'. The asset path '${assetPath}' or its lesson.json is missing on the server.`);
-                    
-                    // Fallback if not found in registry or missing files: revert to mermaid diagram using the ORIGINAL topic
-                    parsed.visualization_type = 'mermaid_diagram';
-                    // We don't return here so it falls through to the mermaid_diagram block!
-                    // Wait, since we are inside a if-else chain, we need to explicitly run the mermaid code if we change it here.
-                    // Instead of duplicating, we will just set the type and let a separate function handle it?
-                    // Actually, we can just duplicate the mermaid logic here, or redirect it.
-                    setCurrentLessonContent("Generating Concept Diagram...");
-                    const mermaidPrompt = `Create a detailed Mermaid flowchart or mindmap explaining the concept of "${topic}".
-Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].
-Do not use markdown backticks around the tag.
-Example:
-[MERMAID]
-graph TD;
-A-->B;
-[/MERMAID]`;
-                    const mermaidReply = await generateResponse([
-                        { role: 'system', content: 'Output only the raw tag.' },
-                        { role: 'user', content: mermaidPrompt }
-                    ], () => {});
-                    const match = mermaidReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i) || mermaidReply.match(/\[MERMAID:\s*([\s\S]*?)\s*\]/i);
-                    if (match && match[1]) {
-                        setCurrentHtmlGraphic(`[MERMAID: ${match[1]}]`);
-                    } else {
-                        const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
-                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                    // Scripted orchestration check
+                    if (parsed.visualization_type === 'concept_diagram' || parsed.visualization_type === 'anatomy') {
+                        const assetPath = await AssetManager.getAsset(parsed.query);
+                        if (assetPath) {
+                            const lessonData = await AssetManager.getLesson(assetPath);
+                            if (lessonData && lessonData.steps && lessonData.steps.length > 0) {
+                                const newQueue = lessonData.steps.map((s: any) => ({
+                                    url: '/api/tts?text=' + encodeURIComponent(s.speech),
+                                    text: s.speech,
+                                    highlight: s.highlight,
+                                    note: s.speech
+                                }));
+                                setCurrentHtmlGraphic(`[${parsed.visualization_type === 'anatomy' ? 'ANATOMY' : 'CONCEPT'}: ${assetPath}]`);
+                                setAudioQueue(newQueue);
+                                setBaseBrainKnowledge([`Topic: ${topic}`, `Module: ${moduleName}`, `Mode: ${parsed.visualization_type} Orchestration`]);
+                                setCurrentLessonContent(`Playing Interactive Lesson...`);
+                                setIsGenerating(false);
+                                return; // SHORT-CIRCUIT Phase 1b!
+                            }
+                        }
+                        // Fallback if registry asset doesn't have a scripted lesson
+                        parsed.visualization_type = 'mermaid_diagram';
                     }
                     
-                } else if (parsed.visualization_type === 'lab_simulation') {
-                    const simKeywords = ['acid', 'base', 'titration', 'ph', 'concentration', 'molarity', 'solution', 'balance', 'equation', 'react', 'gas', 'boyle', 'charles', 'pressure', 'gravity', 'force', 'circuit', 'electricity', 'resistor', 'energy', 'skate', 'friction', 'matter', 'solid', 'liquid', 'atoms', 'properties', 'pendulum', 'oscillation', 'wave', 'interference', 'color', 'vision', 'light', 'fraction', 'math'];
-                    const isRealSim = simKeywords.some(kw => (parsed.query || topic).toLowerCase().includes(kw));
-                    if (isRealSim) {
-                        setCurrentHtmlGraphic(`[SIMULATION: ${parsed.query || topic}]`);
+                    if (parsed.visualization_type === 'lab_simulation') {
+                        const simKeywords = ['acid', 'base', 'titration', 'ph', 'concentration', 'gravity', 'circuit', 'friction', 'pendulum', 'wave', 'light'];
+                        if (simKeywords.some(kw => cleanTopic.includes(kw))) {
+                            setCurrentHtmlGraphic(`[SIMULATION: ${cleanTopic}]`);
+                        } else {
+                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                        }
+                    } else if (parsed.visualization_type === 'mermaid_diagram') {
+                        setCurrentLessonContent("Generating Concept Diagram...");
+                        const mermaidPrompt = `Create a detailed Mermaid flowchart or mindmap explaining the concept of "${topic}". Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
+                        const mermaidReply = await generateResponse([
+                            { role: 'system', content: 'Output only the raw tag.' },
+                            { role: 'user', content: mermaidPrompt }
+                        ], () => {});
+                        const match = mermaidReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i) || mermaidReply.match(/\[MERMAID:\s*([\s\S]*?)\s*\]/i);
+                        if (match && match[1]) {
+                            setCurrentHtmlGraphic(`[MERMAID: ${match[1]}]`);
+                        } else {
+                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                        }
+                    } else if (parsed.visualization_type === 'general_image') {
+                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                    } else if (parsed.visualization_type === 'molecule_view' || parsed.visualization_type === 'equation' || parsed.visualization_type === 'periodic_table') {
+                        setCurrentHtmlGraphic(`[CHEMISTRY: ${JSON.stringify(parsed)}]`);
+                    } else if (parsed.visualization_type === 'graph') {
+                        setCurrentLessonContent("Generating Graph Specification...");
+                        const graphPrompt = `You are a data visualization expert. Create a detailed graph specification for: "${topic}".
+Output ONLY a JSON block containing the full [GRAPH: {...}] tag.
+Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B"}, "curves": [{"name": "C", "type": "line", "points": [[1,2]]}]}]`;
+                        const graphReply = await generateResponse([
+                            { role: 'system', content: 'Output only the raw tag.' },
+                            { role: 'user', content: graphPrompt }
+                        ], () => {});
+                        const match = graphReply.match(/\[GRAPH:\s*(\{[\s\S]*?\})\s*\]/i);
+                        if (match && match[1]) {
+                            setCurrentHtmlGraphic(`[GRAPH: ${match[1]}]`);
+                        } else {
+                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                        }
                     } else {
-                        const cleanTopic = (parsed.query || topic).replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
                         setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
                     }
-                } else if (parsed.visualization_type === 'mermaid_diagram') {
-                    setCurrentLessonContent("Generating Concept Diagram...");
-                    const mermaidPrompt = `Create a detailed Mermaid flowchart or mindmap explaining the concept of "${topic}".
-Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].
-Do not use markdown backticks around the tag.
-Example:
-[MERMAID]
-graph TD;
-A-->B;
-[/MERMAID]`;
-                    const mermaidReply = await generateResponse([
-                        { role: 'system', content: 'Output only the raw tag.' },
-                        { role: 'user', content: mermaidPrompt }
-                    ], () => {});
-                    const match = mermaidReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i) || mermaidReply.match(/\[MERMAID:\s*([\s\S]*?)\s*\]/i);
-                    if (match && match[1]) {
-                        setCurrentHtmlGraphic(`[MERMAID: ${match[1]}]`);
-                    } else {
-                        const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
-                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                    }
-                } else if (parsed.visualization_type === 'general_image') {
-                    const cleanTopic = (parsed.query || topic).replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
+                } else {
+                    // Fallback if AI messes up the JSON completely
+                    const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
                     setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                } else if (parsed.visualization_type === 'molecule_view' || parsed.visualization_type === 'equation' || parsed.visualization_type === 'periodic_table') {
-                    // It's a chemistry specific type (molecule_view, equation, periodic_table)
-                    setCurrentHtmlGraphic(`[CHEMISTRY: ${cleanJson}]`);
-                } else if (parsed.visualization_type === 'graph') {
-                    setCurrentLessonContent("Generating Graph Specification...");
-                    const graphPrompt = `You are a data visualization expert. Create a detailed graph specification for: "${topic}".
-Output ONLY a JSON block containing the full [GRAPH: {...}] tag as described:
-[GRAPH: {"title": "...", "graph_type": "...", "library": "plotly", "axes": {"x": "...", "y": "..."}, "curves": [{"name": "...", "type": "line", "points": [[1,2]], "func": "..."}], "explanation": "..."}]
-
-- Use "plotly" for statistics, distributions, 3D.
-- Use "echarts" for business, economics, line/bar/pie charts.
-- Use "jsxgraph" for pure math/geometry/calculus.
-- Set "func" ONLY for JSXGraph (e.g. "Math.pow(x, 2)").
-- Set "points" array for ECharts/Plotly data lines.
-- CRITICAL: Ensure ALL quotes inside strings are escaped. DO NOT use unescaped newlines in strings.
-Output ONLY the raw tag.`;
-                    const graphReply = await generateResponse([
-                        { role: 'system', content: 'Output only the raw tag.' },
-                        { role: 'user', content: graphPrompt }
-                    ], () => {});
-                    const match = graphReply.match(/\[GRAPH:\s*(\{[\s\S]*\})\s*\]/i);
-                    if (match && match[1]) {
-                        setCurrentHtmlGraphic(`[GRAPH: ${match[1]}]`);
-                    } else {
-                        const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
-                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                    }
                 }
-            } catch(e) {
-                // Fallback if AI messes up the JSON
+            } catch (e) {
+                console.warn("Visual generation skipped due to error.", e);
+                // Fallback on error
                 const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
                 setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
             }
@@ -719,17 +648,7 @@ Output ONLY the raw tag.`;
 
         // --- PHASE 1b: Synchronized Presentation Layer ---
         setCurrentLessonContent("Listening to Momentum...");
-        const SYSTEM_PROMPT = `You are Momentum, a virtual teacher. You are teaching: "${moduleName}" for the topic "${topic}".
-Provide a fascinating, interactive lesson chunk. DO NOT EXPLAIN EVERYTHING AT ONCE!
-
-CRITICAL RULES FOR CHUNKED TEACHING:
-1. Explain ONE small, digestible concept. Keep your total response under 4 sentences!
-2. You MUST end your response with a question checking if the student understood.
-3. You MUST format your entire response as a sequence of tags: [SPEECH] and [NOTE].
-4. For spoken narration, you MUST use [SPEECH] text [/SPEECH]. IF YOU DO NOT USE THIS TAG, THERE WILL BE NO VOICE.
-5. For concise educational bullet points to appear on the blackboard, use [NOTE] bullet point [/NOTE].
-6. DO NOT output ANY conversational text outside of these tags!
-7. Be natural and Socratic in your [SPEECH] blocks. Sound like a human teacher!`;
+        const SYSTEM_PROMPT = getBaseTeacherPrompt(topic, true);
 
         try {
             let parsedFramesCount = 0;
@@ -761,7 +680,7 @@ CRITICAL RULES FOR CHUNKED TEACHING:
                 
                 const cleanText = chunk.replace(/\[(?:SHOW_3D|3D|SHOW_IMAGE|IMAGE):[\s\S]*?\]/gi, '');
                 // The Presentation Parser!
-                const frames = [...chunk.matchAll(/\[(SPEECH|NOTE|HIGHLIGHT|QUIZ)\]([\s\S]*?)\[\/\1\]/gi)];
+                const frames = [...chunk.matchAll(/\[\s*(SPEECH|NOTE|HIGHLIGHT|QUIZ)\s*\]([\s\S]*?)\[\s*\/\s*\1\s*\]/gi)];
                 
                 while (frames.length > parsedFramesCount) {
                     const frame = frames[parsedFramesCount];
@@ -770,7 +689,12 @@ CRITICAL RULES FOR CHUNKED TEACHING:
                     const content = frame[2].trim();
                     
                     if (type === 'SPEECH' || type === 'NOTE') {
-                        const rawChunks = content.match(/[^.!?\n]+[.!?\n]+/g) || [content];
+                        let rawChunks = content.match(/[^.!?\n]+[.!?\n]+/g) || [];
+                        const matchedLen = rawChunks.join('').length;
+                        if (content.length > matchedLen) {
+                            rawChunks.push(content.substring(matchedLen));
+                        }
+                        if (rawChunks.length === 0) rawChunks = [content];
                         const finalChunks: string[] = [];
                         
                         rawChunks.forEach(rawChunk => {
@@ -807,6 +731,38 @@ CRITICAL RULES FOR CHUNKED TEACHING:
             setBaseBrainKnowledge([`Topic: ${topic}`, `Module: ${moduleName}`, `Lecture Script: ${fullReply}`]);
             setCurrentReply('');
             setMessages([...messages, { role: 'assistant', content: "(Lecture completed via Presentation Layer)" }]);
+            
+            if (parsedFramesCount === 0) {
+                // Fallback: If the LLM completely ignored the SPEECH tags, play its full raw output as speech.
+                const cleanSpeech = fullReply
+                    .replace(/\[(?:SHOW_3D|3D|SHOW_IMAGE|IMAGE):[\s\S]*?\]/gi, '')
+                    .replace(/\[\s*\/?\s*(?:SPEECH|NOTE|HIGHLIGHT|QUIZ)\s*\]/gi, '') // Strip stray tags
+                    .trim();
+                if (cleanSpeech) {
+                    let rawChunks = cleanSpeech.match(/[^.!?\n]+[.!?\n]+/g) || [];
+                    const matchedLen = rawChunks.join('').length;
+                    if (cleanSpeech.length > matchedLen) {
+                        rawChunks.push(cleanSpeech.substring(matchedLen));
+                    }
+                    if (rawChunks.length === 0) rawChunks = [cleanSpeech];
+                    const finalChunks: string[] = [];
+                    rawChunks.forEach(rawChunk => {
+                        let remaining = rawChunk;
+                        while (remaining.length > 200) {
+                            let splitIndex = remaining.lastIndexOf(' ', 200);
+                            if (splitIndex === -1) splitIndex = 200;
+                            finalChunks.push(remaining.substring(0, splitIndex));
+                            remaining = remaining.substring(splitIndex).trim();
+                        }
+                        if (remaining.trim()) finalChunks.push(remaining.trim());
+                    });
+                    setAudioQueue(finalChunks.map(chunkText => ({
+                        url: '/api/tts?text=' + encodeURIComponent(chunkText),
+                        text: chunkText
+                    })));
+                }
+            }
+            
         } catch (error) {
             console.warn("Module generation failed:", error);
         } finally {
@@ -823,7 +779,7 @@ CRITICAL RULES FOR CHUNKED TEACHING:
         const registryContext = await AssetManager.getRegistryPromptContext();
         const MODULE_PROMPT = `Analyze the student's request: "${rawPrompt}".
 Extract the core educational topic they want to learn. Then, generate a 3-module syllabus.
-Output ONLY a strict JSON object.
+Output ONLY a strict JSON object. NO EXPLANATIONS. NO MARKDOWN FORMATTING. Just raw JSON.
 Format exactly like this:
 {"topic": "The Core Topic", "modules": ["1. Introduction to [Topic]", "2. Core concepts of [Topic]", "3. Advanced [Topic]"]}
 
@@ -842,7 +798,17 @@ CRITICAL: If the student's request is closely related to one of the AVAILABLE CO
             
             const jsonMatch = reply.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                    const parsed = safeJsonParse(jsonMatch[0], null);
+                    let parsed = safeJsonParse(jsonMatch[0], null);
+                    if (!parsed) {
+                        const topicMatch = jsonMatch[0].match(/"topic"\s*:\s*"([^"]+)"/i);
+                        const modulesMatch = jsonMatch[0].match(/"modules"\s*:\s*\[(.*?)\]/is);
+                        if (topicMatch && modulesMatch) {
+                            const extractedModules = [...modulesMatch[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
+                            if (extractedModules.length > 0) {
+                                parsed = { topic: topicMatch[1], modules: extractedModules };
+                            }
+                        }
+                    }
                     if (parsed) {
                         if (parsed.topic) extractedTopic = parsed.topic;
                         if (Array.isArray(parsed.modules) && parsed.modules.length > 0) {
@@ -1039,9 +1005,36 @@ CRITICAL: If the student's request is closely related to one of the AVAILABLE CO
                                     }
                                 }}
                                 onError={(e) => {
-                                    console.warn('TTS Audio failed to play:', e);
-                                    setIsSpeaking(false);
-                                    setAudioUrlToSpeak(null);
+                                    console.warn('TTS Audio failed to play via Edge TTS API. Falling back to browser TTS...', e);
+                                    
+                                    // Fallback to browser's built-in TTS
+                                    if ('speechSynthesis' in window && currentSubtitle) {
+                                        const utterance = new SpeechSynthesisUtterance(currentSubtitle);
+                                        // Try to find a female English voice
+                                        const voices = window.speechSynthesis.getVoices();
+                                        const femaleVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English')));
+                                        if (femaleVoice) utterance.voice = femaleVoice;
+                                        
+                                        utterance.rate = 1.0;
+                                        utterance.onend = () => {
+                                            setIsSpeaking(false);
+                                            setAudioUrlToSpeak(null);
+                                            if (audioQueue.length === 0 && !isGenerating) {
+                                                setTimeout(() => {
+                                                    const btn = document.getElementById('mic-button') as HTMLButtonElement | null;
+                                                    if (btn && !btn.disabled) btn.click();
+                                                }, 500);
+                                            }
+                                        };
+                                        utterance.onerror = () => {
+                                            setIsSpeaking(false);
+                                            setAudioUrlToSpeak(null);
+                                        };
+                                        window.speechSynthesis.speak(utterance);
+                                    } else {
+                                        setIsSpeaking(false);
+                                        setAudioUrlToSpeak(null);
+                                    }
                                 }}
                             />
                         )}
