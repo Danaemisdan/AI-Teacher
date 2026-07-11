@@ -793,10 +793,10 @@ Format exactly like this:
             
             const jsonMatch = reply.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                    let parsed = safeJsonParse(jsonMatch[0], null);
+                    let parsed: any = safeJsonParse(jsonMatch[0], null);
                     if (!parsed) {
                         const topicMatch = jsonMatch[0].match(/"topic"\s*:\s*"([^"]+)"/i);
-                        const modulesMatch = jsonMatch[0].match(/"modules"\s*:\s*\[(.*?)\]/is);
+                        const modulesMatch = jsonMatch[0].match(/"modules"\s*:\s*\[([\s\S]*?)\]/i);
                         if (topicMatch && modulesMatch) {
                             const extractedModules = [...modulesMatch[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
                             if (extractedModules.length > 0) {
@@ -993,7 +993,7 @@ Format exactly like this:
                                     
                                     // Only trigger the mic if we are completely done speaking the queue AND it was a question!
                                     if (audioQueue.length === 0 && !isGenerating) {
-                                        if (currentSubtitle && currentSubtitle.trim().endsWith('?')) {
+                                        if (currentReply && currentReply.trim().endsWith('?')) {
                                             setTimeout(() => {
                                                 const btn = document.getElementById('mic-button') as HTMLButtonElement | null;
                                                 if (btn && !btn.disabled) btn.click();
@@ -1005,8 +1005,8 @@ Format exactly like this:
                                     console.warn('TTS Audio failed to play via Edge TTS API. Falling back to browser TTS...', e);
                                     
                                     // Fallback to browser's built-in TTS
-                                    if ('speechSynthesis' in window && currentSubtitle) {
-                                        const utterance = new SpeechSynthesisUtterance(currentSubtitle);
+                                    if ('speechSynthesis' in window && currentReply) {
+                                        const utterance = new SpeechSynthesisUtterance(currentReply);
                                         // Try to find a female English voice
                                         const voices = window.speechSynthesis.getVoices();
                                         const femaleVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English')));
@@ -1017,7 +1017,7 @@ Format exactly like this:
                                             setIsSpeaking(false);
                                             setAudioUrlToSpeak(null);
                                             if (audioQueue.length === 0 && !isGenerating) {
-                                                if (currentSubtitle && currentSubtitle.trim().endsWith('?')) {
+                                                if (currentReply && currentReply.trim().endsWith('?')) {
                                                     setTimeout(() => {
                                                         const btn = document.getElementById('mic-button') as HTMLButtonElement | null;
                                                         if (btn && !btn.disabled) btn.click();
