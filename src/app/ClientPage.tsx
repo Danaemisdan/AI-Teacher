@@ -781,12 +781,7 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
 Extract the core educational topic they want to learn. Then, generate a 3-module syllabus.
 Output ONLY a strict JSON object. NO EXPLANATIONS. NO MARKDOWN FORMATTING. Just raw JSON.
 Format exactly like this:
-{"topic": "The Core Topic", "modules": ["1. Introduction to [Topic]", "2. Core concepts of [Topic]", "3. Advanced [Topic]"]}
-
-AVAILABLE CONCEPTS:
-${registryContext}
-
-CRITICAL: If the student's request is closely related to one of the AVAILABLE CONCEPTS, you MUST set the "topic" field to the EXACT string from the AVAILABLE CONCEPTS list. Do not use a generic topic if a matching concept exists.`;
+{"topic": "The Core Topic", "modules": ["1. Introduction to [Topic]", "2. Core concepts of [Topic]", "3. Advanced [Topic]"]}`;
         
         let extractedTopic = rawPrompt;
         let modules = ["1. Introduction & Basics", "2. Core Concepts", "3. Real-World Applications"];
