@@ -366,7 +366,7 @@ EXAMPLES:
                         const content = frame[2].trim();
                         
                         if (type === 'SPEECH' || type === 'NOTE') {
-                            let rawChunks = content.match(/[^.!?\n]+[.!?\n]+/g) || [];
+                            let rawChunks: string[] = Array.from(content.match(/[^.!?\n]+[.!?\n]+/g) || []);
                             const matchedLen = rawChunks.join('').length;
                             if (content.length > matchedLen) {
                                 rawChunks.push(content.substring(matchedLen));
@@ -689,7 +689,7 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
                     const content = frame[2].trim();
                     
                     if (type === 'SPEECH' || type === 'NOTE') {
-                        let rawChunks = content.match(/[^.!?\n]+[.!?\n]+/g) || [];
+                        let rawChunks: string[] = Array.from(content.match(/[^.!?\n]+[.!?\n]+/g) || []);
                         const matchedLen = rawChunks.join('').length;
                         if (content.length > matchedLen) {
                             rawChunks.push(content.substring(matchedLen));
@@ -739,7 +739,7 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
                     .replace(/\[\s*\/?\s*(?:SPEECH|NOTE|HIGHLIGHT|QUIZ)\s*\]/gi, '') // Strip stray tags
                     .trim();
                 if (cleanSpeech) {
-                    let rawChunks = cleanSpeech.match(/[^.!?\n]+[.!?\n]+/g) || [];
+                    let rawChunks: string[] = Array.from(cleanSpeech.match(/[^.!?\n]+[.!?\n]+/g) || []);
                     const matchedLen = rawChunks.join('').length;
                     if (cleanSpeech.length > matchedLen) {
                         rawChunks.push(cleanSpeech.substring(matchedLen));

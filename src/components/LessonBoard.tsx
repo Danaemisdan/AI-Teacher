@@ -211,7 +211,7 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                     if (anatomyMatch) {
                                                         return (
                                                             <ErrorBoundary>
-                                                                <AnatomyEngine path={anatomyMatch[1]} highlightId={highlightId} />
+                                                                <AnatomyEngine path={anatomyMatch[1]} highlightId={highlightId || null} />
                                                             </ErrorBoundary>
                                                         );
                                                     }
@@ -246,11 +246,11 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         );
                                                     }
 
-                                                    const concepts = safeJsonParse(htmlGraphic, null);
+                                                    const concepts = safeJsonParse(htmlGraphic, null) as any[] | null;
                                                     if (Array.isArray(concepts)) {
                                                         return (
                                                             <div className="grid grid-cols-2 gap-12 w-full max-w-5xl h-full py-8">
-                                                                {concepts.map((concept, i) => (
+                                                                {concepts.map((concept: any, i: number) => (
                                                                     <motion.div
                                                                         key={i}
                                                                         initial={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -280,7 +280,7 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                             {/* CSS Magic to turn regular images into chalk drawings! */}
                                             <img 
                                                 src={mediaUrl} 
-                                                alt={title} 
+                                                alt={title || undefined} 
                                                 className="max-w-full max-h-[85%] object-contain mix-blend-screen" 
                                                 style={{ filter: "grayscale(100%) invert(100%) contrast(1.5) opacity(0.9) drop-shadow(0 0 8px rgba(255,255,255,0.5))" }}
                                             />

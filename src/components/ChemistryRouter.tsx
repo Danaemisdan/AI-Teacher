@@ -46,12 +46,7 @@ export default function ChemistryRouter({ spec }: ChemistryRouterProps) {
 
         return (
             <div className="w-full max-w-5xl h-[60vh] min-h-[400px]">
-                <ErrorBoundary fallback={
-                    <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-rose-900/20 border border-rose-500/30 rounded-xl">
-                        <div className="text-rose-400 mb-2 font-mono">Failed to render visualization</div>
-                        <div className="text-sm text-slate-400">Please try a different molecule or equation.</div>
-                    </div>
-                }>
+                <ErrorBoundary>
                     {content}
                 </ErrorBoundary>
             </div>
