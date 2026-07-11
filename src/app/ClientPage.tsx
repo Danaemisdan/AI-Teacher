@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { v4 as uuidv4 } from 'uuid';
-import { getBaseTeacherPrompt, DomainSoftwareMap, getMasterRouterPrompt } from '@/config/TeacherConfig';
+import { getBaseTeacherPrompt, getMasterRouterPrompt, quickDomainLookup } from '@/config/TeacherConfig';
 import { safeJsonParse } from '@/lib/jsonHelper';
 import { useSpeech } from '@/lib/useSpeech';
 import { useWebLLM } from '@/lib/useWebLLM';
@@ -547,21 +547,26 @@ EXAMPLES:
                             parsed.query = bestMatch;
                         }
                     } else {
-                        // Fallback to domain-specific heuristic if not in registry
-                        if (parsed.domain === 'math') {
-                            parsed.visualization_type = 'graph';
-                        } else if (parsed.domain === 'chemistry') {
-                            if (cleanTopic.includes('->') || cleanTopic.includes('+') || cleanTopic.includes('equation')) {
-                                parsed.visualization_type = 'equation';
-                            } else {
-                                parsed.visualization_type = 'molecule_view';
-                            }
+                        // ── ULO-POWERED ROUTING ──────────────────────────────────────
+                        // Use the Universal Learning Ontology to pick the right engine
+                        // instead of the old 4-domain if/else
+                        const uloMatch = quickDomainLookup(cleanTopic) || quickDomainLookup(topic);
+                        
+                        if (uloMatch) {
+                            parsed.visualization_type = uloMatch.engine;
                         } else {
-                            if (cleanTopic.includes('process') || cleanTopic.includes('flow') || cleanTopic.includes('cycle') || cleanTopic.includes('architecture')) {
+                            // Final fallback: process/flow keywords → mermaid, else image
+                            const flowKeywords = ['process', 'flow', 'cycle', 'how does', 'steps', 'stage', 'phase', 'architecture', 'system', 'pipeline'];
+                            if (flowKeywords.some(kw => cleanTopic.includes(kw))) {
                                 parsed.visualization_type = 'mermaid_diagram';
                             } else {
                                 parsed.visualization_type = 'general_image';
                             }
+                        }
+                        
+                        // Override with LLM's engine choice if it returned a valid one directly
+                        if (parsed.engine && parsed.engine !== 'general_image') {
+                            parsed.visualization_type = parsed.engine;
                         }
                     }
                     
@@ -590,12 +595,7 @@ EXAMPLES:
                     }
                     
                     if (parsed.visualization_type === 'lab_simulation') {
-                        const simKeywords = ['acid', 'base', 'titration', 'ph', 'concentration', 'gravity', 'circuit', 'friction', 'pendulum', 'wave', 'light'];
-                        if (simKeywords.some(kw => cleanTopic.includes(kw))) {
-                            setCurrentHtmlGraphic(`[SIMULATION: ${cleanTopic}]`);
-                        } else {
-                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                        }
+                        setCurrentHtmlGraphic(`[SIMULATION: ${cleanTopic}]`);
                     } else if (parsed.visualization_type === 'mermaid_diagram') {
                         setCurrentLessonContent("Generating Concept Diagram...");
                         const mermaidPrompt = `Create a detailed Mermaid flowchart or mindmap explaining the concept of "${topic}". Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
@@ -613,7 +613,7 @@ EXAMPLES:
                         setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
                     } else if (parsed.visualization_type === 'molecule_view' || parsed.visualization_type === 'equation' || parsed.visualization_type === 'periodic_table') {
                         setCurrentHtmlGraphic(`[CHEMISTRY: ${JSON.stringify(parsed)}]`);
-                    } else if (parsed.visualization_type === 'graph') {
+                    } else if (parsed.visualization_type === 'jsxgraph' || parsed.visualization_type === 'graph') {
                         setCurrentLessonContent("Generating Graph Specification...");
                         const graphPrompt = `You are a data visualization expert. Create a detailed graph specification for: "${topic}".
 Output ONLY a JSON block containing the full [GRAPH: {...}] tag.
@@ -625,6 +625,72 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
                         const match = graphReply.match(/\[GRAPH:\s*(\{[\s\S]*?\})\s*\]/i);
                         if (match && match[1]) {
                             setCurrentHtmlGraphic(`[GRAPH: ${match[1]}]`);
+                        } else {
+                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                        }
+                    } else if (parsed.visualization_type === 'step_diagram') {
+                        // Trades, crafts, repair, cooking — generate a step-by-step Mermaid flow
+                        setCurrentLessonContent("Generating Step-by-Step Diagram...");
+                        const stepPrompt = `Create a numbered step-by-step Mermaid flowchart for: "${topic}". Show each step as a node connected with arrows. Include safety or tool notes as side branches where relevant. Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
+                        const stepReply = await generateResponse([
+                            { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
+                            { role: 'user', content: stepPrompt }
+                        ], () => {});
+                        const stepMatch = stepReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
+                        if (stepMatch && stepMatch[1]) {
+                            setCurrentHtmlGraphic(`[MERMAID: ${stepMatch[1]}]`);
+                        } else {
+                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                        }
+                    } else if (parsed.visualization_type === 'timeline') {
+                        // History, biography, civilizations — generate a Mermaid timeline/gantt
+                        setCurrentLessonContent("Generating Timeline...");
+                        const timelinePrompt = `Create a Mermaid timeline diagram for the key events in: "${topic}". Use the Mermaid 'timeline' or 'gantt' syntax. Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
+                        const tlReply = await generateResponse([
+                            { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
+                            { role: 'user', content: timelinePrompt }
+                        ], () => {});
+                        const tlMatch = tlReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
+                        if (tlMatch && tlMatch[1]) {
+                            setCurrentHtmlGraphic(`[MERMAID: ${tlMatch[1]}]`);
+                        } else {
+                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                        }
+                    } else if (parsed.visualization_type === 'code_playground') {
+                        // Programming — show a code diagram / flowchart for now (future: live sandbox)
+                        setCurrentLessonContent("Generating Code Diagram...");
+                        const codePrompt = `Create a Mermaid flowchart showing the logic/control flow for: "${topic}". Show the algorithm or process visually. Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
+                        const codeReply = await generateResponse([
+                            { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
+                            { role: 'user', content: codePrompt }
+                        ], () => {});
+                        const codeMatch = codeReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
+                        if (codeMatch && codeMatch[1]) {
+                            setCurrentHtmlGraphic(`[MERMAID: ${codeMatch[1]}]`);
+                        } else {
+                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                        }
+                    } else if (
+                        // Future engines — stub to image until built
+                        parsed.visualization_type === 'space_simulator' ||
+                        parsed.visualization_type === 'piano_roll' ||
+                        parsed.visualization_type === 'interactive_globe' ||
+                        parsed.visualization_type === 'recipe_animation' ||
+                        parsed.visualization_type === 'skeleton_animation' ||
+                        parsed.visualization_type === 'driving_simulator' ||
+                        parsed.visualization_type === 'hand_avatar' ||
+                        parsed.visualization_type === 'architecture_3d'
+                    ) {
+                        // Stub: fall back to a rich Mermaid concept diagram until the engine is built
+                        setCurrentLessonContent("Generating Concept Diagram...");
+                        const stubPrompt = `Create a detailed Mermaid mindmap or flowchart explaining the key concepts of "${topic}". Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
+                        const stubReply = await generateResponse([
+                            { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
+                            { role: 'user', content: stubPrompt }
+                        ], () => {});
+                        const stubMatch = stubReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
+                        if (stubMatch && stubMatch[1]) {
+                            setCurrentHtmlGraphic(`[MERMAID: ${stubMatch[1]}]`);
                         } else {
                             setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
                         }
