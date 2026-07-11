@@ -57,7 +57,8 @@ export function getBaseTeacherPrompt(topic: string, isTeaching: boolean = false,
         
         base += `\n4. You MUST format your entire response using ONLY these exact tags: [SPEECH] and [NOTE].
 5. Do NOT use markdown. Do NOT use prefixes like "SPEECH:".
-6. DO NOT write anything outside of these tags.
+6. DO NOT write anything outside of these tags. NO hashtags, NO headers, NO internal monologues.
+7. NEVER output tags like # Thought provoking answer or anything similar. Just the tags!
 
 EXAMPLE OF A PERFECT RESPONSE:
 [SPEECH] Black holes are fascinating, but I suppose I have to dumb it down for human comprehension. A black hole is formed when a massive star collapses under its own gravity. [/SPEECH]

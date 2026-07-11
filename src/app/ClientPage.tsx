@@ -730,7 +730,7 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
             
             setBaseBrainKnowledge([`Topic: ${topic}`, `Module: ${moduleName}`, `Lecture Script: ${fullReply}`]);
             setCurrentReply('');
-            setMessages([...messages, { role: 'assistant', content: "(Lecture completed via Presentation Layer)" }]);
+            setMessages([...messages, { role: 'assistant', content: fullReply }]);
             
             if (parsedFramesCount === 0) {
                 // Fallback: If the LLM completely ignored the SPEECH tags, play its full raw output as speech.
@@ -991,12 +991,14 @@ Format exactly like this:
                                     setIsSpeaking(false);
                                     setAudioUrlToSpeak(null);
                                     
-                                    // Only trigger the mic if we are completely done speaking the queue
+                                    // Only trigger the mic if we are completely done speaking the queue AND it was a question!
                                     if (audioQueue.length === 0 && !isGenerating) {
-                                        setTimeout(() => {
-                                            const btn = document.getElementById('mic-button') as HTMLButtonElement | null;
-                                            if (btn && !btn.disabled) btn.click();
-                                        }, 500);
+                                        if (currentSubtitle && currentSubtitle.trim().endsWith('?')) {
+                                            setTimeout(() => {
+                                                const btn = document.getElementById('mic-button') as HTMLButtonElement | null;
+                                                if (btn && !btn.disabled) btn.click();
+                                            }, 500);
+                                        }
                                     }
                                 }}
                                 onError={(e) => {
@@ -1015,10 +1017,12 @@ Format exactly like this:
                                             setIsSpeaking(false);
                                             setAudioUrlToSpeak(null);
                                             if (audioQueue.length === 0 && !isGenerating) {
-                                                setTimeout(() => {
-                                                    const btn = document.getElementById('mic-button') as HTMLButtonElement | null;
-                                                    if (btn && !btn.disabled) btn.click();
-                                                }, 500);
+                                                if (currentSubtitle && currentSubtitle.trim().endsWith('?')) {
+                                                    setTimeout(() => {
+                                                        const btn = document.getElementById('mic-button') as HTMLButtonElement | null;
+                                                        if (btn && !btn.disabled) btn.click();
+                                                    }, 500);
+                                                }
                                             }
                                         };
                                         utterance.onerror = () => {
