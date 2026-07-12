@@ -397,6 +397,14 @@ export const ToolsDB: Record<string, DomainDB> = {
                         createIframeTool('OneMotion Chord Player', 'https://www.onemotion.com/chord-player/', 'https://www.onemotion.com/chord-player/', 'Build + play chord progressions')
                     ]
                 }
+            },
+            instruments: {
+                intents: {
+                    practice: [
+                        createIframeTool('Virtual Drum Kit', 'https://www.virtualdrumming.com/', 'https://www.virtualdrumming.com/drums/online-virtual-games/hip-hop-drum-kits.html', 'Play virtual drums in browser'),
+                        createIframeTool('Virtual Guitar', 'https://www.musicca.com/guitar', 'https://www.musicca.com/guitar', 'Play virtual guitar in browser')
+                    ]
+                }
             }
         }
     },
@@ -490,6 +498,26 @@ export const ToolsDB: Record<string, DomainDB> = {
                 }
             }
         }
+    },
+
+    // ── 13. CULINARY & COOKING ────────────────────────────────────────────────
+    culinary: {
+        subtopics: {
+            recipes_techniques: {
+                intents: {
+                    practice: [
+                        createIframeTool('MyFridgeFood', 'https://myfridgefood.com/', 'https://myfridgefood.com/', 'Input ingredients, get recipes')
+                    ]
+                }
+            },
+            food_science: {
+                intents: {
+                    visualize: [
+                        createIframeTool('Harvard Science & Cooking', 'https://www.edx.org/course/science-and-cooking', 'https://www.edx.org/course/science-and-cooking', 'Learn the chemistry and physics of cooking')
+                    ]
+                }
+            }
+        }
     }
 };
 
@@ -514,7 +542,7 @@ export function resolveTool(domainKey: string, subtopicQuery: string): { intent:
     const subtopicData = domainData.subtopics[bestMatchKey];
     if (!subtopicData) return null;
 
-    // Pick first intent and first tool
+    // Pick first intent
     const intents = Object.keys(subtopicData.intents) as LearningIntent[];
     if (intents.length === 0) return null;
 
@@ -522,8 +550,11 @@ export function resolveTool(domainKey: string, subtopicQuery: string): { intent:
     const tools = subtopicData.intents[firstIntent];
     if (!tools || tools.length === 0) return null;
 
+    // Prefer iframe tools if available, otherwise take the first
+    const bestTool = tools.find(t => t.embedType === 'iframe') || tools[0];
+
     return {
         intent: firstIntent,
-        tool: tools[0]
+        tool: bestTool
     };
 }
