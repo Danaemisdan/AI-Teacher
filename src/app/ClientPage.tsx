@@ -510,61 +510,42 @@ EXAMPLES:
         // --- PHASE 1a: Visual Aid Generation ---
         setCurrentLessonContent("Classifying Master Intent...");
         try {
-            // Check for direct match first to bypass LLM routing hallucinations
+            const cleanTopic = (moduleName || topic).toLowerCase().replace(/_/g, ' ');
+            
+            // Check for direct match first to bypass dynamic routing
             const directMatchId = await AssetManager.findBestRegistryMatch(topic, moduleName);
-            let parsed: any = null;
+            let parsed: any = {
+                visualization_type: 'general_image',
+                query: moduleName || topic
+            };
 
             if (directMatchId) {
                 const entry = await AssetManager.getRegistryEntry(directMatchId);
-                parsed = {
-                    visualization_type: entry?.renderer || 'concept_diagram',
-                    query: directMatchId
-                };
+                parsed.visualization_type = entry?.renderer || 'concept_diagram';
+                parsed.query = directMatchId;
             } else {
-                const MASTER_PROMPT = getMasterRouterPrompt(topic, moduleName);
-
-                const routerReply = await generateResponse([
-                    { role: 'system', content: 'You are the Master Visualization Router. Output ONLY a valid JSON object. No markdown ticks.' },
-                    { role: 'user', content: MASTER_PROMPT }
-                ], () => {});
+                // ── ULO-POWERED ROUTING ──────────────────────────────────────
+                // Use the Universal Learning Ontology to pick the right engine instantly
+                const originalTopicLower = topic.toLowerCase();
+                const moduleNameLower = (moduleName || '').toLowerCase();
                 
-                try {
-                    let cleanJson = routerReply.replace(/```json/g, '').replace(/```/g, '').trim();
-                    parsed = safeJsonParse(cleanJson, null);
-                } catch(e) {}
+                const uloMatch = quickDomainLookup(moduleNameLower) || quickDomainLookup(originalTopicLower);
+                
+                if (uloMatch) {
+                    parsed.visualization_type = uloMatch.engine;
+                } else {
+                    // Final fallback: process/flow keywords → mermaid, else image
+                    const flowKeywords = ['process', 'flow', 'cycle', 'how does', 'steps', 'stage', 'phase', 'architecture', 'system', 'pipeline'];
+                    if (flowKeywords.some(kw => originalTopicLower.includes(kw) || moduleNameLower.includes(kw))) {
+                        parsed.visualization_type = 'mermaid_diagram';
+                    } else {
+                        parsed.visualization_type = 'general_image';
+                    }
+                }
             }
             
-            // Routing Engine Logic
-            try {
-                if (parsed) {
-                    const queryLower = (parsed.query || topic).toLowerCase();
-                    let cleanTopic = queryLower.replace(/_/g, ' ');
-                    
-                    // If we didn't get a direct registry match, use ULO to route the dynamic engine
-                    if (!directMatchId) {
-                        // ── ULO-POWERED ROUTING ──────────────────────────────────────
-                        const uloMatch = quickDomainLookup(cleanTopic) || quickDomainLookup(topic);
-                        
-                        if (uloMatch) {
-                            parsed.visualization_type = uloMatch.engine;
-                        } else {
-                            // Final fallback: process/flow keywords → mermaid, else image
-                            const flowKeywords = ['process', 'flow', 'cycle', 'how does', 'steps', 'stage', 'phase', 'architecture', 'system', 'pipeline'];
-                            if (flowKeywords.some(kw => cleanTopic.includes(kw))) {
-                                parsed.visualization_type = 'mermaid_diagram';
-                            } else {
-                                parsed.visualization_type = 'general_image';
-                            }
-                        }
-                        
-                        // Override with LLM's engine choice if it returned a valid one directly
-                        if (parsed.engine && parsed.engine !== 'general_image') {
-                            parsed.visualization_type = parsed.engine;
-                        }
-                    }
-                    
-                    // Scripted orchestration check - ONLY if we found a direct match!
-                    // We don't want the LLM randomly guessing a query that happens to hit a scripted asset.
+            // Scripted orchestration check - ONLY if we found a direct match!
+            // We don't want to accidentally trigger a scripted lesson from a dynamic fallback.
                     if (directMatchId && (parsed.visualization_type === 'concept_diagram' || parsed.visualization_type === 'anatomy')) {
                         const assetPath = await AssetManager.getAsset(parsed.query);
                         if (assetPath) {
@@ -695,17 +676,6 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
                             }
                         }
                     }
-                } else {
-                    // Fallback if AI messes up the JSON completely
-                    const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
-                    setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                }
-            } catch (e) {
-                console.warn("Visual generation skipped due to error.", e);
-                // Fallback on error
-                const cleanTopic = topic.replace(/^(introduction to|the law of|what is|history of|concept of|basics of|principles of|understanding)\s+/i, '').trim();
-                setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-            }
         } catch (e) {
             console.warn("Visual generation skipped due to error.", e);
         }
