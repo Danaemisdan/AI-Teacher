@@ -540,18 +540,9 @@ EXAMPLES:
                     const queryLower = (parsed.query || topic).toLowerCase();
                     let cleanTopic = queryLower.replace(/_/g, ' ');
                     
-                    // Try Registry First
-                    const bestMatch = await AssetManager.findBestRegistryMatch(queryLower);
-                    if (bestMatch) {
-                        const entry = await AssetManager.getRegistryEntry(bestMatch);
-                        if (entry) {
-                            parsed.visualization_type = entry.renderer;
-                            parsed.query = bestMatch;
-                        }
-                    } else {
+                    // If we didn't get a direct registry match, use ULO to route the dynamic engine
+                    if (!directMatchId) {
                         // ── ULO-POWERED ROUTING ──────────────────────────────────────
-                        // Use the Universal Learning Ontology to pick the right engine
-                        // instead of the old 4-domain if/else
                         const uloMatch = quickDomainLookup(cleanTopic) || quickDomainLookup(topic);
                         
                         if (uloMatch) {
@@ -572,12 +563,15 @@ EXAMPLES:
                         }
                     }
                     
-                    // Scripted orchestration check
-                    if (parsed.visualization_type === 'concept_diagram' || parsed.visualization_type === 'anatomy') {
+                    // Scripted orchestration check - ONLY if we found a direct match!
+                    // We don't want the LLM randomly guessing a query that happens to hit a scripted asset.
+                    if (directMatchId && (parsed.visualization_type === 'concept_diagram' || parsed.visualization_type === 'anatomy')) {
                         const assetPath = await AssetManager.getAsset(parsed.query);
                         if (assetPath) {
                             const lessonData = await AssetManager.getLesson(assetPath);
                             if (lessonData && lessonData.steps && lessonData.steps.length > 0) {
+                                // WE HAVE A SCRIPTED LESSON! Bypass LLM generation
+                                setCurrentLessonContent("Loading Interactive Lesson...");
                                 const newQueue = lessonData.steps.map((s: any) => ({
                                     url: '/api/tts?text=' + encodeURIComponent(s.speech),
                                     text: s.speech,

@@ -156,7 +156,7 @@ export const ULO: Record<string, DomainConfig> = {
         skillType: 'conceptual',
         teachingMethod: 'story',
         promptHint: 'Earth is a living system. Explain geological time scales with relatable analogies. Use the "if Earth was a day" comparison to help scale.',
-        keywords: ['geology', 'meteorology', 'oceanography', 'seismology', 'volcanology', 'paleontology', 'plate tectonics', 'earthquakes', 'climate', 'rock cycle', 'water cycle'],
+        keywords: ['earth', 'geology', 'meteorology', 'oceanography', 'seismology', 'volcanology', 'paleontology', 'plate tectonics', 'earthquakes', 'climate', 'rock cycle', 'water cycle'],
     },
 
     // ── SPACE SCIENCES ─────────────────────────────────────────
