@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { v4 as uuidv4 } from 'uuid';
 import { getBaseTeacherPrompt, getMasterRouterPrompt, quickDomainLookup } from '@/config/TeacherConfig';
+import { resolveTool } from '@/config/ToolsDB';
 import { safeJsonParse } from '@/lib/jsonHelper';
 import { useSpeech } from '@/lib/useSpeech';
 import { useWebLLM } from '@/lib/useWebLLM';
@@ -671,7 +672,7 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
                             setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
                         }
                     } else if (
-                        // Future engines — stub to image until built
+                        // Future engines — stub to image until built or resolve via ToolsDB
                         parsed.visualization_type === 'space_simulator' ||
                         parsed.visualization_type === 'piano_roll' ||
                         parsed.visualization_type === 'interactive_globe' ||
@@ -681,18 +682,32 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
                         parsed.visualization_type === 'hand_avatar' ||
                         parsed.visualization_type === 'architecture_3d'
                     ) {
-                        // Stub: fall back to a rich Mermaid concept diagram until the engine is built
-                        setCurrentLessonContent("Generating Concept Diagram...");
-                        const stubPrompt = `Create a detailed Mermaid mindmap or flowchart explaining the key concepts of "${topic}". Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
-                        const stubReply = await generateResponse([
-                            { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
-                            { role: 'user', content: stubPrompt }
-                        ], () => {});
-                        const stubMatch = stubReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
-                        if (stubMatch && stubMatch[1]) {
-                            setCurrentHtmlGraphic(`[MERMAID: ${stubMatch[1]}]`);
+                        // First, check if we have a real interactive web tool in our ToolsDB for this topic!
+                        let toolUrl = null;
+                        const currentMatch = quickDomainLookup(cleanTopic) || quickDomainLookup(topic);
+                        if (currentMatch && currentMatch.domainKey) {
+                            const resolved = resolveTool(currentMatch.domainKey, cleanTopic);
+                            if (resolved && resolved.tool.embedType === 'iframe') {
+                                toolUrl = resolved.tool.embedUrl || resolved.tool.url;
+                            }
+                        }
+
+                        if (toolUrl) {
+                            setCurrentHtmlGraphic(`[IFRAME: ${toolUrl}]`);
                         } else {
-                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                            // Stub: fall back to a rich Mermaid concept diagram until the engine is built
+                            setCurrentLessonContent("Generating Concept Diagram...");
+                            const stubPrompt = `Create a detailed Mermaid mindmap or flowchart explaining the key concepts of "${topic}". Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
+                            const stubReply = await generateResponse([
+                                { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
+                                { role: 'user', content: stubPrompt }
+                            ], () => {});
+                            const stubMatch = stubReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
+                            if (stubMatch && stubMatch[1]) {
+                                setCurrentHtmlGraphic(`[MERMAID: ${stubMatch[1]}]`);
+                            } else {
+                                setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
+                            }
                         }
                     } else {
                         setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);

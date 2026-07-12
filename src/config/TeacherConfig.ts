@@ -97,11 +97,12 @@ Example: {"domain": "etiquette", "engine": "concept_diagram", "query": "dining e
  * Quick client-side domain lookup — bypasses LLM for known topics.
  * Returns the engine name if a domain match is found, or null.
  */
-export function quickDomainLookup(topic: string): { engine: string; label: string; promptHint: string } | null {
+export function quickDomainLookup(topic: string): { domainKey: string; engine: string; label: string; promptHint: string } | null {
     const match = findDomain(topic);
     if (!match) return null;
-    const [, config] = match;
+    const [domainKey, config] = match;
     return {
+        domainKey,
         engine: config.engine,
         label: config.label,
         promptHint: config.promptHint,

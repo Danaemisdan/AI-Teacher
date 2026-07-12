@@ -10,6 +10,7 @@ import AnatomyEngine from './AnatomyEngine';
 import GraphEngine from './GraphEngine';
 import EngineOrchestrator from './orchestration/EngineOrchestrator';
 import { TeachingInteractionProvider } from './orchestration/TeachingInteractionLayer';
+import { IframeEngine } from './IframeEngine';
 import ErrorBoundary from './ErrorBoundary';
 import { safeJsonParse } from '@/lib/jsonHelper';
 
@@ -242,6 +243,16 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                         return (
                                                             <ErrorBoundary>
                                                                 <EngineOrchestrator intent={intentMatch[1].trim()} generateResponse={generateResponse} isGenerating={isGenerating} />
+                                                            </ErrorBoundary>
+                                                        );
+                                                    }
+
+                                                    // Handle IFRAME (Tools DB)
+                                                    const iframeMatch = htmlGraphic.match(/\[IFRAME:\s*([\s\S]*?)\s*\]/i);
+                                                    if (iframeMatch && iframeMatch[1]) {
+                                                        return (
+                                                            <ErrorBoundary>
+                                                                <IframeEngine url={iframeMatch[1].trim()} />
                                                             </ErrorBoundary>
                                                         );
                                                     }
