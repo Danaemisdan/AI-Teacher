@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { v4 as uuidv4 } from 'uuid';
 import { getBaseTeacherPrompt, getMasterRouterPrompt, quickDomainLookup } from '@/config/TeacherConfig';
 import { resolveTool } from '@/config/ToolsDB';
+import { fetchKnowledge } from '@/lib/KnowledgeDB';
 import { safeJsonParse } from '@/lib/jsonHelper';
 import { useSpeech } from '@/lib/useSpeech';
 import { useWebLLM } from '@/lib/useWebLLM';
@@ -728,8 +729,13 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
         }
 
         // --- PHASE 1b: Synchronized Presentation Layer ---
+        setCurrentLessonContent("Fetching Factual Context...");
+        const domainKey = quickDomainLookup(topic)?.domainKey;
+        const knowledge = await fetchKnowledge(topic, domainKey);
+        const extraContext = knowledge ? `VERIFIED FACTUAL CONTEXT (Source: ${knowledge.source}):\n${knowledge.summary}\n\nTEACH FROM THIS CONTEXT. DO NOT INVENT FACTS.` : "";
+        
         setCurrentLessonContent("Listening to Momentum...");
-        const SYSTEM_PROMPT = getBaseTeacherPrompt(topic, true);
+        const SYSTEM_PROMPT = getBaseTeacherPrompt(topic, true, extraContext);
 
         try {
             let parsedFramesCount = 0;
