@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Caveat } from 'next/font/google';
 import AssetViewer from './AssetViewer';
@@ -31,16 +31,25 @@ interface LessonBoardProps {
     generateResponse?: any; // To avoid bringing in complex MLCEngine types
     notes?: string[];
     onQuizAnswered?: () => void;
+    onToolEvent?: (eventData: any) => void;
+    toolAction?: any;
 }
 
 type TabType = 'media' | 'notes' | 'test';
 
-export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic, highlightId, isSpeaking, isGenerating, onNextModule, generateResponse, notes, onQuizAnswered }: LessonBoardProps) {
+export default function LessonBoard({ title, content, mediaUrl, videoId, testContent, moduleInfo, htmlGraphic, highlightId, isSpeaking, isGenerating, onNextModule, generateResponse, notes, onQuizAnswered, onToolEvent, toolAction }: LessonBoardProps) {
     const [step, setStep] = useState(0);
     const [activeTab, setActiveTab] = useState<TabType>('notes');
     const [activeImageIndex, setActiveImageIndex] = useState(0);
     const [selectedQuizOption, setSelectedQuizOption] = useState<string | null>(null);
     const [lastAutoSwitchedQuiz, setLastAutoSwitchedQuiz] = useState<string | null>(null);
+    const iframeEngineRef = useRef<any>(null);
+
+    useEffect(() => {
+        if (toolAction && iframeEngineRef.current && typeof iframeEngineRef.current.sendAction === 'function') {
+            iframeEngineRef.current.sendAction(toolAction);
+        }
+    }, [toolAction]);
 
     useEffect(() => {
         if (testContent && !isSpeaking && testContent !== lastAutoSwitchedQuiz) {
@@ -252,7 +261,11 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                                     if (iframeMatch && iframeMatch[1]) {
                                                         return (
                                                             <ErrorBoundary>
-                                                                <IframeEngine url={iframeMatch[1].trim()} />
+                                                                <IframeEngine 
+                                                                    ref={iframeEngineRef}
+                                                                    url={iframeMatch[1].trim()} 
+                                                                    onToolEvent={onToolEvent}
+                                                                />
                                                             </ErrorBoundary>
                                                         );
                                                     }

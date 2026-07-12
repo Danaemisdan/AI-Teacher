@@ -126,6 +126,12 @@ export default function Home() {
     }, [init]);
 
     const [inputText, setInputText] = useState('');
+    const [currentToolAction, setCurrentToolAction] = useState<any>(null);
+
+    const handleToolEvent = (eventData: any) => {
+        const context = `[System Notification: The user just interacted with the tool. Action details: ${typeof eventData === 'object' ? JSON.stringify(eventData) : eventData}. Acknowledge this or guide them further. Keep it very short.]`;
+        processPrompt(context);
+    };
 
     const processPrompt = async (promptText: string) => {
         if (!promptText) return;
@@ -274,8 +280,18 @@ EXAMPLES:
                         const queryContent = engineMatch[2].trim();
                         setCurrentHtmlGraphic(`[ENGINE_ROUTER: ${engineName} | ${queryContent}]`);
                     }
+                    // TOOL ORCHESTRATOR
+                    const toolMatch = chunk.match(/\[TOOL_ACTION:\s*([\s\S]*?)\s*\]/i);
+                    if (toolMatch && toolMatch[1]) {
+                        try {
+                            const actionData = JSON.parse(toolMatch[1]);
+                            setCurrentToolAction(actionData);
+                        } catch (e) {
+                            console.warn("Failed to parse TOOL_ACTION JSON", e);
+                        }
+                    }
                     
-                    const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[ENGINE:[\s\S]*?\[\/ENGINE\]/gi, '');
+                    const cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[ENGINE:[\s\S]*?\[\/ENGINE\]/gi, '').replace(/\[TOOL_ACTION:[\s\S]*?\]/gi, '');
                     const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [];
                     while (sentences.length > spokenSentencesCount) {
                         const newSentence = sentences[spokenSentencesCount].trim();
@@ -403,6 +419,9 @@ EXAMPLES:
                         } else if (type === 'QUIZ') {
                             const parsedQuiz = safeJsonParse(content, null);
                             if (parsedQuiz) setAudioQueue(prev => [...prev, { quiz: parsedQuiz }]);
+                        } else if (type === 'TOOL_ACTION') {
+                            const parsedAction = safeJsonParse(content, null);
+                            if (parsedAction) setCurrentToolAction(parsedAction);
                         }
                     }
                 } else {
@@ -457,7 +476,13 @@ EXAMPLES:
                         setCurrentHtmlGraphic(`[INTENT: ${intentMatch[1]}]`);
                     }
 
-                    let cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').replace(/\[CHEMISTRY:[\s\S]*?\]/gi, '').replace(/\[SIMULATION:[\s\S]*?\]/gi, '').replace(/\[CONCEPT:[\s\S]*?\]/gi, '').replace(/\[ANATOMY:[\s\S]*?\]/gi, '').replace(/\[GRAPH:[\s\S]*?\]/gi, '').replace(/\[INTENT:[\s\S]*?\]/gi, '');
+                    const toolMatch = chunk.match(/\[TOOL_ACTION:\s*([\s\S]*?)\s*\]/i);
+                    if (toolMatch && toolMatch[1]) {
+                        const parsedAction = safeJsonParse(toolMatch[1], null);
+                        if (parsedAction) setCurrentToolAction(parsedAction);
+                    }
+
+                    let cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').replace(/\[CHEMISTRY:[\s\S]*?\]/gi, '').replace(/\[SIMULATION:[\s\S]*?\]/gi, '').replace(/\[CONCEPT:[\s\S]*?\]/gi, '').replace(/\[ANATOMY:[\s\S]*?\]/gi, '').replace(/\[GRAPH:[\s\S]*?\]/gi, '').replace(/\[INTENT:[\s\S]*?\]/gi, '').replace(/\[TOOL_ACTION:[\s\S]*?\]/gi, '');
                     
                     cleanText = cleanText.replace(/!?\[.*?\]\(.*?\)/g, '');
                     cleanText = cleanText.replace(/\\\[[\s\S]*?\\\]/g, '').replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\\\(.*?\\\)/g, '');
@@ -989,7 +1014,12 @@ Format exactly like this:
                                 onNextModule={handleNextModule}
                                 generateResponse={generateResponse}
                                 notes={currentLessonNotes}
-                                onQuizAnswered={() => setIsWaitingForQuiz(false)}
+                                onQuizAnswered={() => {
+                                    setCurriculum(prev => prev ? { ...prev, isTeaching: true } : null);
+                                    processPrompt("I answered the quiz!");
+                                }}
+                                onToolEvent={handleToolEvent}
+                                toolAction={currentToolAction}
                             />
                     </div>
 

@@ -386,7 +386,7 @@ export const ToolsDB: Record<string, DomainDB> = {
                             requiresApiKey: false,
                             iframeAllowed: false
                         },
-                        createIframeTool('Muted.io', 'https://muted.io/', 'https://muted.io/piano/', 'Chord visualizer on piano keyboard')
+                        createIframeTool('Interactive Piano', '/piano.html', '/piano.html', 'Custom AI-controlled interactive piano with bi-directional event bus')
                     ]
                 }
             },
