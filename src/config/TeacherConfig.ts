@@ -55,11 +55,14 @@ export function getBaseTeacherPrompt(topic: string, isTeaching: boolean = false,
 5. Do NOT use markdown. Do NOT use prefixes like "SPEECH:".
 6. DO NOT write anything outside of these tags. NO hashtags, NO headers, NO internal monologues.
 7. NEVER output tags like # Thought provoking answer or anything similar. Just the tags!
+8. If you want to say something, it MUST be inside [SPEECH] tags. Do not output raw text.
 
 EXAMPLE OF A PERFECT RESPONSE:
 [SPEECH] Black holes are fascinating, but I suppose I have to dumb it down for human comprehension. A black hole is formed when a massive star collapses under its own gravity. [/SPEECH]
 [NOTE] Formed by collapsing stars [/NOTE]
-[SPEECH] The gravity is so intense that not even light can escape it. Do you know what the boundary of a black hole is called? [/SPEECH]`;
+[SPEECH] The gravity is so intense that not even light can escape it. Do you know what the boundary of a black hole is called? [/SPEECH]
+
+Remember: If your text is not wrapped in [SPEECH] tags, the student will NOT hear it!`;
     } else {
         base += `Respond naturally and conversationally. DO NOT use structural formatting or generate quizzes for normal chat unless asked.\n`;
     }

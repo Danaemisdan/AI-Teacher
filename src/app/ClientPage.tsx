@@ -672,18 +672,8 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
                         } else {
                             setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
                         }
-                    } else if (
-                        // Future engines — stub to image until built or resolve via ToolsDB
-                        parsed.visualization_type === 'space_simulator' ||
-                        parsed.visualization_type === 'piano_roll' ||
-                        parsed.visualization_type === 'interactive_globe' ||
-                        parsed.visualization_type === 'recipe_animation' ||
-                        parsed.visualization_type === 'skeleton_animation' ||
-                        parsed.visualization_type === 'driving_simulator' ||
-                        parsed.visualization_type === 'hand_avatar' ||
-                        parsed.visualization_type === 'architecture_3d'
-                    ) {
-                        // First, check if we have a real interactive web tool in our ToolsDB for this topic!
+                    } else {
+                        // Check if we have a real interactive web tool in our ToolsDB for this topic FIRST!
                         let toolUrl = null;
                         const currentMatch = quickDomainLookup(cleanTopic) || quickDomainLookup(topic);
                         if (currentMatch && currentMatch.domainKey) {
@@ -710,8 +700,6 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
                                 setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
                             }
                         }
-                    } else {
-                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
                     }
                 } else {
                     // Fallback if AI messes up the JSON completely
@@ -878,7 +866,8 @@ Format exactly like this:
                 { role: 'user', content: MODULE_PROMPT }
             ], () => {});
             
-            const jsonMatch = reply.match(/\{[\s\S]*\}/);
+            // Extract first valid JSON block
+            const jsonMatch = reply.match(/\{[\s\S]*?\}/);
             if (jsonMatch) {
                     let parsed: any = safeJsonParse(jsonMatch[0], null);
                     if (!parsed) {
