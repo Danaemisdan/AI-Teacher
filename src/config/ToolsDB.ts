@@ -390,6 +390,13 @@ export const ToolsDB: Record<string, DomainDB> = {
                     ]
                 }
             },
+            guitar: {
+                intents: {
+                    practice: [
+                        createIframeTool('Virtual Guitar', 'https://www.musicca.com/guitar', 'https://www.musicca.com/guitar', 'Play virtual guitar in browser')
+                    ]
+                }
+            },
             composition: {
                 intents: {
                     build: [
