@@ -107,5 +107,20 @@
       "resonator",
       "frets"
     ]
+  },
+  "quantum_physics": {
+    "facts": [
+      "Quantum mechanics is a branch of physics that studies the behavior of matter and energy at an atomic and subatomic level.",
+      "The Heisenberg Uncertainty Principle states that it is impossible to know both the position and momentum of a particle with infinite precision.",
+      "Entanglement is a phenomenon in which two or more particles become connected in such a way that their properties are correlated, regardless of the distance between them.",
+      "Quantum superposition is a property of quantum systems in which a quantum state can exist in multiple states simultaneously.",
+      "Schrödinger's cat is a thought experiment that illustrates the paradoxical nature of quantum mechanics and the concept of superposition."
+    ],
+    "visual_highlights": [
+      "Quantum Entanglement",
+      "Schrödinger's Cat"
+    ],
+    "recommended_engine": "concept_diagram",
+    "source_urls": []
   }
 }
