@@ -569,32 +569,11 @@ EXAMPLES:
                 }
             }
             
-            // Scripted orchestration check - ONLY if we found a direct match!
-            // We don't want to accidentally trigger a scripted lesson from a dynamic fallback.
-                    if (directMatchId && (parsed.visualization_type === 'concept_diagram' || parsed.visualization_type === 'anatomy')) {
-                        const assetPath = await AssetManager.getAsset(parsed.query);
-                        if (assetPath) {
-                            const lessonData = await AssetManager.getLesson(assetPath);
-                            if (lessonData && lessonData.steps && lessonData.steps.length > 0) {
-                                // WE HAVE A SCRIPTED LESSON! Bypass LLM generation
-                                setCurrentLessonContent("Loading Interactive Lesson...");
-                                const newQueue = lessonData.steps.map((s: any) => ({
-                                    url: '/api/tts?text=' + encodeURIComponent(s.speech),
-                                    text: s.speech,
-                                    highlight: s.highlight,
-                                    note: s.speech
-                                }));
-                                setCurrentHtmlGraphic(`[${parsed.visualization_type === 'anatomy' ? 'ANATOMY' : 'CONCEPT'}: ${assetPath}]`);
-                                setAudioQueue(newQueue);
-                                setBaseBrainKnowledge([`Topic: ${topic}`, `Module: ${moduleName}`, `Mode: ${parsed.visualization_type} Orchestration`]);
-                                setCurrentLessonContent(`Playing Interactive Lesson...`);
-                                setIsGenerating(false);
-                                return; // SHORT-CIRCUIT Phase 1b!
-                            }
-                        }
-                        // Fallback if registry asset doesn't have a scripted lesson
-                        parsed.visualization_type = 'mermaid_diagram';
-                    }
+            // We no longer check for hardcoded lesson data or run scripted steps!
+            // All lessons are now dynamically generated using the Universal DB.
+            if (directMatchId && (parsed.visualization_type === 'concept_diagram' || parsed.visualization_type === 'anatomy')) {
+                setCurrentHtmlGraphic(`[INTENT: ${parsed.visualization_type} | ${parsed.query}]`);
+            }
                     
                     if (parsed.visualization_type === 'lab_simulation') {
                         setCurrentHtmlGraphic(`[SIMULATION: ${cleanTopic}]`);
@@ -707,9 +686,37 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
 
         // --- PHASE 1b: Synchronized Presentation Layer ---
         setCurrentLessonContent("Fetching Factual Context...");
+        
+        // Universal DB Integration
+        let dbKnowledge: any = null;
+        try {
+            const dbRes = await fetch('/knowledge.json?t=' + Date.now());
+            if (dbRes.ok) {
+                const db = await dbRes.json();
+                const key = topic.toLowerCase().replace(/ /g, '_');
+                if (db[key]) {
+                    dbKnowledge = db[key];
+                }
+            }
+        } catch(e) {
+            console.warn("Failed to load Universal DB", e);
+        }
+
         const domainKey = quickDomainLookup(topic)?.domainKey;
-        const knowledge = await fetchKnowledge(topic, domainKey);
-        const extraContext = knowledge ? `VERIFIED FACTUAL CONTEXT (Source: ${knowledge.source}):\n${knowledge.summary}\n\nTEACH FROM THIS CONTEXT. DO NOT INVENT FACTS.` : "";
+        const wikipediaKnowledge = await fetchKnowledge(topic, domainKey);
+        
+        let extraContext = "";
+        if (dbKnowledge) {
+            extraContext += `VERIFIED CORE FACTS (Must Use):\n${dbKnowledge.facts.map((f: string) => '- ' + f).join('\n')}\n\n`;
+            if (dbKnowledge.visual_highlights && dbKnowledge.visual_highlights.length > 0) {
+                extraContext += `AVAILABLE VISUAL HIGHLIGHTS:\nYou can highlight parts of the current diagram by outputting [HIGHLIGHT: X] (where X is an ID).\nAvailable IDs: ${dbKnowledge.visual_highlights.join(', ')}\n\n`;
+            }
+        }
+        if (wikipediaKnowledge) {
+            extraContext += `ADDITIONAL WIKIPEDIA CONTEXT (Source: ${wikipediaKnowledge.source}):\n${wikipediaKnowledge.summary}\n`;
+        }
+        
+        extraContext += `\nTEACH FROM THIS CONTEXT. DO NOT INVENT FACTS. Keep it conversational and brief.`;
         
         setCurrentLessonContent("Listening to Momentum...");
         const SYSTEM_PROMPT = getBaseTeacherPrompt(topic, true, extraContext);

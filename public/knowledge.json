@@ -1,0 +1,111 @@
+{
+  "blood_circulation": {
+    "facts": [
+      "Your heart is an incredibly powerful double-pump that keeps you alive by circulating blood. Let's trace its journey.",
+      "Deoxygenated blood, carrying carbon dioxide from your body, enters the right side of the heart through the Vena Cava.",
+      "The right ventricle pumps this blue, oxygen-poor blood out through the pulmonary artery.",
+      "It travels straight to the lungs. Here, you exhale carbon dioxide and inhale fresh oxygen, turning the blood bright red!",
+      "This oxygen-rich blood returns to the left side of the heart via the pulmonary veins.",
+      "Now for the big squeeze! The muscular left ventricle pumps the oxygenated blood out through the Aorta—the largest artery in your body.",
+      "The oxygen is delivered to all your body tissues, muscles, and organs. As they use the oxygen, the blood becomes deoxygenated again, and the cycle repeats!"
+    ],
+    "visual_highlights": [
+      "heart",
+      "systemic_circuit",
+      "pulmonary_circuit",
+      "lungs",
+      "body_tissues"
+    ]
+  },
+  "the_digestive_system": {
+    "facts": [
+      "Ever wonder what happens to your food after you swallow it? Let's take a trip down the digestive tract!",
+      "Digestion actually begins in the mouth, where chewing and saliva start breaking down the food. It then travels down a long tube called the esophagus.",
+      "It drops into the stomach, a muscular bag filled with strong acids that churn and dissolve the food into a liquid paste.",
+      "Next door is the liver and gallbladder. They produce and store bile, a special fluid that helps digest fats.",
+      "Hidden just beneath the stomach is the pancreas, which squirts powerful enzymes into the intestines to further break down proteins and carbs.",
+      "The food then winds through the small intestine. Despite its name, it's incredibly long! This is where most nutrients are absorbed into your bloodstream.",
+      "Finally, the leftover waste enters the large intestine. Water is absorbed back into the body, and the solid waste is eventually expelled."
+    ],
+    "visual_highlights": [
+      "mouth_esophagus",
+      "stomach",
+      "liver_gallbladder",
+      "pancreas",
+      "small_intestine",
+      "large_intestine"
+    ]
+  },
+  "dna_replication": {
+    "facts": [
+      "Before a cell can divide, it must make an exact copy of its DNA. This process is called DNA replication, and it involves a team of incredible microscopic machines.",
+      "It starts with the original, double-stranded parental DNA. The two strands are held together by complementary base pairs.",
+      "To copy the DNA, we first have to unzip it! An enzyme called Helicase acts like a wedge, breaking the bonds between base pairs and creating a replication fork.",
+      "Once unzipped, DNA Polymerase swoops in. This enzyme reads the exposed bases and attaches matching nucleotides to build the new strands.",
+      "Because DNA is directional, one strand is built continuously, following the helicase. This is the leading strand.",
+      "The other strand is built backwards in short chunks called Okazaki fragments. This is the lagging strand. Eventually, these fragments are glued together.",
+      "By the end of the process, one parental helix becomes two identical daughter helices, ready for cell division!"
+    ],
+    "visual_highlights": [
+      "parental_dna",
+      "helicase",
+      "replication_fork",
+      "dna_polymerase",
+      "leading_strand",
+      "lagging_strand"
+    ]
+  },
+  "the_human_cell_(animal_cell)": {
+    "facts": [
+      "Welcome to the microscopic world of the human cell! This is an animal cell, the fundamental building block of your body. Let's explore its anatomy.",
+      "First, we have the cell membrane. It acts like a security gate, controlling what enters and leaves the cell to keep the internal environment stable.",
+      "At the center lies the nucleus. This is the command center of the cell, housing all of your DNA and genetic blueprints.",
+      "These orange, bean-shaped structures are the mitochondria. Often called the powerhouses of the cell, they generate the energy needed to power cellular functions.",
+      "Surrounding the nucleus is the endoplasmic reticulum, studded with tiny blue dots called ribosomes. Together, they act as a factory, synthesizing proteins.",
+      "Once proteins are made, they travel to the Golgi apparatus—the green stacked structure. It packages and ships proteins to their final destinations.",
+      "Finally, the red spheres are lysosomes. They contain enzymes that break down waste materials, acting as the cell's recycling center.",
+      "And there you have it! All of these organelles work together in perfect harmony to keep you alive."
+    ],
+    "visual_highlights": [
+      "cell_membrane",
+      "nucleus",
+      "mitochondria",
+      "endoplasmic_reticulum",
+      "ribosomes",
+      "golgi_apparatus",
+      "lysosomes"
+    ]
+  },
+  "plant_cell_structure": {
+    "facts": [
+      "Welcome to the plant cell! While it shares many similarities with the animal cell we just saw, it has three very distinct features that allow plants to survive.",
+      "First is the rigid cell wall on the outside. This thick green barrier gives the plant structural support, allowing trees to grow hundreds of feet tall without a skeleton.",
+      "Notice that massive blue sac taking up most of the space? That's the central vacuole. It stores water and nutrients, and keeps the cell plump so the plant doesn't wilt.",
+      "These bright green ovals are chloroplasts. They are the solar panels of the cell, using sunlight to create food through photosynthesis.",
+      "Just like the animal cell, it also contains a nucleus to store DNA...",
+      "...and mitochondria to break down the food the chloroplasts make into usable energy.",
+      "Those three unique structures—the cell wall, vacuole, and chloroplasts—are what make plant life possible on Earth!"
+    ],
+    "visual_highlights": [
+      "cell_wall",
+      "central_vacuole",
+      "chloroplasts",
+      "nucleus",
+      "mitochondria"
+    ]
+  },
+  "sitara": {
+    "facts": [
+      "The sitar is a plucked stringed instrument, originating from the Indian subcontinent.",
+      "It is used in Hindustani classical music.",
+      "The instrument typically has 18, 19, 20, or 21 strings.",
+      "It has sympathetic strings that resonate to add richness to the sound.",
+      "The sitar gained worldwide popularity in the 1960s thanks to Ravi Shankar and The Beatles."
+    ],
+    "visual_highlights": [
+      "strings",
+      "resonator",
+      "frets"
+    ]
+  }
+}
