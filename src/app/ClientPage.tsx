@@ -711,6 +711,12 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
             if (dbKnowledge.visual_highlights && dbKnowledge.visual_highlights.length > 0) {
                 extraContext += `AVAILABLE VISUAL HIGHLIGHTS:\nYou can highlight parts of the current diagram by outputting [HIGHLIGHT: X] (where X is an ID).\nAvailable IDs: ${dbKnowledge.visual_highlights.join(', ')}\n\n`;
             }
+            if (dbKnowledge.tool_url) {
+                extraContext += `INTERACTIVE TOOL FOUND:\nYou MUST output this exact tag at the end of your response to load the simulation: [IFRAME: ${dbKnowledge.tool_url}]\n\n`;
+            }
+            if (dbKnowledge.media_url) {
+                extraContext += `REFERENCE IMAGE FOUND:\nYou MUST output this exact tag at the end of your response to show the image: [IMAGE: ${dbKnowledge.media_url}]\n\n`;
+            }
         }
         if (wikipediaKnowledge) {
             extraContext += `ADDITIONAL WIKIPEDIA CONTEXT (Source: ${wikipediaKnowledge.source}):\n${wikipediaKnowledge.summary}\n`;

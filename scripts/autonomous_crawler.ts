@@ -86,11 +86,15 @@ Task: Output a strictly valid JSON object with the following schema exactly:
 {
   "facts": ["fact 1", "fact 2", "fact 3", "fact 4", "fact 5"],
   "visual_highlights": ["keyword1", "keyword2"],
-  "recommended_engine": "concept_diagram"
+  "recommended_engine": "concept_diagram",
+  "tool_url": "https://phet.colorado.edu/sims/...", 
+  "media_url": "https://upload.wikimedia.org/wikipedia/commons/..."
 }
 
 Do NOT use markdown code blocks like \`\`\`json. Just output the raw JSON object.
 Make sure facts are highly educational and concise.
+If you know of a highly-verified, real-world interactive iframe tool (like PhET) for this topic, put it in "tool_url" (or leave null).
+If you know of a direct Wikipedia/Wikimedia image URL for this, put it in "media_url" (or leave null).
 `;
 
         let result = await session.prompt(synthesisPrompt, {
@@ -116,6 +120,8 @@ Make sure facts are highly educational and concise.
                 facts: parsed.facts,
                 visual_highlights: parsed.visual_highlights || [],
                 recommended_engine: parsed.recommended_engine || "concept_diagram",
+                tool_url: parsed.tool_url || null,
+                media_url: parsed.media_url || null,
                 source_urls: sourceUrl ? [sourceUrl] : []
             };
             saveDb(db);
