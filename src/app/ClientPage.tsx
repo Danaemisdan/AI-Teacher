@@ -722,7 +722,7 @@ Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B
             extraContext += `ADDITIONAL WIKIPEDIA CONTEXT (Source: ${wikipediaKnowledge.source}):\n${wikipediaKnowledge.summary}\n`;
         }
         
-        extraContext += `\nTEACH FROM THIS CONTEXT. DO NOT INVENT FACTS. Keep it conversational and brief.`;
+        extraContext += `\nUSE THIS CONTEXT AS A FOUNDATION, but feel free to seamlessly pull in additional deep knowledge from your own internal training data to make the lesson richer and more fascinating. Keep it conversational and brief.`;
         
         setCurrentLessonContent("Listening to Momentum...");
         const SYSTEM_PROMPT = getBaseTeacherPrompt(topic, true, extraContext);
