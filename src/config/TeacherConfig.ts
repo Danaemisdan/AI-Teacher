@@ -85,34 +85,35 @@ export function getBaseTeacherPrompt(topic: string, isTeaching: boolean = false,
 8. "quizzes" MUST be an array of EXACTLY 1 question. Each quiz object needs a question, 4 options, 1 answer, and a short explanation.
 
 EXPECTED JSON SCHEMA:
+(CRITICAL: THIS IS JUST A FORMAT TEMPLATE. YOU MUST WRITE ENTIRELY NEW CONTENT ABOUT "${topic}"!)
 {
-  "introduction": { "speech": "Great question. Today we're going to explore how stars are born." },
+  "introduction": { "speech": "Write a welcoming intro about ${topic} here." },
   "concepts": [
     {
-      "visualElement": "nebula_cloud",
-      "speech": "Notice this massive cloud of gas and dust? Over millions of years, gravity pulls this material together.",
-      "note": "Nebulas are the birthplaces of stars"
+      "visualElement": "ID_of_element_to_highlight_or_none",
+      "speech": "Write fascinating explanation about ${topic} here.",
+      "note": "Write a short sticky note here"
     }
   ],
   "example": {
-    "realWorldScenario": "Like a snowball rolling down a hill, gathering more snow...",
-    "speech": "Imagine rolling a snowball down a snowy hill. As it gathers more mass..."
+    "realWorldScenario": "Write a real world analogy.",
+    "speech": "Explain the analogy here."
   },
   "reflection": {
-    "question": "What happens if a nebula doesn't have enough mass?",
-    "speech": "Before we move on, what do you think happens if a nebula doesn't have enough mass to ignite?"
+    "question": "Write a thought-provoking question?",
+    "speech": "Ask the student the question here."
   },
   "quizzes": [
     {
-      "question": "What is the primary force responsible for star formation?",
-      "options": ["Magnetism", "Gravity", "Strong Nuclear Force", "Friction"],
-      "answer": "Gravity",
-      "explanation": "Gravity is the fundamental force that pulls gas and dust together."
+      "question": "Write a challenging multiple choice question about ${topic}?",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "answer": "Option 2",
+      "explanation": "Explain why Option 2 is correct."
     }
   ]
 }
 
-Remember: Never expose implementation details. The JSON output must be valid and parsable.`;
+Remember: Never expose implementation details. The JSON output must be valid and parsable. You MUST write original content, DO NOT just copy the template text!`;
     } else {
         base += `Respond naturally and conversationally. DO NOT use structural formatting or generate quizzes for normal chat unless asked.\n`;
     }
