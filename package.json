@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "qa": "node tests/qa/runner.js"
+    "qa": "node tests/qa/runner.js",
+    "crawler": "tsx scripts/autonomous_crawler.ts"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.84",
@@ -26,6 +27,7 @@
     "mermaid": "^11.16.0",
     "msedge-tts": "^2.0.5",
     "next": "16.2.3",
+    "node-llama-cpp": "^3.19.0",
     "ollama": "^0.6.3",
     "pixi-live2d-display": "^0.4.0",
     "pixi.js": "^7.4.3",
