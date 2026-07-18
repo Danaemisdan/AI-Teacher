@@ -81,14 +81,10 @@ export function AgentFace({ state, subtitle, isShuttered = false, isVoiceMode = 
   }, [state, isShuttered]);
 
   const getLeftRotate = () => {
-    if (state === "happy") return 15;   
-    if (state === "error") return 20;   
     return currentEye.rotate;
   };
 
   const getRightRotate = () => {
-    if (state === "happy") return -15;  
-    if (state === "error") return -20;  
     return currentEye.rotate;
   };
 

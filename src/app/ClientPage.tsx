@@ -620,8 +620,19 @@ EXAMPLES:
             const wikipediaKnowledge = await fetchKnowledge(topic, domainKey);
             
             let extraContext = "";
+            let initialGraphic: string | null = null;
             if (wikipediaKnowledge) {
                 extraContext += `ADDITIONAL WIKIPEDIA CONTEXT (Source: ${wikipediaKnowledge.source}):\n${wikipediaKnowledge.summary}\n`;
+                
+                if (wikipediaKnowledge.source === 'local_db') {
+                    if (wikipediaKnowledge.tool_url) {
+                        initialGraphic = `[IFRAME: ${wikipediaKnowledge.tool_url}]`;
+                        setCurrentHtmlGraphic(initialGraphic);
+                    } else if (wikipediaKnowledge.media_url) {
+                        initialGraphic = `[IMAGE: ${wikipediaKnowledge.media_url}]`;
+                        setCurrentHtmlGraphic(initialGraphic);
+                    }
+                }
             }
 
             const SYSTEM_PROMPT = getBaseTeacherPrompt(topic, true, extraContext);

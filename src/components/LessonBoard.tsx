@@ -295,6 +295,20 @@ export default function LessonBoard({ title, content, mediaUrl, videoId, testCon
                                         <div className="w-full h-full flex items-center justify-center relative p-4 lg:p-8">
                                             {(() => {
                                                 try {
+                                                    // Handle IFRAME overrides from Wikipedia/Crawler
+                                                    if (typeof passiveGraphic === 'string' && passiveGraphic.startsWith('[IFRAME:')) {
+                                                        const urlMatch = passiveGraphic.match(/\[IFRAME:\s*([^\]]+)\]/i);
+                                                        if (urlMatch) {
+                                                            return <iframe src={urlMatch[1]} className="w-full h-full min-h-[600px] rounded-[2rem] border-0 bg-white" />;
+                                                        }
+                                                    }
+                                                    if (typeof passiveGraphic === 'string' && passiveGraphic.startsWith('[IMAGE:')) {
+                                                        const urlMatch = passiveGraphic.match(/\[IMAGE:\s*([^\]]+)\]/i);
+                                                        if (urlMatch) {
+                                                            return <img src={urlMatch[1]} className="max-w-full max-h-[85%] object-contain mix-blend-screen" style={{ filter: "grayscale(100%) invert(100%) contrast(1.5) opacity(0.9) drop-shadow(0 0 8px rgba(255,255,255,0.5))" }} />;
+                                                        }
+                                                    }
+
                                                     const payloadObj = safeJsonParse(passiveGraphic, null) as VisualizationPayload | any[] | null;
                                                     
                                                     // Handle the new Generic Visualization Payload
