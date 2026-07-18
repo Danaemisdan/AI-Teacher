@@ -381,8 +381,13 @@ EXAMPLES:
         }
 
         // Intercept teaching/explaining requests in normal chat and start a curriculum lesson
-        const isQuestion = /^(can you )?(please )?(explain|teach|tell me about|what is|how does|what are|I want to learn) /i.test(lower);
-        if (!curriculum && isQuestion) {
+        const isExplicitRequest = /^(can you )?(please )?(explain|teach|tell me about|what is|what are|how does|how do|I want to learn|let's learn about|let's explore|show me|define) /i.test(lower);
+        
+        // If it's a short 1-5 word phrase and doesn't start with conversational words, assume it's a topic request
+        const wordCount = lower.trim().split(/\s+/).length;
+        const isTopicKeyword = wordCount <= 5 && !/^(hi|hello|hey|yes|no|yep|nope|stop|pause|resume|thanks|thank you|ok|okay|cool|wow|why|when|where|who)/i.test(lower);
+
+        if (!curriculum && (isExplicitRequest || isTopicKeyword)) {
             await startCurriculum(promptText);
             return;
         }
