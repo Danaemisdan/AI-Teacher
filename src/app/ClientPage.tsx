@@ -659,9 +659,9 @@ EXAMPLES:
                                     newQueue.push({ pauseMs: 500 }); // Let the user see the highlight before speaking
                                 }
                                 
-                                const chunks = (concept.speech || '').match(/[^.!?]+[.!?]+/g) || [concept.speech];
+                                const chunks = (concept.speech || '').match(/[^.!?]+[.!?]+/g) || [concept.speech || ''];
                                 chunks.forEach((chunk: string, idx: number) => {
-                                    if (chunk.trim()) {
+                                    if (chunk && chunk.trim()) {
                                         newQueue.push({
                                             url: '/api/tts?text=' + encodeURIComponent(chunk.trim()),
                                             text: chunk.trim(),
@@ -676,9 +676,9 @@ EXAMPLES:
                         // 3. Example
                         if (plan.example?.speech) {
                             newQueue.push({ highlight: null }); // Clear highlights for example
-                            const chunks = plan.example.speech.match(/[^.!?]+[.!?]+/g) || [plan.example.speech];
+                            const chunks = (plan.example.speech || '').match(/[^.!?]+[.!?]+/g) || [plan.example.speech || ''];
                             chunks.forEach((chunk: string) => {
-                                if (chunk.trim()) {
+                                if (chunk && chunk.trim()) {
                                     newQueue.push({ url: '/api/tts?text=' + encodeURIComponent(chunk.trim()), text: chunk.trim() });
                                 }
                             });
@@ -688,9 +688,9 @@ EXAMPLES:
                         // 4. Reflection / Wrap Up
                         if (plan.reflection?.speech) {
                             newQueue.push({ highlight: '__SHOW_NOTES__' });
-                            const chunks = plan.reflection.speech.match(/[^.!?]+[.!?]+/g) || [plan.reflection.speech];
+                            const chunks = (plan.reflection.speech || '').match(/[^.!?]+[.!?]+/g) || [plan.reflection.speech || ''];
                             chunks.forEach((chunk: string) => {
-                                if (chunk.trim()) {
+                                if (chunk && chunk.trim()) {
                                     newQueue.push({ url: '/api/tts?text=' + encodeURIComponent(chunk.trim()), text: chunk.trim() });
                                 }
                             });
@@ -771,8 +771,8 @@ EXAMPLES:
 Extract the core educational topic they want to learn. Then, generate a 3-module syllabus.
 For each module, extract metadata to power the visualization engine.
 Output ONLY a strict JSON object. NO EXPLANATIONS. NO MARKDOWN FORMATTING. Just raw JSON.
-Format exactly like this:
-{"topic": "The Core Topic", "modules": [
+Format exactly like this (replace placeholders with actual extracted info):
+{"topic": "Actual Topic Name Here", "modules": [
     {
         "title": "1. Introduction to [Topic]",
         "primaryConcept": "The single most visualizable core concept (e.g. Supply and Demand, Photosynthesis, Double helix)",
