@@ -8,6 +8,7 @@ export type AgentState = "idle" | "thinking" | "speaking" | "happy" | "surprised
 
 interface AgentFaceProps {
   state: AgentState;
+  subtitle?: string | null;
   isShuttered?: boolean;
   isVoiceMode?: boolean;
   className?: string;
@@ -25,7 +26,7 @@ const EyeStates = {
   sleeping: { height: 4, width: 28, borderRadius: 2, rotate: 0, y: 0, transition: { type: "spring", bounce: 0.2, duration: 0.8 } }
 };
 
-export function AgentFace({ state, isShuttered = false, isVoiceMode = false, className }: AgentFaceProps) {
+export function AgentFace({ state, subtitle, isShuttered = false, isVoiceMode = false, className }: AgentFaceProps) {
   const currentEye = EyeStates[state] || EyeStates.idle;
   
   const [isBlinking, setIsBlinking] = useState(false);
@@ -140,6 +141,20 @@ export function AgentFace({ state, isShuttered = false, isVoiceMode = false, cla
               <div className="w-1/4 h-1.5 bg-black/40 rounded-full mt-1"></div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Subtitle / Educational Intent */}
+      <AnimatePresence>
+        {subtitle && (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap text-purple-200/80 font-bold text-sm lg:text-base pointer-events-none z-40 bg-black/40 px-6 py-2 rounded-full border border-purple-500/20 backdrop-blur-md shadow-[0_5px_20px_rgba(139,92,246,0.3)]"
+          >
+            {subtitle}
+          </motion.div>
         )}
       </AnimatePresence>
 

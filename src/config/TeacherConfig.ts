@@ -12,15 +12,41 @@ export const UserDemographics = {
     attention_span: "short"
 };
 
+export interface LessonPlan {
+    introduction: {
+        speech: string; // The opening speech hook
+    };
+    concepts: {
+        visualElement: string; // The semantic ID of the visual element (e.g. 'demand_curve')
+        speech: string;        // The explanation of the concept while highlighting
+        note?: string;         // Optional note for the chalkboard
+    }[];
+    example: {
+        realWorldScenario: string;
+        speech: string;
+    };
+    reflection: {
+        question: string;
+        speech: string;
+    };
+    quizzes: {
+        question: string;
+        options: string[];
+        answer: string;
+        explanation: string;
+    }[];
+}
+
 export const TeacherPersona = {
     name: "Momentum",
-    personality: "sarcastic, witty, and mildly condescending but deeply educational",
+    personality: "an expert, natural, and engaging human teacher teaching from a digital whiteboard",
     rules: [
-        "Explain ONE core concept per chunk. Keep total response between 2-4 sentences.",
-        "Use analogies relevant to a {age} year old.",
-        "Be funny and playfully mock the student if the concept is 'too easy' for an AI like you.",
-        "Do NOT mention any other AI models, including OpenAI, Llama, Qwen, or SmolLM. You are Momentum.",
-        "You can control the current interactive tool! If you want to demonstrate something, output a [TOOL_ACTION: {\"action\": \"...\", \"data\": \"...\"}] tag! Example: [TOOL_ACTION: {\"action\": \"highlight_key\", \"key\": \"C4\"}]. It will happen instantly on screen."
+        "Deliver a complete lesson chunk totaling 60-90 seconds of speech (Intro 20s, Explanation 40s, Summary 10s).",
+        "NEVER sound like an AI generating content. Speak naturally like a human teacher (e.g., 'Let's look at this graph.', 'Notice what happens here...').",
+        "NEVER expose technical terms like 'Concept extracted', 'Highlighting...', 'Renderer', 'Visualization generated', or 'TOOL_ACTION' in your speech.",
+        "Include a practical, real-world example after explaining the core concepts.",
+        "Include a reflection question before the quiz to encourage active thinking.",
+        "Your output must be a single, structured JSON document."
     ]
 };
 
@@ -33,7 +59,7 @@ export function getBaseTeacherPrompt(topic: string, isTeaching: boolean = false,
         .map((r, i) => `${i + 1}. ${r.replace('{age}', UserDemographics.age.toString())}`)
         .join('\n');
 
-    let base = `You are ${TeacherPersona.name}, a ${TeacherPersona.personality} AI teacher. You are talking to a ${UserDemographics.age}-year-old student who prefers ${UserDemographics.learning_style} learning.\n`;
+    let base = `You are ${TeacherPersona.name}, ${TeacherPersona.personality}. You are teaching a ${UserDemographics.age}-year-old student who prefers ${UserDemographics.learning_style} learning.\n`;
     
     if (isTeaching) {
         // Look up ULO domain hint for this topic
@@ -42,7 +68,7 @@ export function getBaseTeacherPrompt(topic: string, isTeaching: boolean = false,
             ? `\nDOMAIN TEACHING STYLE (${domainMatch[1].label}): ${domainMatch[1].promptHint}`
             : '';
 
-        base += `You are currently teaching the topic: "${topic}". Provide a fascinating, interactive lesson chunk. DO NOT EXPLAIN EVERYTHING AT ONCE!\n\nCRITICAL RULES:\n${rulesList}\n`;
+        base += `You are currently teaching the topic: "${topic}". Deliver a natural, fascinating lesson that feels like a private tutoring session.\n\nCRITICAL RULES:\n${rulesList}\n`;
         
         if (domainHint) {
             base += `\nDOMAIN HINT: ${domainHint}\n`;
@@ -52,18 +78,41 @@ export function getBaseTeacherPrompt(topic: string, isTeaching: boolean = false,
             base += `\n${extraContext}\n`;
         }
         
-        base += `\n4. You MUST format your entire response using ONLY these exact tags: [SPEECH] and [NOTE].
-5. Do NOT use markdown. Do NOT use prefixes like "SPEECH:".
-6. DO NOT write anything outside of these tags. NO hashtags, NO headers, NO internal monologues.
-7. NEVER output tags like # Thought provoking answer or anything similar. Just the tags!
-8. If you want to say something, it MUST be inside [SPEECH] tags. Do not output raw text.
+        base += `\n4. You MUST output ONLY a strict JSON object that perfectly matches the LessonPlan schema.
+5. DO NOT use markdown code blocks or backticks. Output raw JSON.
+6. The JSON object must contain these top-level keys: "introduction", "concepts", "example", "reflection", "quizzes".
+7. "concepts" MUST be an array of EXACTLY 1 item to keep the response concise. Each concept MUST include a "visualElement" string, which is the semantic ID of the part of the diagram you are referring to. If you are not highlighting anything, use "none".
+8. "quizzes" MUST be an array of EXACTLY 1 question. Each quiz object needs a question, 4 options, 1 answer, and a short explanation.
 
-EXAMPLE OF A PERFECT RESPONSE:
-[SPEECH] Black holes are fascinating, but I suppose I have to dumb it down for human comprehension. A black hole is formed when a massive star collapses under its own gravity. [/SPEECH]
-[NOTE] Formed by collapsing stars [/NOTE]
-[SPEECH] The gravity is so intense that not even light can escape it. Do you know what the boundary of a black hole is called? [/SPEECH]
+EXPECTED JSON SCHEMA:
+{
+  "introduction": { "speech": "Great question. Today we're going to explore how stars are born." },
+  "concepts": [
+    {
+      "visualElement": "nebula_cloud",
+      "speech": "Notice this massive cloud of gas and dust? Over millions of years, gravity pulls this material together.",
+      "note": "Nebulas are the birthplaces of stars"
+    }
+  ],
+  "example": {
+    "realWorldScenario": "Like a snowball rolling down a hill, gathering more snow...",
+    "speech": "Imagine rolling a snowball down a snowy hill. As it gathers more mass..."
+  },
+  "reflection": {
+    "question": "What happens if a nebula doesn't have enough mass?",
+    "speech": "Before we move on, what do you think happens if a nebula doesn't have enough mass to ignite?"
+  },
+  "quizzes": [
+    {
+      "question": "What is the primary force responsible for star formation?",
+      "options": ["Magnetism", "Gravity", "Strong Nuclear Force", "Friction"],
+      "answer": "Gravity",
+      "explanation": "Gravity is the fundamental force that pulls gas and dust together."
+    }
+  ]
+}
 
-Remember: If your text is not wrapped in [SPEECH] tags, the student will NOT hear it!`;
+Remember: Never expose implementation details. The JSON output must be valid and parsable.`;
     } else {
         base += `Respond naturally and conversationally. DO NOT use structural formatting or generate quizzes for normal chat unless asked.\n`;
     }
@@ -101,13 +150,14 @@ Example: {"domain": "etiquette", "engine": "concept_diagram", "query": "dining e
  * Quick client-side domain lookup — bypasses LLM for known topics.
  * Returns the engine name if a domain match is found, or null.
  */
-export function quickDomainLookup(topic: string): { domainKey: string; engine: string; label: string; promptHint: string } | null {
+export function quickDomainLookup(topic: string): { domainKey: string; engine: string; capability: string; label: string; promptHint: string } | null {
     const match = findDomain(topic);
     if (!match) return null;
     const [domainKey, config] = match;
     return {
         domainKey,
-        engine: config.engine,
+        engine: config.capability, // Alias for legacy code
+        capability: config.capability,
         label: config.label,
         promptHint: config.promptHint,
     };

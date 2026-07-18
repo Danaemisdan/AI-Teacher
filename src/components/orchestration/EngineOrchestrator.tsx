@@ -88,11 +88,11 @@ DO NOT add any conversational text. Just the raw tag.`;
     }, [intent, isGraphEngine, dynamicGraphSpec, isGeneratingGraph, generateResponse, isGenerating]);
 
     if (error) {
-        return <div className="text-rose-500 font-mono text-center p-8 border border-rose-500/30 rounded-xl bg-rose-900/20">{error}</div>;
+        return <div className="w-full h-full flex items-center justify-center text-white/40 text-center p-8 animate-pulse text-3xl font-bold drop-shadow-md">Creating a custom visual explanation...</div>;
     }
 
     if (!strategy || !currentStep) {
-        return <div className="text-slate-400 text-center animate-pulse p-8">Analyzing Intent & Constructing Lesson Plan...</div>;
+        return <div className="w-full h-full flex items-center justify-center text-white/40 text-center animate-pulse p-8 text-3xl font-bold drop-shadow-md">Preparing visual explanations...</div>;
     }
 
     return (
@@ -115,8 +115,8 @@ DO NOT add any conversational text. Just the raw tag.`;
                     {isGraphEngine ? (
                         isGeneratingGraph ? (
                             <div className="w-full h-full flex flex-col items-center justify-center">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mb-4"></div>
-                                <div className="text-slate-400 font-mono text-sm">LLM Generating Graph Data for "{intent}"...</div>
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500 mb-6"></div>
+                                <div className="text-slate-400 font-bold text-2xl animate-pulse drop-shadow-md">Designing data visualizations...</div>
                             </div>
                         ) : dynamicGraphSpec ? (
                             <GraphEngine spec={dynamicGraphSpec} autoAdvance={true} />

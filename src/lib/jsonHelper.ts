@@ -38,8 +38,14 @@ export function safeJsonParse<T>(jsonString: string, fallback: T): T {
         try {
             return JSON.parse(flatStr) as T;
         } catch (fallbackError: any) {
-            console.warn("[safeJsonParse] Failed to parse JSON safely:", e.message, "Raw string:", jsonString);
-            return fallback;
+            try {
+                // Loose parsing via Function (handles unquoted keys, single quotes, etc.)
+                const looseParse = new Function(`return ${flatStr};`);
+                return looseParse() as T;
+            } catch (evalError: any) {
+                console.warn("[safeJsonParse] Failed to parse JSON safely:", e.message, "Raw string:", jsonString);
+                return fallback;
+            }
         }
     }
 }

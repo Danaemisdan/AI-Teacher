@@ -15,20 +15,23 @@ export async function fetchKnowledge(topic: string, domainKey?: string): Promise
     const searchTopic = topic.trim().replace(/ /g, '_');
     
     try {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 10000);
         // We use Wikipedia for almost everything as it's the most robust free factual API.
         // It returns a clean plain-text summary and an extract.
-        const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchTopic)}`);
+        const res = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(searchTopic)}`, { signal: controller.signal });
         
         if (!res.ok) {
             // If direct match fails, try a search to get the closest page title
-            const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(topic)}&utf8=&format=json&origin=*`);
+            const searchRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(topic)}&utf8=&format=json&origin=*`, { signal: controller.signal });
             if (searchRes.ok) {
                 const searchData = await searchRes.json();
                 if (searchData.query && searchData.query.search && searchData.query.search.length > 0) {
                     const closestTitle = searchData.query.search[0].title.replace(/ /g, '_');
-                    const fallbackRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(closestTitle)}`);
+                    const fallbackRes = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(closestTitle)}`, { signal: controller.signal });
                     if (fallbackRes.ok) {
                         const fallbackData = await fallbackRes.json();
+                        clearTimeout(id);
                         return {
                             summary: fallbackData.extract,
                             source: 'Wikipedia',
@@ -37,10 +40,12 @@ export async function fetchKnowledge(topic: string, domainKey?: string): Promise
                     }
                 }
             }
+            clearTimeout(id);
             return null;
         }
 
         const data = await res.json();
+        clearTimeout(id);
         
         // We only want to inject facts if we found a valid description
         if (data.type === 'standard' && data.extract) {

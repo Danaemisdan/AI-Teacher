@@ -18,6 +18,31 @@ import ConceptDiagramEngine from '@/components/ConceptDiagramEngine';
 import AnatomyEngine from '@/components/AnatomyEngine';
 import { AgentFace } from '@/components/AgentFace';
 import { AssetManager } from '@/lib/AssetManager';
+import { RuntimeBridge } from '@/lib/bridge/RuntimeBridge';
+import { LegacySpeechBridge } from '@/lib/bridge/LegacySpeechBridge';
+
+export type PreparationStatus = 'Pending' | 'Running' | 'Completed' | 'Skipped' | 'Recovering';
+
+export interface LessonPreparationPhase {
+    id: string;
+    title: string;
+    status: PreparationStatus;
+}
+
+export interface LessonPreparationState {
+    isActive: boolean;
+    phases: LessonPreparationPhase[];
+    activePhaseId: string | null;
+}
+
+
+export interface CurriculumModule {
+    title: string;
+    primaryConcept: string;
+    secondaryConcepts: string[];
+    domain: string;
+    visualizationHints?: string;
+}
 
 export default function Home() {
     const { init, isLoaded, isLoading, progressText, generateResponse, interrupt, hasWebGPUError } = useWebLLM();
@@ -41,18 +66,29 @@ export default function Home() {
     const [messages, setMessages] = useState<{role: string, content: string}[]>([]);
     const [currentReply, setCurrentReply] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+    const [avatarState, setAvatarState] = useState<any>('idle');
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [audioUrlToSpeak, setAudioUrlToSpeak] = useState<string | null>(null);
-    const [audioQueue, setAudioQueue] = useState<{url?: string, text?: string, highlight?: string, note?: string, quiz?: any}[]>([]);
+    const [audioQueue, setAudioQueue] = useState<{url?: string, text?: string, highlight?: string, note?: string, quiz?: any, quizzes?: any[], pauseMs?: number}[]>([]);
     const [currentCaption, setCurrentCaption] = useState('');
     const [currentHighlightId, setCurrentHighlightId] = useState<string | null>(null);
     const [currentLessonNotes, setCurrentLessonNotes] = useState<string[]>([]);
     const [isWaitingForQuiz, setIsWaitingForQuiz] = useState(false);
+    const [visDebug, setVisDebug] = useState<any>(null);
 
     // Audio Queue Processor: Plays sequentially as they arrive!
     useEffect(() => {
         if (!isSpeaking && !isWaitingForQuiz && audioQueue.length > 0) {
             const item = audioQueue[0];
+            
+            if (item.pauseMs) {
+                setIsSpeaking(true); // block queue
+                setTimeout(() => {
+                    setIsSpeaking(false);
+                }, item.pauseMs);
+                setAudioQueue(prev => prev.slice(1));
+                return;
+            }
             
             if (item.text && item.url) {
                 setAudioUrlToSpeak(item.url);
@@ -67,8 +103,11 @@ export default function Home() {
             if (item.note) {
                 setCurrentLessonNotes(prev => [...prev, item.note!]);
             }
-            if (item.quiz) {
-                setCurrentTestContent(JSON.stringify(item.quiz));
+            if (item.quizzes) {
+                setCurrentTestContent(JSON.stringify(item.quizzes));
+                setIsWaitingForQuiz(true);
+            } else if (item.quiz) {
+                setCurrentTestContent(JSON.stringify([item.quiz]));
                 setIsWaitingForQuiz(true);
             }
             
@@ -109,9 +148,11 @@ export default function Home() {
     const [currentModuleInfo, setCurrentModuleInfo] = useState<string | null>(null);
     const [isSourcing, setIsSourcing] = useState(false);
     const [isSyllabusOpen, setIsSyllabusOpen] = useState(false);
-    const [curriculum, setCurriculum] = useState<{ topic: string, modules: string[], currentIndex: number, isTeaching: boolean } | null>(null);
+    const [curriculum, setCurriculum] = useState<{ topic: string, modules: CurriculumModule[], currentIndex: number, isTeaching: boolean } | null>(null);
     const [teachingPhase, setTeachingPhase] = useState<'lecture' | 'challenge' | 'quiz' | null>(null);
     const [baseBrainKnowledge, setBaseBrainKnowledge] = useState<string[]>([]);
+    
+    const [agentSubtitle, setAgentSubtitle] = useState<string | null>(null);
 
     const CHAPTERS = [
         "Chapter 1: The Cosmos & Black Holes",
@@ -121,9 +162,25 @@ export default function Home() {
     ];
 
     useEffect(() => {
-        // Init WebLLM on mount
-        init();
-    }, [init]);
+        if (!hasWebGPUError) {
+            init();
+        }
+
+        // Connect Avatar Executor to the UI
+        import('@/lib/execution/EventBus').then(({ EventBus }) => {
+            EventBus.subscribe('AvatarSpeaking', () => setAvatarState('speaking'));
+            EventBus.subscribe('AvatarThinking', () => setAvatarState('thinking'));
+            EventBus.subscribe('AvatarListening', () => setAvatarState('listening'));
+            EventBus.subscribe('AvatarHighlighting', () => setAvatarState('surprised'));
+            EventBus.subscribe('AvatarCelebrating', () => setAvatarState('happy'));
+            EventBus.subscribe('AvatarFailed', () => setAvatarState('error'));
+            EventBus.subscribe('AvatarIdle', () => setAvatarState('idle'));
+            EventBus.subscribe('AvatarPaused', () => setAvatarState('sleeping'));
+        });
+        
+        RuntimeBridge.initialize();
+        LegacySpeechBridge.initialize();
+    }, [init, hasWebGPUError]);
 
     const [inputText, setInputText] = useState('');
     const [currentToolAction, setCurrentToolAction] = useState<any>(null);
@@ -183,7 +240,8 @@ Evaluate the user's answer accurately. If correct, praise them. If wrong, correc
                         { role: 'system', content: 'You are the Examiner.' },
                         { role: 'user', content: EVAL_PROMPT }
                     ], (chunk) => {
-                        setCurrentReply(chunk);
+                        const displayReply = chunk.replace(/\[(?:TOOL_ACTION|DRAW|IMAGE|VIDEO|ASSETS|CHEMISTRY|SIMULATION|CONCEPT|ANATOMY|GRAPH|INTENT|MERMAID|SPEECH|NOTE|HIGHLIGHT|QUIZ)[^\]]*\]?/gi, '');
+                        setCurrentReply(displayReply);
                         const sentences = chunk.match(/[^.!?]+[.!?]+/g) || [];
                         while (sentences.length > spokenSentencesCount) {
                             const newSentence = sentences[spokenSentencesCount].trim();
@@ -267,7 +325,8 @@ EXAMPLES:
             try {
                 let spokenSentencesCount = 0;
                 const fullReply = await generateResponse(finalMessages, (chunk) => {
-                    setCurrentReply(chunk);
+                    const displayReply = chunk.replace(/\[(?:TOOL_ACTION|DRAW|IMAGE|VIDEO|ASSETS|CHEMISTRY|SIMULATION|CONCEPT|ANATOMY|GRAPH|INTENT|MERMAID|SPEECH|NOTE|HIGHLIGHT|QUIZ)[^\]]*\]?/gi, '');
+                    setCurrentReply(displayReply);
                     
                     const drawMatch = chunk.match(/\[DRAW:\s*(<svg[\s\S]*?<\/svg>)\s*\]/i);
                     if (drawMatch && drawMatch[1]) {
@@ -371,7 +430,8 @@ EXAMPLES:
             let parsedFramesCount = 0;
             
             const fullReply = await generateResponse(finalMessages, (chunk) => {
-                setCurrentReply(chunk);
+                const displayReply = chunk.replace(/\[(?:TOOL_ACTION|DRAW|IMAGE|VIDEO|ASSETS|CHEMISTRY|SIMULATION|CONCEPT|ANATOMY|GRAPH|INTENT|MERMAID|SPEECH|NOTE|HIGHLIGHT|QUIZ)[^\]]*\]?/gi, '');
+                setCurrentReply(displayReply);
                 
                 if (curriculum?.isTeaching) {
                     // --- Socratic Interactive Teaching Parser ---
@@ -482,7 +542,7 @@ EXAMPLES:
                         if (parsedAction) setCurrentToolAction(parsedAction);
                     }
 
-                    let cleanText = chunk.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').replace(/\[CHEMISTRY:[\s\S]*?\]/gi, '').replace(/\[SIMULATION:[\s\S]*?\]/gi, '').replace(/\[CONCEPT:[\s\S]*?\]/gi, '').replace(/\[ANATOMY:[\s\S]*?\]/gi, '').replace(/\[GRAPH:[\s\S]*?\]/gi, '').replace(/\[INTENT:[\s\S]*?\]/gi, '').replace(/\[TOOL_ACTION:[\s\S]*?\]/gi, '');
+                    let cleanText = chunk.replace(/\[(?:TOOL_ACTION|DRAW|IMAGE|VIDEO|ASSETS|CHEMISTRY|SIMULATION|CONCEPT|ANATOMY|GRAPH|INTENT|MERMAID|SPEECH|NOTE|HIGHLIGHT|QUIZ)[^\]]*\]?/gi, '');
                     
                     cleanText = cleanText.replace(/!?\[.*?\]\(.*?\)/g, '');
                     cleanText = cleanText.replace(/\\\[[\s\S]*?\\\]/g, '').replace(/\$\$[\s\S]*?\$\$/g, '').replace(/\\\(.*?\\\)/g, '');
@@ -500,7 +560,7 @@ EXAMPLES:
             });
             
             if (!curriculum?.isTeaching) {
-                const cleanSpeech = fullReply.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').trim();
+                const cleanSpeech = fullReply.replace(/\[(?:TOOL_ACTION|DRAW|IMAGE|VIDEO|ASSETS|CHEMISTRY|SIMULATION|CONCEPT|ANATOMY|GRAPH|INTENT|MERMAID|SPEECH|NOTE|HIGHLIGHT|QUIZ)[^\]]*\]?/gi, '').trim();
                 const sentences = cleanSpeech.match(/[^.!?]+[.!?]+/g) || [];
                 const spokenLength = sentences.join('').length;
                 if (cleanSpeech.length > spokenLength + 2) {
@@ -518,12 +578,14 @@ EXAMPLES:
         }
     };
 
-    const teachModule = async (topic: string, moduleName: string, idx: number, total: number, triggerPrompt?: string) => {
+    const teachModule = async (topic: string, moduleInfo: CurriculumModule, idx: number, total: number, triggerPrompt?: string) => {
+        console.log(`[ORCHESTRATOR] ENTER teachModule for topic: ${topic}`);
+        const moduleName = moduleInfo.title;
         setIsGenerating(true);
         setTeachingPhase('lecture');
         setCurrentReply('');
         setCurrentLessonTitle(moduleName.replace(/^[0-9.]+\s*/, '')); // Clean title
-        setCurrentLessonContent("Generating visual aids...");
+        setCurrentLessonContent(null); // Clear content to allow skeleton rendering
         setCurrentMediaUrl(null);
         setCurrentVideoId(null);
         setCurrentTestContent(null);
@@ -532,336 +594,200 @@ EXAMPLES:
         setIsWaitingForQuiz(false);
         setCurrentLessonNotes([]);
         
-        // --- PHASE 1a: Visual Aid Generation ---
-        setCurrentLessonContent("Classifying Master Intent...");
-        try {
-            const cleanTopic = (moduleName || topic).toLowerCase().replace(/_/g, ' ');
+        // Immediate Intro Speech (Parallel Execution)
+        const openers = [
+            "Great question. Let's explore this.",
+            "Let's break this down.",
+            "This is an interesting concept.",
+            "Let's start with the basics.",
+            "Let's understand this together.",
+            "Imagine you're seeing this for the first time..."
+        ];
+        const introText = openers[Math.floor(Math.random() * openers.length)];
+        setAudioQueue([{
+            url: '/api/tts?text=' + encodeURIComponent(introText),
+            text: introText
+        }, { pauseMs: 1000 }]);
+        
+        // --- PHASE 6.1: RUNTIME INTEGRATION LAYER ---
+        // Instead of concurrent generation, we now delegate visualization planning & execution to AI Teacher 3.0
+        // Speech generation is held back until Visualization is completely ready.
+        
+        const generateLessonPlan = async () => {
+            console.log(`[ORCHESTRATOR] ENTER generateLessonPlan (Legacy LLM) for topic: ${topic}`);
+            const t0 = Date.now();
+            const domainKey = quickDomainLookup(topic)?.domainKey;
+            const wikipediaKnowledge = await fetchKnowledge(topic, domainKey);
             
-            // Check for direct match first to bypass dynamic routing
-            const directMatchId = await AssetManager.findBestRegistryMatch(topic, moduleName);
-            let parsed: any = {
-                visualization_type: 'general_image',
-                query: moduleName || topic
-            };
+            let extraContext = "";
+            if (wikipediaKnowledge) {
+                extraContext += `ADDITIONAL WIKIPEDIA CONTEXT (Source: ${wikipediaKnowledge.source}):\n${wikipediaKnowledge.summary}\n`;
+            }
 
-            if (directMatchId) {
-                const entry = await AssetManager.getRegistryEntry(directMatchId);
-                parsed.visualization_type = entry?.renderer || 'concept_diagram';
-                parsed.query = directMatchId;
-            } else {
-                // ── ULO-POWERED ROUTING ──────────────────────────────────────
-                // Use the Universal Learning Ontology to pick the right engine instantly
-                const originalTopicLower = topic.toLowerCase();
-                const moduleNameLower = (moduleName || '').toLowerCase();
-                
-                const uloMatch = quickDomainLookup(moduleNameLower) || quickDomainLookup(originalTopicLower);
-                
-                if (uloMatch) {
-                    parsed.visualization_type = uloMatch.engine;
-                } else {
-                    // Final fallback: process/flow keywords → mermaid, else image
-                    const flowKeywords = ['process', 'flow', 'cycle', 'how does', 'steps', 'stage', 'phase', 'architecture', 'system', 'pipeline'];
-                    if (flowKeywords.some(kw => originalTopicLower.includes(kw) || moduleNameLower.includes(kw))) {
-                        parsed.visualization_type = 'mermaid_diagram';
-                    } else {
-                        parsed.visualization_type = 'general_image';
-                    }
-                }
-            }
-            
-            // We no longer check for hardcoded lesson data or run scripted steps!
-            // All lessons are now dynamically generated using the Universal DB.
-            if (directMatchId && (parsed.visualization_type === 'concept_diagram' || parsed.visualization_type === 'anatomy')) {
-                setCurrentHtmlGraphic(`[INTENT: ${parsed.visualization_type} | ${parsed.query}]`);
-            }
-                    
-                    if (parsed.visualization_type === 'lab_simulation') {
-                        setCurrentHtmlGraphic(`[SIMULATION: ${cleanTopic}]`);
-                    } else if (parsed.visualization_type === 'mermaid_diagram') {
-                        setCurrentLessonContent("Generating Concept Diagram...");
-                        const mermaidPrompt = `Create a detailed Mermaid flowchart or mindmap explaining the concept of "${topic}". Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
-                        const mermaidReply = await generateResponse([
-                            { role: 'system', content: 'Output only the raw tag.' },
-                            { role: 'user', content: mermaidPrompt }
-                        ], () => {});
-                        const match = mermaidReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i) || mermaidReply.match(/\[MERMAID:\s*([\s\S]*?)\s*\]/i);
-                        if (match && match[1]) {
-                            setCurrentHtmlGraphic(`[MERMAID: ${match[1]}]`);
-                        } else {
-                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                        }
-                    } else if (parsed.visualization_type === 'general_image') {
-                        setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                    } else if (parsed.visualization_type === 'molecule_view' || parsed.visualization_type === 'equation' || parsed.visualization_type === 'periodic_table') {
-                        setCurrentHtmlGraphic(`[CHEMISTRY: ${JSON.stringify(parsed)}]`);
-                    } else if (parsed.visualization_type === 'jsxgraph' || parsed.visualization_type === 'graph') {
-                        setCurrentLessonContent("Generating Graph Specification...");
-                        const graphPrompt = `You are a data visualization expert. Create a detailed graph specification for: "${topic}".
-Output ONLY a JSON block containing the full [GRAPH: {...}] tag.
-Example: [GRAPH: {"title": "X", "library": "echarts", "axes": {"x": "A", "y": "B"}, "curves": [{"name": "C", "type": "line", "points": [[1,2]]}]}]`;
-                        const graphReply = await generateResponse([
-                            { role: 'system', content: 'Output only the raw tag.' },
-                            { role: 'user', content: graphPrompt }
-                        ], () => {});
-                        const match = graphReply.match(/\[GRAPH:\s*(\{[\s\S]*?\})\s*\]/i);
-                        if (match && match[1]) {
-                            setCurrentHtmlGraphic(`[GRAPH: ${match[1]}]`);
-                        } else {
-                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                        }
-                    } else if (parsed.visualization_type === 'step_diagram') {
-                        // Trades, crafts, repair, cooking — generate a step-by-step Mermaid flow
-                        setCurrentLessonContent("Generating Step-by-Step Diagram...");
-                        const stepPrompt = `Create a numbered step-by-step Mermaid flowchart for: "${topic}". Show each step as a node connected with arrows. Include safety or tool notes as side branches where relevant. Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
-                        const stepReply = await generateResponse([
-                            { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
-                            { role: 'user', content: stepPrompt }
-                        ], () => {});
-                        const stepMatch = stepReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
-                        if (stepMatch && stepMatch[1]) {
-                            setCurrentHtmlGraphic(`[MERMAID: ${stepMatch[1]}]`);
-                        } else {
-                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                        }
-                    } else if (parsed.visualization_type === 'timeline') {
-                        // History, biography, civilizations — generate a Mermaid timeline/gantt
-                        setCurrentLessonContent("Generating Timeline...");
-                        const timelinePrompt = `Create a Mermaid timeline diagram for the key events in: "${topic}". Use the Mermaid 'timeline' or 'gantt' syntax. Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
-                        const tlReply = await generateResponse([
-                            { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
-                            { role: 'user', content: timelinePrompt }
-                        ], () => {});
-                        const tlMatch = tlReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
-                        if (tlMatch && tlMatch[1]) {
-                            setCurrentHtmlGraphic(`[MERMAID: ${tlMatch[1]}]`);
-                        } else {
-                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                        }
-                    } else if (parsed.visualization_type === 'code_playground') {
-                        // Programming — show a code diagram / flowchart for now (future: live sandbox)
-                        setCurrentLessonContent("Generating Code Diagram...");
-                        const codePrompt = `Create a Mermaid flowchart showing the logic/control flow for: "${topic}". Show the algorithm or process visually. Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
-                        const codeReply = await generateResponse([
-                            { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
-                            { role: 'user', content: codePrompt }
-                        ], () => {});
-                        const codeMatch = codeReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
-                        if (codeMatch && codeMatch[1]) {
-                            setCurrentHtmlGraphic(`[MERMAID: ${codeMatch[1]}]`);
-                        } else {
-                            setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                        }
-                    } else {
-                        // Check if we have a real interactive web tool in our ToolsDB for this topic FIRST!
-                        let toolUrl = null;
-                        const currentMatch = quickDomainLookup(cleanTopic) || quickDomainLookup(topic);
-                        if (currentMatch && currentMatch.domainKey) {
-                            const resolved = resolveTool(currentMatch.domainKey, cleanTopic);
-                            if (resolved && resolved.tool.embedType === 'iframe') {
-                                toolUrl = resolved.tool.embedUrl || resolved.tool.url;
-                            }
-                        }
+            const SYSTEM_PROMPT = getBaseTeacherPrompt(topic, true, extraContext);
 
-                        if (toolUrl) {
-                            setCurrentHtmlGraphic(`[IFRAME: ${toolUrl}]`);
-                        } else {
-                            // Stub: fall back to a rich Mermaid concept diagram until the engine is built
-                            setCurrentLessonContent("Generating Concept Diagram...");
-                            const stubPrompt = `Create a detailed Mermaid mindmap or flowchart explaining the key concepts of "${topic}". Output ONLY a valid Mermaid code block enclosed in [MERMAID] ... [/MERMAID].`;
-                            const stubReply = await generateResponse([
-                                { role: 'system', content: 'Output only the raw [MERMAID]...[/MERMAID] tag.' },
-                                { role: 'user', content: stubPrompt }
-                            ], () => {});
-                            const stubMatch = stubReply.match(/\[MERMAID\]\s*([\s\S]*?)\s*\[\/MERMAID\]/i);
-                            if (stubMatch && stubMatch[1]) {
-                                setCurrentHtmlGraphic(`[MERMAID: ${stubMatch[1]}]`);
-                            } else {
-                                setCurrentHtmlGraphic(`[IMAGE: ${cleanTopic}]`);
-                            }
-                        }
-                    }
-        } catch (e) {
-            console.warn("Visual generation skipped due to error.", e);
-        }
-
-        // --- PHASE 1b: Synchronized Presentation Layer ---
-        setCurrentLessonContent("Fetching Factual Context...");
-        
-        // Universal DB Integration
-        let dbKnowledge: any = null;
-        try {
-            const dbRes = await fetch('/knowledge.json?t=' + Date.now());
-            if (dbRes.ok) {
-                const db = await dbRes.json();
-                const key = topic.toLowerCase().replace(/ /g, '_');
-                if (db[key]) {
-                    dbKnowledge = db[key];
-                }
-            }
-        } catch(e) {
-            console.warn("Failed to load Universal DB", e);
-        }
-
-        const domainKey = quickDomainLookup(topic)?.domainKey;
-        const wikipediaKnowledge = await fetchKnowledge(topic, domainKey);
-        
-        let extraContext = "";
-        if (dbKnowledge) {
-            extraContext += `VERIFIED CORE FACTS (Must Use):\n${dbKnowledge.facts.map((f: string) => '- ' + f).join('\n')}\n\n`;
-            if (dbKnowledge.visual_highlights && dbKnowledge.visual_highlights.length > 0) {
-                extraContext += `AVAILABLE VISUAL HIGHLIGHTS:\nYou can highlight parts of the current diagram by outputting [HIGHLIGHT: X] (where X is an ID).\nAvailable IDs: ${dbKnowledge.visual_highlights.join(', ')}\n\n`;
-            }
-            if (dbKnowledge.tool_url) {
-                extraContext += `INTERACTIVE TOOL FOUND:\nYou MUST output this exact tag at the end of your response to load the simulation: [IFRAME: ${dbKnowledge.tool_url}]\n\n`;
-            }
-            if (dbKnowledge.media_url) {
-                extraContext += `REFERENCE IMAGE FOUND:\nYou MUST output this exact tag at the end of your response to show the image: [IMAGE: ${dbKnowledge.media_url}]\n\n`;
-            }
-        }
-        if (wikipediaKnowledge) {
-            extraContext += `ADDITIONAL WIKIPEDIA CONTEXT (Source: ${wikipediaKnowledge.source}):\n${wikipediaKnowledge.summary}\n`;
-        }
-        
-        extraContext += `\nUSE THIS CONTEXT AS A FOUNDATION, but feel free to seamlessly pull in additional deep knowledge from your own internal training data to make the lesson richer and more fascinating. Keep it conversational and brief.`;
-        
-        setCurrentLessonContent("Listening to Momentum...");
-        const SYSTEM_PROMPT = getBaseTeacherPrompt(topic, true, extraContext);
-
-        try {
-            let parsedFramesCount = 0;
-            const fullReply = await generateResponse([
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: `Start teaching the first chunk of ${moduleName}. Keep it short and ask a question at the end using the required tags.` }
-            ], (chunk) => {
-                setCurrentReply(chunk);
+            try {
+                console.log(`[ORCHESTRATOR] generateLessonPlan: Awaiting LLM response...`);
+                const fullReply = await generateResponse([
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'user', content: `Start teaching the first chunk of ${moduleName}. Remember, output ONLY raw JSON.` }
+                ], () => {});
+                console.log(`[ORCHESTRATOR] generateLessonPlan: LLM response received. DURATION: ${Date.now() - t0}ms`);
                 
-                // DYNAMIC KNOWLEDGE ENGINE (Mid-lecture visual changes)
-                const show3dMatch = chunk.match(/\[(?:SHOW_3D|3D):\s*(.+?)\]/i);
-                if (show3dMatch && show3dMatch[1]) {
-                    setCurrentHtmlGraphic(prev => {
-                        if (!prev || prev.includes('image |') || prev.includes('anatomy_3d |')) {
-                            return `[INTENT: anatomy_3d | ${show3dMatch[1]}]`;
-                        }
-                        return prev;
-                    });
-                }
-                const showImageMatch = chunk.match(/\[(?:SHOW_IMAGE|IMAGE):\s*(.+?)\]/i);
-                if (showImageMatch && showImageMatch[1]) {
-                    setCurrentHtmlGraphic(prev => {
-                        if (!prev || prev.includes('image |') || prev.includes('anatomy_3d |')) {
-                            return `[INTENT: image | ${showImageMatch[1]}]`;
-                        }
-                        return prev;
-                    });
-                }
-                
-                const cleanText = chunk.replace(/\[(?:SHOW_3D|3D|SHOW_IMAGE|IMAGE):[\s\S]*?\]/gi, '');
-                // The Presentation Parser!
-                const frames = [...chunk.matchAll(/\[\s*(SPEECH|NOTE|HIGHLIGHT|QUIZ)\s*\]([\s\S]*?)\[\s*\/\s*\1\s*\]/gi)];
-                
-                while (frames.length > parsedFramesCount) {
-                    const frame = frames[parsedFramesCount];
-                    parsedFramesCount++;
-                    const type = frame[1].toUpperCase();
-                    const content = frame[2].trim();
-                    
-                    if (type === 'SPEECH' || type === 'NOTE') {
-                        let rawChunks: string[] = Array.from(content.match(/[^.!?\n]+[.!?\n]+/g) || []);
-                        const matchedLen = rawChunks.join('').length;
-                        if (content.length > matchedLen) {
-                            rawChunks.push(content.substring(matchedLen));
-                        }
-                        if (rawChunks.length === 0) rawChunks = [content];
-                        const finalChunks: string[] = [];
+                // Parse the JSON LessonPlan
+                const jsonMatch = fullReply.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const plan = safeJsonParse(jsonMatch[0], null) as any;
+                    if (plan) {
+                        const newQueue: any[] = [];
                         
-                        rawChunks.forEach(rawChunk => {
-                            let remaining = rawChunk;
-                            while (remaining.length > 200) {
-                                let splitIndex = remaining.lastIndexOf(' ', 200);
-                                if (splitIndex === -1) splitIndex = 200;
-                                finalChunks.push(remaining.substring(0, splitIndex));
-                                remaining = remaining.substring(splitIndex).trim();
-                            }
-                            if (remaining.trim()) {
-                                finalChunks.push(remaining.trim());
-                            }
-                        });
-
-                        finalChunks.forEach((chunkText, index) => {
-                            if (chunkText.trim()) {
-                                setAudioQueue(prev => [...prev, {
-                                    url: '/api/tts?text=' + encodeURIComponent(chunkText.trim()), 
-                                    text: chunkText.trim(),
-                                    note: (type === 'NOTE' && index === 0) ? content.trim() : undefined
-                                }]);
-                            }
-                        });
-                    } else if (type === 'HIGHLIGHT') {
-                        setAudioQueue(prev => [...prev, { highlight: content }]);
-                    } else if (type === 'QUIZ') {
-                        const parsedQuiz = safeJsonParse(content, null);
-                        if (parsedQuiz) setAudioQueue(prev => [...prev, { quiz: parsedQuiz }]);
-                    }
-                }
-            });
-            
-            setBaseBrainKnowledge([`Topic: ${topic}`, `Module: ${moduleName}`, `Lecture Script: ${fullReply}`]);
-            setCurrentReply('');
-            setMessages([...messages, { role: 'assistant', content: fullReply }]);
-            
-            if (parsedFramesCount === 0) {
-                // Fallback: If the LLM completely ignored the SPEECH tags, play its full raw output as speech.
-                const cleanSpeech = fullReply
-                    .replace(/\[(?:SHOW_3D|3D|SHOW_IMAGE|IMAGE):[\s\S]*?\]/gi, '')
-                    .replace(/\[\s*\/?\s*(?:SPEECH|NOTE|HIGHLIGHT|QUIZ)\s*\]/gi, '') // Strip stray tags
-                    .trim();
-                if (cleanSpeech) {
-                    let rawChunks: string[] = Array.from(cleanSpeech.match(/[^.!?\n]+[.!?\n]+/g) || []);
-                    const matchedLen = rawChunks.join('').length;
-                    if (cleanSpeech.length > matchedLen) {
-                        rawChunks.push(cleanSpeech.substring(matchedLen));
-                    }
-                    if (rawChunks.length === 0) rawChunks = [cleanSpeech];
-                    const finalChunks: string[] = [];
-                    rawChunks.forEach(rawChunk => {
-                        let remaining = rawChunk;
-                        while (remaining.length > 200) {
-                            let splitIndex = remaining.lastIndexOf(' ', 200);
-                            if (splitIndex === -1) splitIndex = 200;
-                            finalChunks.push(remaining.substring(0, splitIndex));
-                            remaining = remaining.substring(splitIndex).trim();
+                        // 1. Introduction
+                        if (plan.introduction?.speech) {
+                            newQueue.push({ url: '/api/tts?text=' + encodeURIComponent(plan.introduction.speech), text: plan.introduction.speech });
+                            newQueue.push({ pauseMs: 1000 }); // Natural pause after intro
                         }
-                        if (remaining.trim()) finalChunks.push(remaining.trim());
-                    });
-                    setAudioQueue(finalChunks.map(chunkText => ({
-                        url: '/api/tts?text=' + encodeURIComponent(chunkText),
-                        text: chunkText
-                    })));
+                        
+                        // 2. Concepts
+                        if (Array.isArray(plan.concepts)) {
+                            plan.concepts.forEach((concept: any, index: number) => {
+                                if (index === 0) {
+                                    newQueue.push({ highlight: '__SHOW_MEDIA__' });
+                                    newQueue.push({ pauseMs: 500 });
+                                }
+                                if (concept.visualElement && concept.visualElement !== 'none') {
+                                    newQueue.push({ highlight: concept.visualElement });
+                                    newQueue.push({ pauseMs: 500 }); // Let the user see the highlight before speaking
+                                }
+                                
+                                const chunks = (concept.speech || '').match(/[^.!?]+[.!?]+/g) || [concept.speech];
+                                chunks.forEach((chunk: string, idx: number) => {
+                                    if (chunk.trim()) {
+                                        newQueue.push({
+                                            url: '/api/tts?text=' + encodeURIComponent(chunk.trim()),
+                                            text: chunk.trim(),
+                                            note: (idx === 0 && concept.note) ? concept.note : undefined
+                                        });
+                                    }
+                                });
+                                newQueue.push({ pauseMs: 1000 }); // Pause between concepts
+                            });
+                        }
+                        
+                        // 3. Example
+                        if (plan.example?.speech) {
+                            newQueue.push({ highlight: null }); // Clear highlights for example
+                            const chunks = plan.example.speech.match(/[^.!?]+[.!?]+/g) || [plan.example.speech];
+                            chunks.forEach((chunk: string) => {
+                                if (chunk.trim()) {
+                                    newQueue.push({ url: '/api/tts?text=' + encodeURIComponent(chunk.trim()), text: chunk.trim() });
+                                }
+                            });
+                            newQueue.push({ pauseMs: 1500 });
+                        }
+                        
+                        // 4. Reflection / Wrap Up
+                        if (plan.reflection?.speech) {
+                            newQueue.push({ highlight: '__SHOW_NOTES__' });
+                            const chunks = plan.reflection.speech.match(/[^.!?]+[.!?]+/g) || [plan.reflection.speech];
+                            chunks.forEach((chunk: string) => {
+                                if (chunk.trim()) {
+                                    newQueue.push({ url: '/api/tts?text=' + encodeURIComponent(chunk.trim()), text: chunk.trim() });
+                                }
+                            });
+                            newQueue.push({ pauseMs: 3000 }); // Long pause to think
+                        }
+                        
+                        // 5. Quiz
+                        const providedQuizzes = plan.quizzes || plan.Quizzes || plan.quiz || plan.Quiz;
+                        if (providedQuizzes && Array.isArray(providedQuizzes) && providedQuizzes.length > 0) {
+                            newQueue.push({ quizzes: providedQuizzes });
+                        } else if (providedQuizzes && typeof providedQuizzes === 'object') {
+                            newQueue.push({ quizzes: [providedQuizzes] });
+                        } else {
+                            // Ironclad fallback quiz if LLM completely hallucinates or skips it
+                            newQueue.push({ quizzes: [{
+                                question: `Thinking about ${topic}, what is the main takeaway?`,
+                                options: ["It fundamentally shapes the system.", "It has no real-world application.", "It contradicts basic logic.", "It only matters in isolation."],
+                                answer: "It fundamentally shapes the system.",
+                                explanation: `The principles of ${topic} are core to understanding the broader context.`
+                            }]});
+                        }
+                        
+                        setAudioQueue(prev => [...prev, ...newQueue]);
+                        setBaseBrainKnowledge([`Topic: ${topic}`, `Module: ${moduleName}`, `Lesson Plan: ${JSON.stringify(plan)}`]);
+                        console.log(`[ORCHESTRATOR] EXIT generateLessonPlan successfully. Audio queue populated with ${newQueue.length} items.`);
+                    } else {
+                        throw new Error("Parsed JSON was null or invalid.");
+                    }
+                } else {
+                    console.warn(`[ORCHESTRATOR] generateLessonPlan: Failed to parse JSON from response. Reply:`, fullReply);
+                    throw new Error("Failed to parse JSON from response.");
                 }
+            } catch (error) {
+                console.warn("[ORCHESTRATOR] ERROR in generateLessonPlan:", error);
+                const fallbackSpeech = "I'm having a bit of trouble organizing my thoughts right now, but I still have a question for you.";
+                setAudioQueue(prev => [...prev, { url: '/api/tts?text=' + encodeURIComponent(fallbackSpeech), text: fallbackSpeech }, { quizzes: [{
+                    question: `Based on what we just discussed about ${topic}, which of the following is most accurate?`,
+                    options: ["The core principles apply in predictable ways.", "There is no correlation between the variables.", "It only applies in purely theoretical scenarios.", "The opposite of the expected outcome occurs."],
+                    answer: "The core principles apply in predictable ways.",
+                    explanation: `Understanding the fundamental principles of ${topic} allows us to make accurate predictions.`
+                }] }]);
             }
-            
-        } catch (error) {
-            console.warn("Module generation failed:", error);
-        } finally {
-            setIsGenerating(false);
-        }
+        }; // end generateLessonPlan
+
+    // Execute concurrently!
+    console.log(`[ORCHESTRATOR] Awaiting Visual integration via RuntimeBridge and Speech via LegacySpeechBridge...`);
+    
+    // We queue the actual lesson speech to fire ONLY when VisualizationReady is emitted
+    LegacySpeechBridge.queueSpeechTrigger(() => {
+        generateLessonPlan().catch(console.error);
+    });
+
+    try {
+        await RuntimeBridge.startLesson(topic, moduleInfo.domain, generateResponse);
+    } catch (e) {
+        console.error("[ORCHESTRATOR] RuntimeBridge Failed:", e);
+        // Fallback if the AI Teacher 3.0 bridge fails:
+        generateLessonPlan().catch(console.error);
+    }
+    
+    console.log(`[ORCHESTRATOR] Runtime execution kicked off.`);
+    
+    setIsGenerating(false);
+
+    setAgentSubtitle(null);
+    console.log(`[ORCHESTRATOR] EXIT teachModule.`);
     };
 
     const startCurriculum = async (rawPrompt: string) => {
         setIsWaitingForQuiz(false);
         setCurrentLessonNotes([]);
         setIsGenerating(true);
-        setCurrentLessonTitle("Planning Curriculum...");
-        setCurrentLessonContent("Brainstorming curriculum...");
+        setCurrentLessonTitle(rawPrompt);
+        setCurrentLessonContent(null);
+        
         const registryContext = await AssetManager.getRegistryPromptContext();
         const MODULE_PROMPT = `Analyze the student's request: "${rawPrompt}".
 Extract the core educational topic they want to learn. Then, generate a 3-module syllabus.
+For each module, extract metadata to power the visualization engine.
 Output ONLY a strict JSON object. NO EXPLANATIONS. NO MARKDOWN FORMATTING. Just raw JSON.
 Format exactly like this:
-{"topic": "The Core Topic", "modules": ["1. Introduction to [Topic]", "2. Core concepts of [Topic]", "3. Advanced [Topic]"]}`;
+{"topic": "The Core Topic", "modules": [
+    {
+        "title": "1. Introduction to [Topic]",
+        "primaryConcept": "The single most visualizable core concept (e.g. Supply and Demand, Photosynthesis, Double helix)",
+        "secondaryConcepts": ["concept A", "concept B"],
+        "domain": "Economics",
+        "visualizationHints": "Line graph showing X and Y"
+    }
+]}`;
         
         let extractedTopic = rawPrompt;
-        let modules = ["1. Introduction & Basics", "2. Core Concepts", "3. Real-World Applications"];
+        let modules: CurriculumModule[] = [
+            { title: "1. Introduction & Basics", primaryConcept: rawPrompt, secondaryConcepts: [], domain: "General" },
+            { title: "2. Core Concepts", primaryConcept: rawPrompt, secondaryConcepts: [], domain: "General" },
+            { title: "3. Real-World Applications", primaryConcept: rawPrompt, secondaryConcepts: [], domain: "General" }
+        ];
         try {
             const reply = await generateResponse([
                 { role: 'system', content: 'You are an educational curriculum planner.' },
@@ -869,31 +795,30 @@ Format exactly like this:
             ], () => {});
             
             // Extract first valid JSON block
-            const jsonMatch = reply.match(/\{[\s\S]*?\}/);
+            const jsonMatch = reply.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                    let parsed: any = safeJsonParse(jsonMatch[0], null);
-                    if (!parsed) {
-                        const topicMatch = jsonMatch[0].match(/"topic"\s*:\s*"([^"]+)"/i);
-                        const modulesMatch = jsonMatch[0].match(/"modules"\s*:\s*\[([\s\S]*?)\]/i);
-                        if (topicMatch && modulesMatch) {
-                            const extractedModules = [...modulesMatch[1].matchAll(/"([^"]+)"/g)].map(m => m[1]);
-                            if (extractedModules.length > 0) {
-                                parsed = { topic: topicMatch[1], modules: extractedModules };
-                            }
+                const parsed = safeJsonParse(jsonMatch[0], null) as any;
+                if (parsed && parsed.topic && Array.isArray(parsed.modules) && parsed.modules.length > 0) {
+                    extractedTopic = parsed.topic;
+                    modules = parsed.modules.map((m: any) => {
+                        if (typeof m === 'string') {
+                            return { title: m, primaryConcept: m, secondaryConcepts: [], domain: "General" };
                         }
-                    }
-                    if (parsed) {
-                        if (parsed.topic) extractedTopic = parsed.topic;
-                        if (Array.isArray(parsed.modules) && parsed.modules.length > 0) {
-                            modules = parsed.modules.map((item: any) => String(item));
-                        }
-                    }
+                        return {
+                            title: String(m.title || m),
+                            primaryConcept: String(m.primaryConcept || m.title || extractedTopic),
+                            secondaryConcepts: Array.isArray(m.secondaryConcepts) ? m.secondaryConcepts : [],
+                            domain: String(m.domain || "General"),
+                            visualizationHints: m.visualizationHints ? String(m.visualizationHints) : undefined
+                        };
+                    });
+                }
             }
         } catch(e) {
-            console.warn("Curriculum generation failed (WebGPU Crash or Timeout):", e);
-            setCurrentLessonTitle("System Error");
-            setCurrentLessonContent("Failed to generate curriculum. The AI engine may have crashed due to memory limits. Please reload the page.");
-            setIsGenerating(false);
+            console.warn("Curriculum generation failed:", e);
+            // Graceful fallback without showing system error
+            setCurriculum({ topic: rawPrompt, modules: modules, currentIndex: 0, isTeaching: true });
+            await teachModule(rawPrompt, modules[0], 0, modules.length);
             return;
         }
         setIsGenerating(false);
@@ -945,7 +870,7 @@ Format exactly like this:
         if (!text) return "";
         // If still generating but hasn't spoken yet, show typing preview
         if (isGenerating && text) {
-            const cleanText = text.replace(/\[DRAW:[\s\S]*?\]/gi, '').replace(/\[IMAGE:[\s\S]*?\]/gi, '').replace(/\[VIDEO:[\s\S]*?\]/gi, '').replace(/\[ASSETS:[\s\S]*?\]/gi, '').replace(/\[CHEMISTRY:[\s\S]*?\]/gi, '').replace(/\[SIMULATION:[\s\S]*?\]/gi, '').replace(/\[CONCEPT:[\s\S]*?\]/gi, '').replace(/\[ANATOMY:[\s\S]*?\]/gi, '').replace(/\[GRAPH:[\s\S]*?\]/gi, '').replace(/\[INTENT:[\s\S]*?\]/gi, '').trim();
+            const cleanText = text.replace(/\[(?:TOOL_ACTION|DRAW|IMAGE|VIDEO|ASSETS|CHEMISTRY|SIMULATION|CONCEPT|ANATOMY|GRAPH|INTENT|MERMAID|SPEECH|NOTE|HIGHLIGHT|QUIZ)[^\]]*\]?/gi, '').trim();
             const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
             return sentences[sentences.length - 1].trim();
         }
@@ -1033,6 +958,7 @@ Format exactly like this:
                                 }}
                                 onToolEvent={handleToolEvent}
                                 toolAction={currentToolAction}
+
                             />
                     </div>
 
@@ -1043,7 +969,8 @@ Format exactly like this:
                             : 'top-1/2 -translate-y-1/2 w-full h-full scale-100 opacity-100'
                     }`}>
                         <AgentFace 
-                            state={isGenerating ? 'thinking' : isSpeaking ? 'speaking' : 'idle'} 
+                            state={avatarState} 
+                            subtitle={agentSubtitle}
                             className={`shadow-[0_0_80px_rgba(139,92,246,0.5)] transition-all duration-1000 rounded-none border-0 w-full h-full ${
                                 (currentLessonTitle || currentHtmlGraphic) ? 'lg:rounded-[3rem] lg:border-4 lg:border-white/10 lg:w-[280px] lg:h-[280px]' : ''
                             }`}
@@ -1053,7 +980,7 @@ Format exactly like this:
                         {(isSourcing || (!isLoaded && isLoading) || isGenerating || (!isLoaded && progressText.includes('Error'))) && (
                             <div className={`flex items-center gap-3 text-lg lg:text-2xl font-bold bg-[#111]/80 backdrop-blur-md px-6 py-3 rounded-2xl shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-white/5 ${progressText.includes('Error') ? 'text-red-400' : 'text-purple-300'}`}>
                                 {(!progressText.includes('Error') || isLoading) && <Loader2 className="w-5 h-5 lg:w-6 lg:h-6 animate-spin" />}
-                                {isSourcing ? "Sourcing live data..." : !isLoaded ? (progressText || 'Booting AI Engine...') : "Generating..."}
+                                {isSourcing ? "Sourcing live data..." : !isLoaded ? (progressText || 'Booting AI Engine...') : agentSubtitle || "Generating..."}
                                 {!isLoading && progressText.includes('Error') && (
                                     <button onClick={() => window.location.reload()} className="ml-2 px-3 py-1 bg-white/10 rounded-md hover:bg-white/20 transition-colors text-xs text-white border border-white/20">Retry</button>
                                 )}
@@ -1088,8 +1015,8 @@ Format exactly like this:
                                     console.warn('TTS Audio failed to play via Edge TTS API. Falling back to browser TTS...', e);
                                     
                                     // Fallback to browser's built-in TTS
-                                    if ('speechSynthesis' in window && currentReply) {
-                                        const utterance = new SpeechSynthesisUtterance(currentReply);
+                                    if ('speechSynthesis' in window && currentCaption) {
+                                        const utterance = new SpeechSynthesisUtterance(currentCaption);
                                         // Try to find a female English voice
                                         const voices = window.speechSynthesis.getVoices();
                                         const femaleVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English')));
@@ -1100,7 +1027,7 @@ Format exactly like this:
                                             setIsSpeaking(false);
                                             setAudioUrlToSpeak(null);
                                             if (audioQueue.length === 0 && !isGenerating) {
-                                                if (currentReply && currentReply.trim().endsWith('?')) {
+                                                if (currentCaption && currentCaption.trim().endsWith('?')) {
                                                     setTimeout(() => {
                                                         const btn = document.getElementById('mic-button') as HTMLButtonElement | null;
                                                         if (btn && !btn.disabled) btn.click();
@@ -1202,7 +1129,7 @@ Format exactly like this:
                                 value={inputText}
                                 onChange={(e) => setInputText(e.target.value)}
                                 disabled={!isLoaded || isGenerating}
-                                placeholder={isGenerating ? "Generating..." : "Type your message or ask a question..."}
+                                placeholder={(!isLoaded || isGenerating) ? "Preparing your lesson..." : "Type your message or ask a question..."}
                                 className="flex-1 bg-transparent border-none outline-none px-6 text-gray-200 placeholder-gray-500 font-medium text-[16px] disabled:opacity-50"
                             />
                         
@@ -1240,6 +1167,31 @@ Format exactly like this:
                     </div>
                 </div>
             </div>
+            
+            {process.env.NEXT_PUBLIC_DEBUG_VIS === 'true' && visDebug && (
+                <div className="fixed bottom-4 left-4 z-50 bg-black/80 backdrop-blur-md border border-gray-700 p-4 rounded-xl shadow-2xl max-w-sm text-xs font-mono text-gray-300">
+                    <div className="flex justify-between items-center mb-2 pb-2 border-b border-gray-700">
+                        <span className="font-bold text-white tracking-wider">VISUALIZATION PIPELINE</span>
+                        <button onClick={() => setVisDebug(null)} className="text-gray-500 hover:text-white">&times;</button>
+                    </div>
+                    <div className="space-y-1">
+                        <div className="flex justify-between"><span className="text-gray-500">Concept:</span> <span className="text-blue-400 truncate ml-2">{visDebug.concept}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500">Domain:</span> <span className="text-purple-400">{visDebug.domain}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500">Renderer:</span> <span className="text-yellow-400">{visDebug.renderer}</span></div>
+                        <div className="flex justify-between"><span className="text-gray-500">Cache:</span> <span className={visDebug.cache === 'HIT' ? 'text-green-400' : 'text-orange-400'}>{visDebug.cache}</span></div>
+                        {visDebug.registryResult && (
+                            <div className="flex justify-between"><span className="text-gray-500">Registry ID:</span> <span className="text-gray-300">{visDebug.registryResult}</span></div>
+                        )}
+                        <div className="flex justify-between"><span className="text-gray-500">Time:</span> <span className="text-gray-300">{visDebug.time}ms</span></div>
+                        {visDebug.fallbackUsed && (
+                            <div className="flex justify-between"><span className="text-gray-500">Fallback:</span> <span className="text-red-400">Used Safety Fallback</span></div>
+                        )}
+                        {visDebug.error && (
+                            <div className="text-red-400 mt-2 p-2 bg-red-500/10 rounded">{visDebug.error}</div>
+                        )}
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

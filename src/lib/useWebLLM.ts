@@ -7,8 +7,9 @@ const formatProgress = (text: string) => {
                .replace(/Qwen[^ ]*/gi, 'Momentum-Standard')
                .replace(/SmolLM[^ ]*/gi, 'Momentum-Tiny');
 };
+import { IContentProvider } from './providers/IContentProvider';
 
-export function useWebLLM() {
+export function useWebLLM(): IContentProvider & { hasWebGPUError: boolean } {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -17,6 +18,8 @@ export function useWebLLM() {
     
     const engineRef = useRef<MLCEngine | null>(null);
     const initInProgressRef = useRef(false);
+    const queueRef = useRef<(() => Promise<void>)[]>([]);
+    const isProcessingRef = useRef(false);
 
     const init = useCallback(async () => {
         if (isLoaded || initInProgressRef.current) return;
@@ -170,40 +173,80 @@ export function useWebLLM() {
     ) => {
         if (!engineRef.current) throw new Error("Engine not initialized");
 
-        const executeCompletion = async () => {
-            const chunks = await engineRef.current!.chat.completions.create({
-                messages: messages as ChatCompletionMessageParam[],
-                temperature: 0.4,
-                frequency_penalty: 0.5,
-                presence_penalty: 0.5,
-                stream: true,
-            });
+        return new Promise<string>((resolve, reject) => {
+            const task = async () => {
+                const executeCompletion = async () => {
+                    let initTimer: any;
+                    const initTimeout = new Promise<any>((_, reject) => {
+                        initTimer = setTimeout(() => reject(new Error("WebLLM Init Timeout")), 120000);
+                    });
+                    
+                    const chunksPromise = engineRef.current!.chat.completions.create({
+                        messages: messages as ChatCompletionMessageParam[],
+                        temperature: 0.4,
+                        frequency_penalty: 0.5,
+                        presence_penalty: 0.5,
+                        stream: true,
+                        max_tokens: 4096,
+                    });
 
-            let fullReply = '';
-            for await (const chunk of chunks) {
-                const content = chunk.choices[0]?.delta?.content || '';
-                fullReply += content;
-                if (onUpdate) onUpdate(fullReply);
-            }
-            return fullReply;
-        };
+                    const chunks = await Promise.race([chunksPromise, initTimeout]) as any;
+                    clearTimeout(initTimer);
 
-        try {
-            return await executeCompletion();
-        } catch (error: any) {
-            console.warn("AI generation crashed. Attempting to fall back to a smaller model...", error);
+                    let fullReply = '';
+                    const iterator = chunks[Symbol.asyncIterator]();
+                    
+                    while (true) {
+                        let chunkTimer: any;
+                        const chunkTimeout = new Promise<any>((_, reject) => {
+                            chunkTimer = setTimeout(() => reject(new Error("WebLLM Idle Timeout")), 120000); // 120s for TTFT on slower GPUs
+                        });
+                        
+                        try {
+                            const { value, done } = await Promise.race([iterator.next(), chunkTimeout]);
+                            clearTimeout(chunkTimer);
+                            if (done) break;
+                            
+                            const content = value.choices[0]?.delta?.content || '';
+                            fullReply += content;
+                            if (onUpdate) onUpdate(fullReply);
+                        } catch (e) {
+                            clearTimeout(chunkTimer);
+                            throw e;
+                        }
+                    }
+                    return fullReply;
+                };
+
+                try {
+                    const res = await executeCompletion();
+                    resolve(res);
+                } catch (error: any) {
+                    console.warn("AI generation crashed or timed out.", error);
+                    reject(error);
+                }
+            };
             
-            const fallbackModel = 'SmolLM2-135M-Instruct-q0f16-MLC';
-            setProgressText(formatProgress(`Recovering: Loading ${fallbackModel}...`));
-            try {
-                await engineRef.current.reload(fallbackModel);
-                setProgressText('Ready (Fallback Mode)');
-                return await executeCompletion();
-            } catch (fallbackError: any) {
-                console.warn("Fallback model also failed.", fallbackError);
-                throw fallbackError;
-            }
-        }
+            queueRef.current.push(task);
+            
+            const processQueue = async () => {
+                if (isProcessingRef.current) return;
+                isProcessingRef.current = true;
+                while (queueRef.current.length > 0) {
+                    const nextTask = queueRef.current.shift();
+                    if (nextTask) {
+                        try {
+                            await nextTask();
+                        } catch (e) {
+                            console.error("Queue task failed", e);
+                        }
+                    }
+                }
+                isProcessingRef.current = false;
+            };
+            
+            processQueue();
+        });
     }, []);
 
     const interrupt = useCallback(() => {

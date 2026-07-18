@@ -64,9 +64,9 @@ export default function JSXGraphAdapter({ spec, onError }: AdapterProps) {
     }, [spec, randomId, onError]);
 
     return (
-        <div className="w-full flex justify-center h-[500px]">
+        <div className="w-full h-full flex items-center justify-center p-4">
             <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/jsxgraph/distrib/jsxgraph.css" />
-            <div id={`jxgbox-${randomId}`} ref={jsxgraphRef} className="jxgbox w-[500px] h-[500px] rounded-lg border border-slate-200" style={{ width: '500px', height: '500px' }}></div>
+            <div id={`jxgbox-${randomId}`} ref={jsxgraphRef} className="jxgbox rounded-lg border border-slate-200" style={{ width: '100%', maxWidth: '500px', aspectRatio: '1/1' }}></div>
         </div>
     );
 }

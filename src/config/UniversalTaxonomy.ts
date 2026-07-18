@@ -65,10 +65,8 @@ export type TeachingMethod =
 export interface DomainConfig {
     /** Short display name */
     label: string;
-    /** Primary rendering engine */
-    engine: VisualizationEngine;
-    /** Fallback engine if primary unavailable */
-    fallback: VisualizationEngine;
+    /** Primary Visualization Capability */
+    capability: import('@/lib/visualization/CapabilityRegistry').CapabilityType;
     /** What kind of skill this domain primarily develops */
     skillType: SkillType;
     /** Preferred teaching approach for Momentum */
@@ -91,8 +89,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── FORMAL SCIENCES ────────────────────────────────────────
     mathematics: {
         label: 'Mathematics',
-        engine: 'jsxgraph',
-        fallback: 'concept_diagram',
+        capability: 'interactive-graph',
         skillType: 'analytical',
         teachingMethod: 'socratic',
         promptHint: 'Use worked examples and interactive graphs. Build from simple to complex. Always ask the student to solve a small step themselves.',
@@ -100,8 +97,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     logic: {
         label: 'Logic',
-        engine: 'mermaid_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-tree',
         skillType: 'analytical',
         teachingMethod: 'socratic',
         promptHint: 'Use truth tables and logical flow diagrams. Show proofs step-by-step. Challenge assumptions.',
@@ -111,8 +107,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── PHYSICAL SCIENCES ─────────────────────────────────────
     physics: {
         label: 'Physics',
-        engine: 'lab_simulation',
-        fallback: 'concept_diagram',
+        capability: 'interactive-simulation',
         skillType: 'conceptual',
         teachingMethod: 'simulation',
         promptHint: 'Run interactive simulations. Relate abstract concepts to everyday objects. Use the Feynman technique — if you cannot explain it simply, you do not understand it.',
@@ -120,8 +115,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     chemistry: {
         label: 'Chemistry',
-        engine: 'molecule_view',
-        fallback: 'concept_diagram',
+        capability: 'interactive-molecule',
         skillType: 'conceptual',
         teachingMethod: 'simulation',
         promptHint: 'Visualize molecules and reactions in 3D. Explain bonds as personality traits between atoms. Always relate to real chemicals the student has encountered.',
@@ -131,8 +125,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── LIFE SCIENCES ─────────────────────────────────────────
     biology: {
         label: 'Biology',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-network',
         skillType: 'conceptual',
         teachingMethod: 'diagram',
         promptHint: 'Use vivid analogies for biological processes. The cell is a city. DNA is a blueprint. Evolution is a slow design process. Make it come alive.',
@@ -140,8 +133,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     anatomy: {
         label: 'Anatomy',
-        engine: 'anatomy',
-        fallback: 'concept_diagram',
+        capability: 'interactive-anatomy',
         skillType: 'conceptual',
         teachingMethod: 'simulation',
         promptHint: 'Navigate the 3D body interactively. Highlight parts as you speak. Relate organ functions to things the student does every day (heart pumps like a water pump).',
@@ -151,8 +143,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── EARTH SCIENCES ────────────────────────────────────────
     earth_sciences: {
         label: 'Earth Sciences',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-map',
         skillType: 'conceptual',
         teachingMethod: 'story',
         promptHint: 'Earth is a living system. Explain geological time scales with relatable analogies. Use the "if Earth was a day" comparison to help scale.',
@@ -162,8 +153,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── SPACE SCIENCES ─────────────────────────────────────────
     astronomy: {
         label: 'Astronomy & Space Sciences',
-        engine: 'space_simulator',
-        fallback: 'concept_diagram',
+        capability: 'interactive-solar-system',
         skillType: 'conceptual',
         teachingMethod: 'simulation',
         promptHint: 'Scale is everything in astronomy. Use comparisons: the Sun is a bowling ball, Earth is a peppercorn. Make the student feel the size of the cosmos.',
@@ -173,8 +163,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── COMPUTER SCIENCE ──────────────────────────────────────
     computer_science: {
         label: 'Computer Science',
-        engine: 'mermaid_diagram',
-        fallback: 'code_playground',
+        capability: 'interactive-flowchart',
         skillType: 'analytical',
         teachingMethod: 'example',
         promptHint: 'Think like a compiler. Break every concept into its smallest logical unit. Use pseudocode before real code. Always show what happens step by step — memory addresses, call stacks, the works.',
@@ -182,8 +171,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     programming: {
         label: 'Programming',
-        engine: 'code_playground',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-flowchart',
         skillType: 'procedural',
         teachingMethod: 'example',
         promptHint: 'Write real code together. Show output immediately. Explain every line. Use the simplest possible example first, then build complexity. Never write code the student cannot run themselves.',
@@ -191,8 +179,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     artificial_intelligence: {
         label: 'Artificial Intelligence & ML',
-        engine: 'mermaid_diagram',
-        fallback: 'jsxgraph',
+        capability: 'interactive-network',
         skillType: 'analytical',
         teachingMethod: 'analogy',
         promptHint: 'AI learns like a baby — through examples, not rules. Neural networks are loose approximations of the brain. Always demystify: gradient descent is just walking downhill in the dark.',
@@ -200,8 +187,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     cybersecurity: {
         label: 'Cybersecurity',
-        engine: 'mermaid_diagram',
-        fallback: 'code_playground',
+        capability: 'interactive-network',
         skillType: 'analytical',
         teachingMethod: 'case_study',
         promptHint: 'Think like an attacker first, then a defender. Real-world breaches make the best lessons. Explain every attack with its defence. Keep it thriller-level engaging.',
@@ -211,8 +197,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── SOFTWARE TOOLS (Tool Ontology) ────────────────────────
     blender: {
         label: 'Blender (3D Software)',
-        engine: 'step_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'tool_based',
         teachingMethod: 'step_by_step',
         promptHint: 'Teach Blender UI panel-by-panel. Always state the keyboard shortcut before explaining an action. E.g., "Press G to Grab, then Z to constrain to the Z-axis." Keep it hands-on.',
@@ -221,8 +206,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     figma: {
         label: 'Figma (Design Tool)',
-        engine: 'step_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'tool_based',
         teachingMethod: 'step_by_step',
         promptHint: 'Walk through the Figma interface panel by panel. Show keyboard shortcuts. Explain frames vs groups, components vs instances. Design-thinking first, then execution.',
@@ -231,8 +215,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     vscode: {
         label: 'VS Code / IDE',
-        engine: 'step_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'tool_based',
         teachingMethod: 'step_by_step',
         promptHint: 'Show keyboard shortcuts constantly. Explain the editor layout. Cover extensions, debugging, terminal integration, and Git integration. Make the student faster.',
@@ -241,8 +224,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     excel: {
         label: 'Excel / Spreadsheets',
-        engine: 'step_diagram',
-        fallback: 'jsxgraph',
+        capability: 'interactive-chart',
         skillType: 'tool_based',
         teachingMethod: 'step_by_step',
         promptHint: 'Excel is a superpower most people barely scratch the surface of. Walk through formulas step-by-step. Always show the BEFORE and AFTER of the spreadsheet.',
@@ -251,8 +233,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     git: {
         label: 'Git & Version Control',
-        engine: 'mermaid_diagram',
-        fallback: 'step_diagram',
+        capability: 'interactive-tree',
         skillType: 'tool_based',
         teachingMethod: 'analogy',
         promptHint: 'Git is a time machine for code. A commit is a save point. A branch is an alternate timeline. Merging is combining two timelines. Always use the tree/graph mental model.',
@@ -261,8 +242,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     photoshop: {
         label: 'Photoshop / Photo Editing',
-        engine: 'step_diagram',
-        fallback: 'general_image',
+        capability: 'interactive-process-diagram',
         skillType: 'tool_based',
         teachingMethod: 'step_by_step',
         promptHint: 'Layers are everything. Always explain: what tool, where to find it, what modifier keys change it. Show expected result after each step.',
@@ -271,8 +251,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     autocad: {
         label: 'AutoCAD / CAD Software',
-        engine: 'step_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'tool_based',
         teachingMethod: 'step_by_step',
         promptHint: 'CAD is precision. Teach command-line first. Every action has an alias. Explain coordinate systems, layers, and dimensioning from day one.',
@@ -281,8 +260,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     unity: {
         label: 'Unity / Game Development',
-        engine: 'step_diagram',
-        fallback: 'code_playground',
+        capability: 'interactive-network',
         skillType: 'tool_based',
         teachingMethod: 'step_by_step',
         promptHint: 'Game engines are magic made systematic. Inspector, Scene view, Hierarchy, Project panel — explain each. Walk through a complete game loop: input → update → render.',
@@ -293,8 +271,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── ENGINEERING ───────────────────────────────────────────
     mechanical_engineering: {
         label: 'Mechanical Engineering',
-        engine: 'lab_simulation',
-        fallback: 'concept_diagram',
+        capability: 'interactive-simulation',
         skillType: 'analytical',
         teachingMethod: 'simulation',
         promptHint: 'Forces, torques, and materials. Always draw a free body diagram first. Relate every concept to machines the student has seen — engines, bridges, gears.',
@@ -302,8 +279,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     electrical_engineering: {
         label: 'Electrical Engineering',
-        engine: 'lab_simulation',
-        fallback: 'concept_diagram',
+        capability: 'interactive-circuit',
         skillType: 'analytical',
         teachingMethod: 'simulation',
         promptHint: 'Electrons are lazy — they take the path of least resistance. Always build circuit diagrams. Ohm\'s Law first, everything else second.',
@@ -311,8 +287,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     civil_engineering: {
         label: 'Civil Engineering',
-        engine: 'mermaid_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-geometry',
         skillType: 'analytical',
         teachingMethod: 'case_study',
         promptHint: 'Everything must stand up. Structural logic first. Use famous engineering failures as cautionary tales — the Tacoma Narrows Bridge, the Hyatt Regency walkway.',
@@ -320,8 +295,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     aerospace_engineering: {
         label: 'Aerospace Engineering',
-        engine: 'space_simulator',
-        fallback: 'concept_diagram',
+        capability: 'interactive-simulation',
         skillType: 'analytical',
         teachingMethod: 'simulation',
         promptHint: 'Rockets are controlled explosions pointed at the ground. Aerodynamics, propulsion, orbital mechanics — connect it all. Use real missions as teaching examples.',
@@ -331,8 +305,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── HEALTH & MEDICINE ─────────────────────────────────────
     medicine: {
         label: 'Medicine & Health Sciences',
-        engine: 'anatomy',
-        fallback: 'concept_diagram',
+        capability: 'interactive-anatomy',
         skillType: 'conceptual',
         teachingMethod: 'case_study',
         promptHint: 'Every disease is a story of malfunction. Start from normal physiology, then show what breaks and why. Clinical cases make abstract pathology real.',
@@ -340,8 +313,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     nutrition: {
         label: 'Nutrition & Dietetics',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-chart',
         skillType: 'conceptual',
         teachingMethod: 'analogy',
         promptHint: 'Food is information for the body. Macros, micros, gut microbiome — make it feel relevant. Always connect to what the student actually eats.',
@@ -349,8 +321,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     mental_health: {
         label: 'Mental Health & Psychology',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'social',
         teachingMethod: 'story',
         promptHint: 'Be gentle. Mental health topics require empathy first, science second. Use real (anonymized) scenarios. Normalize vulnerability.',
@@ -360,8 +331,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── SOCIAL SCIENCES ───────────────────────────────────────
     economics: {
         label: 'Economics',
-        engine: 'jsxgraph',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-finance-chart',
         skillType: 'analytical',
         teachingMethod: 'case_study',
         promptHint: 'Economics is incentives and trade-offs. Use supply-demand graphs constantly. Real-world examples: housing market, oil prices, inflation. Make abstract theory tangible.',
@@ -369,8 +339,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     sociology: {
         label: 'Sociology & Anthropology',
-        engine: 'mermaid_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-network',
         skillType: 'analytical',
         teachingMethod: 'case_study',
         promptHint: 'Zoom out — societies are just people at scale. Use comparative examples across cultures. Challenge assumptions about what is "normal."',
@@ -378,8 +347,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     political_science: {
         label: 'Political Science & Governance',
-        engine: 'mermaid_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-organization-chart',
         skillType: 'analytical',
         teachingMethod: 'debate',
         promptHint: 'Present multiple perspectives on political topics. The goal is understanding systems, not promoting ideology. Use Socratic questioning to push the student to think deeper.',
@@ -387,8 +355,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     geography: {
         label: 'Geography',
-        engine: 'interactive_globe',
-        fallback: 'concept_diagram',
+        capability: 'interactive-map',
         skillType: 'conceptual',
         teachingMethod: 'story',
         promptHint: 'Place shapes people. Connect geography to history, economics, and culture constantly. Use maps liberally. Make students feel like explorers.',
@@ -398,8 +365,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── BUSINESS & FINANCE ────────────────────────────────────
     business: {
         label: 'Business & Entrepreneurship',
-        engine: 'mermaid_diagram',
-        fallback: 'jsxgraph',
+        capability: 'interactive-organization-chart',
         skillType: 'analytical',
         teachingMethod: 'case_study',
         promptHint: 'Business is organised common sense. Use startup stories and case studies. Connect every concept to "how does this make or save money?"',
@@ -407,8 +373,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     finance: {
         label: 'Finance & Investing',
-        engine: 'jsxgraph',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-finance-chart',
         skillType: 'analytical',
         teachingMethod: 'example',
         promptHint: 'Money has a time value. Show compound interest visually. Every financial concept should be demonstrated with real numbers the student can relate to.',
@@ -416,8 +381,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     marketing: {
         label: 'Marketing',
-        engine: 'mermaid_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-flowchart',
         skillType: 'creative',
         teachingMethod: 'case_study',
         promptHint: 'Marketing is understanding people, then speaking their language. Use iconic campaigns as examples. Funnel thinking — awareness to conversion.',
@@ -425,8 +389,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     law: {
         label: 'Law & Legal Studies',
-        engine: 'mermaid_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'analytical',
         teachingMethod: 'case_study',
         promptHint: 'Law is rules with consequences. Use landmark cases to teach principles. Build up from the rule, to the exception, to the edge case. Logic and precedent above all.',
@@ -436,8 +399,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── HUMANITIES ────────────────────────────────────────────
     history: {
         label: 'History',
-        engine: 'timeline',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-timeline',
         skillType: 'conceptual',
         teachingMethod: 'story',
         promptHint: 'History is biography at scale. Find the human story inside every event. Cause and effect chains make everything logical in hindsight. Connect past to present.',
@@ -445,8 +407,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     philosophy: {
         label: 'Philosophy',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-tree',
         skillType: 'analytical',
         teachingMethod: 'socratic',
         promptHint: 'Good philosophy makes you question everything you thought you knew. Use the Socratic method hard. Present the strongest version of each position before critiquing it.',
@@ -454,8 +415,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     religion: {
         label: 'Religion & Spirituality',
-        engine: 'concept_diagram',
-        fallback: 'timeline',
+        capability: 'interactive-timeline',
         skillType: 'conceptual',
         teachingMethod: 'story',
         promptHint: 'Approach religion with deep respect. Present beliefs on their own terms, not as myths. Academic tone for comparative religion; warm and empathetic for personal faith questions.',
@@ -463,8 +423,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     mythology: {
         label: 'Mythology & Folklore',
-        engine: 'concept_diagram',
-        fallback: 'general_image',
+        capability: 'interactive-network',
         skillType: 'conceptual',
         teachingMethod: 'story',
         promptHint: 'Myths are how ancient people understood the universe. Bring gods and heroes to life. Connect mythological themes to modern stories (Star Wars, Harry Potter).',
@@ -472,8 +431,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     esoteric: {
         label: 'Esoteric & Occult',
-        engine: 'concept_diagram',
-        fallback: 'general_image',
+        capability: 'interactive-network',
         skillType: 'conceptual',
         teachingMethod: 'story',
         promptHint: 'Present these topics as cultural belief systems with rich historical context. Do not frame them as scientifically proven. Explore symbolism, tradition, and psychology of belief.',
@@ -483,8 +441,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── ARTS & CREATIVE DISCIPLINES ───────────────────────────
     music: {
         label: 'Music',
-        engine: 'piano_roll',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-chart',
         skillType: 'creative',
         teachingMethod: 'example',
         promptHint: 'Music is organised sound. Always describe how things SOUND before showing theory. Chord progressions as emotional journeys. Rhythm as conversation. Make theory feel like discovery.',
@@ -492,8 +449,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     visual_arts: {
         label: 'Visual Arts & Drawing',
-        engine: 'general_image',
-        fallback: 'step_diagram',
+        capability: 'static-image',
         skillType: 'creative',
         teachingMethod: 'example',
         promptHint: 'Art is seeing. Train the eye before the hand. Explain composition, light, shadow, perspective with examples from masters. Then guide hands-on practice.',
@@ -501,8 +457,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     photography: {
         label: 'Photography & Film',
-        engine: 'general_image',
-        fallback: 'step_diagram',
+        capability: 'static-image',
         skillType: 'creative',
         teachingMethod: 'example',
         promptHint: 'Photography is painting with light. Teach the exposure triangle viscerally: aperture = eye pupil, shutter speed = blink speed, ISO = eye sensitivity.',
@@ -510,8 +465,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     graphic_design: {
         label: 'Graphic Design & UX/UI',
-        engine: 'general_image',
-        fallback: 'step_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'creative',
         teachingMethod: 'example',
         promptHint: 'Design is communication. Every choice — color, font, spacing — sends a message. Teach Gestalt principles first. Show good and bad examples side by side.',
@@ -519,8 +473,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     dance: {
         label: 'Dance',
-        engine: 'skeleton_animation',
-        fallback: 'general_image',
+        capability: 'interactive-simulation',
         skillType: 'physical',
         teachingMethod: 'step_by_step',
         promptHint: 'Dance is music made visible. Break choreography into counts and positions. Explain body mechanics. Reference the style\'s cultural roots.',
@@ -528,8 +481,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     performing_arts: {
         label: 'Theatre & Performing Arts',
-        engine: 'general_image',
-        fallback: 'mermaid_diagram',
+        capability: 'static-image',
         skillType: 'creative',
         teachingMethod: 'roleplay',
         promptHint: 'Theatre is truth under imaginary circumstances. Acting, directing, stagecraft — connect technical elements to emotional truth. Use famous scenes as references.',
@@ -539,8 +491,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── LANGUAGES & COMMUNICATION ─────────────────────────────
     languages: {
         label: 'Languages',
-        engine: 'mermaid_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-tree',
         skillType: 'linguistic',
         teachingMethod: 'roleplay',
         promptHint: 'Language is culture compressed into sound. Teach in context, not in isolated vocabulary. Role-play real conversations. Grammar as a tool, not a cage.',
@@ -548,8 +499,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     communication: {
         label: 'Communication & Public Speaking',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-network',
         skillType: 'social',
         teachingMethod: 'roleplay',
         promptHint: 'Great communication is 90% listening and 10% talking. Teach body language, silence, storytelling structure. Use real speeches as examples.',
@@ -559,8 +509,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── TRADES & SKILLED PROFESSIONS ──────────────────────────
     carpentry: {
         label: 'Carpentry & Woodworking',
-        engine: 'step_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'procedural',
         teachingMethod: 'step_by_step',
         promptHint: 'Safety first — always list PPE requirements. Then materials, then tools, then steps. Measure twice, cut once. Explain WHY each technique works, not just what to do.',
@@ -568,8 +517,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     welding: {
         label: 'Welding & Metalwork',
-        engine: 'step_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'procedural',
         teachingMethod: 'step_by_step',
         promptHint: 'Safety is not optional in welding. Always start with PPE. Explain metallurgy basics — why metals behave differently under heat. Walk through technique step by step.',
@@ -577,8 +525,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     plumbing: {
         label: 'Plumbing',
-        engine: 'step_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-network',
         skillType: 'procedural',
         teachingMethod: 'step_by_step',
         promptHint: 'Water flows downhill and takes the path of least resistance. Systems thinking: supply vs drain. Always check local code. Step-by-step with tools listed.',
@@ -586,8 +533,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     electrical_trade: {
         label: 'Electrical Work (Trade)',
-        engine: 'step_diagram',
-        fallback: 'lab_simulation',
+        capability: 'interactive-circuit',
         skillType: 'procedural',
         teachingMethod: 'step_by_step',
         promptHint: 'Electricity can kill — safety and lockout/tagout procedures first, always. Explain circuits practically. Work from the breaker box outward.',
@@ -595,8 +541,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     culinary: {
         label: 'Cooking & Culinary Arts',
-        engine: 'recipe_animation',
-        fallback: 'step_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'procedural',
         teachingMethod: 'step_by_step',
         promptHint: 'Cooking is applied chemistry and physics. Explain why things happen (Maillard reaction, emulsification) not just how. Always note substitutions and variations.',
@@ -604,8 +549,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     auto_repair: {
         label: 'Automotive & Mechanics',
-        engine: 'step_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'procedural',
         teachingMethod: 'step_by_step',
         promptHint: 'A car is just a rolling collection of systems. Engine, transmission, brakes, electrical — teach each system in isolation then show how they connect.',
@@ -613,8 +557,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     beauty: {
         label: 'Beauty & Personal Styling',
-        engine: 'step_diagram',
-        fallback: 'general_image',
+        capability: 'static-image',
         skillType: 'procedural',
         teachingMethod: 'step_by_step',
         promptHint: 'Beauty is technical skill meeting artistic vision. Explain face shapes, color theory, technique, tools. Always show the finished result as the goal.',
@@ -624,8 +567,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── DAILY LIFE SKILLS ─────────────────────────────────────
     etiquette: {
         label: 'Etiquette & Social Skills',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'social',
         teachingMethod: 'roleplay',
         promptHint: 'Etiquette is about making others feel comfortable, not about rigid rules. Always explain the WHY behind the rule. Use real social scenarios. Warm, non-judgmental tone.',
@@ -633,8 +575,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     personal_development: {
         label: 'Personal Development',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-chart',
         skillType: 'social',
         teachingMethod: 'story',
         promptHint: 'Real change comes from systems, not willpower. Use evidence-based psychology: habit loops, identity-based change, spaced repetition. Practical and actionable always.',
@@ -642,8 +583,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     personal_finance: {
         label: 'Personal Finance',
-        engine: 'jsxgraph',
-        fallback: 'concept_diagram',
+        capability: 'interactive-finance-chart',
         skillType: 'analytical',
         teachingMethod: 'example',
         promptHint: 'Financial literacy should be taught in schools but isn\'t. Use real-life numbers — rent, groceries, salaries. Compound interest shown visually blows people\'s minds.',
@@ -651,8 +591,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     relationships: {
         label: 'Relationships & Emotional Intelligence',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-network',
         skillType: 'social',
         teachingMethod: 'roleplay',
         promptHint: 'Relationships are the most important thing most people know the least about. Use empathy and real scenarios. No judgment. Connect to psychology research.',
@@ -660,8 +599,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     first_aid: {
         label: 'First Aid & Emergency Response',
-        engine: 'step_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-process-diagram',
         skillType: 'procedural',
         teachingMethod: 'step_by_step',
         promptHint: 'In an emergency, clarity saves lives. Step-by-step, numbered, no ambiguity. CPR beats per minute. The Heimlich maneuver. Always practical and memorable.',
@@ -671,8 +609,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── SPORTS & PHYSICAL PERFORMANCE ─────────────────────────
     sports: {
         label: 'Sports & Athletics',
-        engine: 'skeleton_animation',
-        fallback: 'concept_diagram',
+        capability: 'interactive-simulation',
         skillType: 'physical',
         teachingMethod: 'step_by_step',
         promptHint: 'Sports are physics applied to the human body. Break technique into biomechanical components. Use slow-motion mental imagery. Connect training science (periodization, recovery) to performance.',
@@ -680,8 +617,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     fitness: {
         label: 'Fitness & Exercise Science',
-        engine: 'anatomy',
-        fallback: 'step_diagram',
+        capability: 'interactive-anatomy',
         skillType: 'physical',
         teachingMethod: 'step_by_step',
         promptHint: 'The body adapts to the demands placed on it — progressive overload is everything. Explain exercise science: muscle fiber types, EPOC, VO2 max. Make science feel like a superpower.',
@@ -691,8 +627,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── AGRICULTURE & ENVIRONMENT ─────────────────────────────
     agriculture: {
         label: 'Agriculture & Farming',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-tree',
         skillType: 'procedural',
         teachingMethod: 'step_by_step',
         promptHint: 'Farming is applied biology and chemistry. Soil is a living ecosystem. Seasons dictate everything. Connect traditional wisdom to modern science.',
@@ -700,8 +635,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     climate_science: {
         label: 'Climate Science & Sustainability',
-        engine: 'concept_diagram',
-        fallback: 'jsxgraph',
+        capability: 'interactive-map',
         skillType: 'analytical',
         teachingMethod: 'case_study',
         promptHint: 'This is the defining challenge of the century. Present the science rigorously. Use data and graphs. Be honest about uncertainty while being clear about scientific consensus.',
@@ -711,8 +645,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── MILITARY & SECURITY ───────────────────────────────────
     military: {
         label: 'Military & Security Studies',
-        engine: 'timeline',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-map',
         skillType: 'analytical',
         teachingMethod: 'case_study',
         promptHint: 'Military history is strategy made visible. Campaign maps and decision trees. Present multiple perspectives on conflicts. Connect tactical decisions to strategic outcomes.',
@@ -722,8 +655,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── TRANSPORTATION ────────────────────────────────────────
     aviation: {
         label: 'Aviation & Flying',
-        engine: 'concept_diagram',
-        fallback: 'step_diagram',
+        capability: 'interactive-simulation',
         skillType: 'procedural',
         teachingMethod: 'simulation',
         promptHint: 'Flying is physics, procedure, and situational awareness. Bernoulli\'s principle, lift, drag, thrust. Always connect to the cockpit environment.',
@@ -731,8 +663,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     driving: {
         label: 'Driving & Automotive',
-        engine: 'driving_simulator',
-        fallback: 'step_diagram',
+        capability: 'interactive-simulation',
         skillType: 'procedural',
         teachingMethod: 'simulation',
         promptHint: 'Driving is a skill that kills when done badly. Hazard perception first. Traffic rules and WHY they exist. Smooth control inputs as the goal.',
@@ -742,8 +673,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── INTERDISCIPLINARY & EMERGING ─────────────────────────
     neuroscience: {
         label: 'Neuroscience & Cognitive Science',
-        engine: 'anatomy',
-        fallback: 'concept_diagram',
+        capability: 'interactive-anatomy',
         skillType: 'conceptual',
         teachingMethod: 'analogy',
         promptHint: 'The brain is the most complex object in the known universe. Use hardware/software analogies carefully — the brain is NOT a computer, but the analogy helps. Focus on neuroplasticity and practical applications.',
@@ -751,8 +681,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     data_science: {
         label: 'Data Science & Analytics',
-        engine: 'jsxgraph',
-        fallback: 'code_playground',
+        capability: 'interactive-graph',
         skillType: 'analytical',
         teachingMethod: 'example',
         promptHint: 'Data science is detective work at scale. Always ask: what question are we answering? Walk through the full pipeline: collect → clean → explore → model → communicate.',
@@ -760,8 +689,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     robotics: {
         label: 'Robotics',
-        engine: 'lab_simulation',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-simulation',
         skillType: 'analytical',
         teachingMethod: 'simulation',
         promptHint: 'Robots are physical algorithms. Sensor → compute → actuate. Connect to both CS and mechanical engineering. Make it feel like bringing code to life.',
@@ -769,8 +697,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     quantum_computing: {
         label: 'Quantum Computing & Technologies',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-network',
         skillType: 'conceptual',
         teachingMethod: 'analogy',
         promptHint: 'Classical bits are light switches; qubits are spinning coins. Superposition, entanglement, interference — use vivid metaphors before equations. This is genuinely mind-bending.',
@@ -780,8 +707,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── EDUCATION & LEARNING SCIENCES ────────────────────────
     learning_science: {
         label: 'Education & Learning Sciences',
-        engine: 'concept_diagram',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-network',
         skillType: 'analytical',
         teachingMethod: 'example',
         promptHint: 'Teach the student HOW to learn. Spaced repetition, retrieval practice, interleaving, the Feynman Technique. Meta-cognition is the highest-leverage skill.',
@@ -791,8 +717,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── GAMES, HOBBIES & CULTURE ─────────────────────────────
     games: {
         label: 'Games, Esports & Gaming',
-        engine: 'mermaid_diagram',
-        fallback: 'concept_diagram',
+        capability: 'interactive-flowchart',
         skillType: 'analytical',
         teachingMethod: 'example',
         promptHint: 'Games are systems. Understand the meta, the mechanics, and the decision trees. Use game theory where applicable. Strategy is strategy whether in chess or a shooter.',
@@ -800,8 +725,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     travel: {
         label: 'Travel & Culture',
-        engine: 'interactive_globe',
-        fallback: 'general_image',
+        capability: 'interactive-map',
         skillType: 'conceptual',
         teachingMethod: 'story',
         promptHint: 'Travel is the fastest education money can buy. Cultural context, logistics, language basics, local etiquette. Make it feel like an adventure worth taking.',
@@ -811,8 +735,7 @@ export const ULO: Record<string, DomainConfig> = {
     // ── ARCHITECTURE & DESIGN ─────────────────────────────────
     architecture: {
         label: 'Architecture & Interior Design',
-        engine: 'architecture_3d',
-        fallback: 'mermaid_diagram',
+        capability: 'interactive-simulation',
         skillType: 'creative',
         teachingMethod: 'example',
         promptHint: 'Architecture is frozen music. Form follows function. Teach styles through their historical context. Space, light, and material as the three fundamental tools.',
@@ -820,8 +743,7 @@ export const ULO: Record<string, DomainConfig> = {
     },
     fashion: {
         label: 'Fashion & Textile Design',
-        engine: 'general_image',
-        fallback: 'step_diagram',
+        capability: 'static-image',
         skillType: 'creative',
         teachingMethod: 'example',
         promptHint: 'Fashion is culture made wearable. Teach historical context, construction, and the intersection of art and commerce. Reference iconic designers and collections.',
@@ -916,6 +838,6 @@ export function findDomain(topic: string): [string, DomainConfig] | null {
 
 export function buildDomainListForPrompt(): string {
     return Object.entries(ULO)
-        .map(([key, cfg]) => `- ${key}: ${cfg.label} (engine: ${cfg.engine}, skill: ${cfg.skillType})`)
+        .map(([key, cfg]) => `- ${key}: ${cfg.label} (capability: ${cfg.capability}, skill: ${cfg.skillType})`)
         .join('\n');
 }
