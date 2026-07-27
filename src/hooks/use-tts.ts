@@ -28,7 +28,7 @@ interface UseTTSReturn {
 
 export function useTTS({
   voice = DEFAULT_VOICE,
-  rate = '+0%',
+  rate = '+12%',
   pitch = '+0Hz',
 }: UseTTSOptions = {}): UseTTSReturn {
   const audioRef = useRef<HTMLAudioElement | null>(null);

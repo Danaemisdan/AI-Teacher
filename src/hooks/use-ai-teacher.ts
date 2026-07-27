@@ -53,13 +53,26 @@ export function useAITeacher(): AITeacherHandle {
   // Allow overriding the model ID (for downgrade path)
   const [modelOverride, setModelOverride] = useState<string | null>(null);
 
-  // FORCE 'low' tier (Qwen2.5 0.5B) as requested by user to guarantee a working version
-  const effectiveTier = "low";
+  // Automatic model selection based on detected device/network tier
+  const effectiveTier = tier ?? "low";
   const baseModel     = useMemo(() => getModelForTier(effectiveTier), [effectiveTier]);
 
-  const activeModelId    = modelOverride ?? baseModel.id;
-  const activeModelLabel = modelOverride ? LLM_MODELS.low.label    : baseModel.label;
-  const activeModelSize  = modelOverride ? LLM_MODELS.low.sizeLabel : baseModel.sizeLabel;
+  const overrideConfig = useMemo(() => {
+    if (!modelOverride) return null;
+    const found = Object.values(LLM_MODELS).find(m => m.id === modelOverride);
+    if (found) return found;
+    return {
+      id: modelOverride,
+      label: modelOverride.split("-")[0] || modelOverride,
+      sizeLabel: "Custom",
+      contextLength: 2048,
+      note: "Custom override",
+    };
+  }, [modelOverride]);
+
+  const activeModelId    = overrideConfig?.id        ?? baseModel.id;
+  const activeModelLabel = overrideConfig?.label     ?? baseModel.label;
+  const activeModelSize  = overrideConfig?.sizeLabel ?? baseModel.sizeLabel;
 
   // Both props passed to useWebLLM — React 18 batches concurrent setState calls,
   // so changing modelOverride + shouldLoad in the same handler → single render →

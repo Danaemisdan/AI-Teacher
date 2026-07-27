@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import type { TeachingContext } from "@/lib/llm-config";
 import { buildSystemPrompt } from "@/lib/llm-config";
+import { cleanSpeech } from "@/lib/clean-speech";
 
 export type LLMStatus = "idle" | "loading" | "ready" | "error";
 
@@ -51,18 +52,18 @@ function extractJSON(raw: string): TeacherResponse | null {
   try {
     const obj = JSON.parse(raw.slice(start, end + 1));
     return {
-      speech:         typeof obj.speech         === "string" ? obj.speech         : raw.trim(),
+      speech:         typeof obj.speech         === "string" ? cleanSpeech(obj.speech)         : cleanSpeech(raw),
       face_state:     typeof obj.face_state      === "string" ? obj.face_state     : "speaking",
       canvas_action:  typeof obj.canvas_action   === "string" ? obj.canvas_action  : "none",
       canvas_content: typeof obj.canvas_content  === "string" ? obj.canvas_content : "",
       phase:          typeof obj.phase           === "string" ? obj.phase          : "hook",
-      question:       typeof obj.question        === "string" ? obj.question       : "",
+      question:       typeof obj.question        === "string" ? cleanSpeech(obj.question)       : "",
     };
   } catch { return null; }
 }
 
 function fallback(raw: string, ctx: TeachingContext): TeacherResponse {
-  return { speech: raw.trim().slice(0, 400), face_state: "speaking", canvas_action: "none", canvas_content: "", phase: ctx.phase, question: "" };
+  return { speech: cleanSpeech(raw).slice(0, 400), face_state: "speaking", canvas_action: "none", canvas_content: "", phase: ctx.phase, question: "" };
 }
 
 /**
@@ -183,20 +184,22 @@ export function useWebLLM(
       _abortController = new AbortController();
 
       const tier = modelId.includes("Phi-4") ? "high" : modelId.includes("1.7B") ? "mid" : "low";
+      const chatHistory = history.length > 0 && history[history.length - 1].role === "user"
+        ? history.slice(-6)
+        : [...history.slice(-5), { role: "user" as const, content: userMessage }];
       const messages = [
-        { role: "system" as const, content: buildSystemPrompt(tier, context) },
-        ...history.slice(-6),
-        { role: "user" as const, content: userMessage },
+        { role: "system" as const, content: buildSystemPrompt(tier, context, userMessage) },
+        ...chatHistory,
       ];
 
       let accumulated = "";
       (async () => {
         try {
-          const stream = await _engine.chat.completions.create({ messages, stream: true, temperature: 0.7, max_tokens: 512 });
+          const stream = await _engine.chat.completions.create({ messages, stream: true, temperature: 0.7, max_tokens: 384 });
           for await (const chunk of stream) {
             if (_abortController?.signal.aborted) break;
             accumulated += chunk.choices?.[0]?.delta?.content ?? "";
-            onChunk(accumulated);
+            onChunk(cleanSpeech(accumulated));
           }
           onDone(extractJSON(accumulated) ?? fallback(accumulated, context));
         } catch (err: any) {

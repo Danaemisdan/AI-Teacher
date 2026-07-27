@@ -4,7 +4,9 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AgentFace, AgentState } from "@/components/AgentFace";
 import { useAITeacher, ChatMessage, TeacherResponse, TeachingContext } from "@/hooks/use-ai-teacher";
+import { LLM_MODELS } from "@/lib/llm-config";
 import { useTTS } from "@/hooks/use-tts";
+import { useConversationController, conversationMode } from "@/hooks/use-conversation-controller";
 import { Mic, MicOff, ArrowUp, RefreshCw, WifiOff } from "lucide-react";
 
 // ── Speech recognition hook ────────────────────────────────────────────────────
@@ -53,10 +55,52 @@ function Typewriter({ text }: { text: string }) {
   return <>{shown}</>;
 }
 
+// ── Modular Model Selector / Override ─────────────────────────────────────────
+function ModelOverrideMenu({ currentLabel, onSelectModel }: { currentLabel: string; onSelectModel: (id: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const models = [
+    { tier: "High (2.5 GB)", label: LLM_MODELS.high.label, id: LLM_MODELS.high.id },
+    { tier: "Mid (~1 GB)", label: LLM_MODELS.mid.label, id: LLM_MODELS.mid.id },
+    { tier: "Low (~100 MB)", label: LLM_MODELS.low.label, id: LLM_MODELS.low.id },
+  ];
+
+  return (
+    <div className="relative inline-block">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="text-white/30 hover:text-white/60 text-[11px] font-mono tracking-wide underline decoration-dotted transition-colors cursor-pointer"
+        title="Click to override model"
+      >
+        {currentLabel} (change)
+      </button>
+      {open && (
+        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 py-1 bg-[#121216] border border-white/10 rounded-xl shadow-xl z-50 flex flex-col text-left">
+          <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-white/30 border-b border-white/5 font-sans">
+            Select Model Override
+          </div>
+          {models.map(m => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => { setOpen(false); onSelectModel(m.id); }}
+              className="text-left px-3 py-2 text-xs text-white/70 hover:bg-white/[0.08] hover:text-white transition-colors flex flex-col gap-0.5 font-mono"
+            >
+              <span>{m.label}</span>
+              <span className="text-[10px] text-white/40">{m.tier}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Slow-connection gate ──────────────────────────────────────────────────────
-function SlowConnectionWarning({ modelLabel, sizeLabel, onProceed, onDowngrade }: {
+function SlowConnectionWarning({ modelLabel, sizeLabel, onProceed, onDowngrade, onSelectModel }: {
   modelLabel: string; sizeLabel: string;
   onProceed: () => void; onDowngrade: () => void;
+  onSelectModel: (id: string) => void;
 }) {
   return (
     <motion.div
@@ -76,15 +120,27 @@ function SlowConnectionWarning({ modelLabel, sizeLabel, onProceed, onDowngrade }
         <div className="flex flex-col gap-2 w-full mt-2">
           <button
             onClick={onProceed}
-            className="w-full py-2.5 rounded-xl border border-white/15 text-white/70 text-sm hover:border-white/30 hover:text-white/90 transition-all"
+            className="w-full py-2.5 rounded-xl border border-white/15 text-white/70 text-sm hover:border-white/30 hover:text-white/90 transition-all font-medium"
           >
             Download anyway ({sizeLabel})
           </button>
           <button
-            onClick={onDowngrade}
-            className="w-full py-2.5 rounded-xl bg-white/[0.06] text-white/50 text-sm hover:bg-white/[0.1] hover:text-white/70 transition-all"
+            onClick={() => onSelectModel(LLM_MODELS.mid.id)}
+            className="w-full py-2.5 rounded-xl bg-white/[0.06] text-white/70 text-sm hover:bg-white/[0.1] hover:text-white transition-all font-medium"
           >
-            Use lighter model instead (~400 MB)
+            Upgrade to SmolLM2 1.7B (~1 GB)
+          </button>
+          <button
+            onClick={() => onSelectModel(LLM_MODELS.high.id)}
+            className="w-full py-2.5 rounded-xl bg-white/[0.06] text-white/70 text-sm hover:bg-white/[0.1] hover:text-white transition-all font-medium"
+          >
+            Upgrade to Phi-4 Mini (2.5 GB)
+          </button>
+          <button
+            onClick={onDowngrade}
+            className="w-full py-2.5 rounded-xl bg-white/[0.02] text-white/40 text-sm hover:bg-white/[0.05] hover:text-white/60 transition-all"
+          >
+            Use lightest model (~100 MB)
           </button>
         </div>
       </div>
@@ -199,7 +255,8 @@ export default function TeacherPage() {
   const ai = useAITeacher();
   const { speak, stop: stopTTS, isSpeaking } = useTTS({ voice: "en-US-AriaNeural" });
 
-  const [agentState, setAgentState]     = useState<AgentState>("idle");
+  const conversation = useConversationController("idle");
+  const [chatError, setChatError]       = useState(false);
   const [subtitle, setSubtitle]         = useState("");
   const [input, setInput]               = useState("");
   const [history, setHistory]           = useState<ChatMessage[]>([]);
@@ -211,7 +268,8 @@ export default function TeacherPage() {
   const [showSlowWarning, setShowSlowWarning] = useState<boolean | null>(null);
 
   const inputRef   = useRef<HTMLInputElement>(null);
-  const isProcessing = agentState === "thinking" || isSpeaking;
+  const hasAutoStartedMicRef = useRef(false);
+  const isProcessing = conversation.isThinking || isSpeaking;
 
   // ── Once connection speed is known, decide whether to gate or auto-load ──
   useEffect(() => {
@@ -253,7 +311,7 @@ export default function TeacherPage() {
   // ── Mic ───────────────────────────────────────────────────────────────────
   const handleMicResult = useCallback((text: string) => {
     setInput(text);
-    setTimeout(() => inputRef.current?.form?.requestSubmit(), 150);
+    setTimeout(() => inputRef.current?.form?.requestSubmit(), 10);
   }, []);
   const { listening, start: startMic, stop: stopMic } = useSpeechRecognition(handleMicResult);
 
@@ -266,15 +324,17 @@ export default function TeacherPage() {
     setInput("");
     stopTTS();
     setStreamBuffer("");
-    setAgentState("thinking");
+    conversation.enterThinking();
     setSubtitle("");
 
     const newHistory: ChatMessage[] = [...history, { role: "user", content: text }];
     setHistory(newHistory);
+    const updatedContext = { ...context, topic: context.topic || text };
+    if (!context.topic) setContext(updatedContext);
 
     ai.chat(
       text,
-      context,
+      updatedContext,
       newHistory,
       // onChunk — live stream preview
       (partial) => {
@@ -286,27 +346,50 @@ export default function TeacherPage() {
         setSubtitle(response.speech);
         setContext(prev => ({ ...prev, phase: response.phase as TeachingContext["phase"] }));
         setHistory(prev => [...prev, { role: "assistant", content: response.speech }]);
-        setAgentState("speaking");
+        conversation.enterSpeaking();
         speak(response.speech, () => {
           setSubtitle(response.question || "");
-          setAgentState("idle");
+          if (conversationMode) {
+            conversation.enterListening();
+            try {
+              startMic();
+            } catch (err) {
+              console.error("[startMic error]", err);
+              conversation.enterIdle();
+            }
+          } else {
+            conversation.enterIdle();
+          }
         });
       },
       // onError
       (err) => {
         console.error("[chat error]", err);
-        setAgentState("error");
+        setChatError(true);
+        conversation.enterIdle();
         setSubtitle("Couldn't generate a response.");
-        setTimeout(() => { setAgentState("idle"); setSubtitle(""); }, 3000);
+        setTimeout(() => { setChatError(false); setSubtitle(""); }, 3000);
       }
     );
-  }, [input, isProcessing, ai, context, history, speak, stopTTS]);
+  }, [input, isProcessing, ai, context, history, speak, stopTTS, conversation, startMic]);
 
-  // ── Sync agent state with listening / speaking ────────────────────────────
+  // ── Sync conversation state with listening ──────────────────────────────
   useEffect(() => {
-    if (listening) setAgentState("listening");
-    else if (isSpeaking && agentState !== "thinking") setAgentState("speaking");
-  }, [listening, isSpeaking, agentState]);
+    if (listening) {
+      conversation.enterListening();
+    } else if (conversation.isListening) {
+      conversation.enterIdle();
+    }
+  }, [listening, conversation]);
+
+  // ── Auto-start microphone once when ready in Conversation Mode ────────────
+  useEffect(() => {
+    if (!conversationMode) return;
+    if (ai.status === "ready" && !hasAutoStartedMicRef.current && !listening) {
+      hasAutoStartedMicRef.current = true;
+      startMic();
+    }
+  }, [ai.status, listening, startMic]);
 
   // Derived booleans for overlay logic
   const showWarning  = showSlowWarning === true;
@@ -325,6 +408,7 @@ export default function TeacherPage() {
             sizeLabel={ai.modelSizeLabel}
             onProceed={handleProceed}
             onDowngrade={handleDowngrade}
+            onSelectModel={ai.loadCustomModel}
           />
         )}
       </AnimatePresence>
@@ -367,7 +451,42 @@ export default function TeacherPage() {
               transition={{ type: "spring", stiffness: 200, damping: 28 }}
               className="flex flex-col items-center gap-8"
             >
-              <AgentFace state={agentState} size={220} isVoiceMode={listening} />
+              <AgentFace state={chatError ? "error" : conversation.agentState} size={220} isVoiceMode={listening} />
+
+              {/* Conversation Status Indicator (Conversation Mode Only) */}
+              {conversationMode && ai.status === "ready" && (
+                <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] backdrop-blur-md">
+                  {/* Subtle animated dot */}
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      conversation.state === "listening"
+                        ? "bg-emerald-400 animate-pulse"
+                        : conversation.state === "thinking"
+                        ? "bg-amber-400 animate-ping"
+                        : conversation.state === "speaking"
+                        ? "bg-blue-400 animate-pulse"
+                        : "bg-white/30"
+                    }`}
+                  />
+                  <span
+                    className={`text-xs tracking-wide font-medium ${
+                      conversation.state === "listening"
+                        ? "text-emerald-300/90 animate-pulse"
+                        : conversation.state === "thinking"
+                        ? "text-amber-300/90 animate-pulse"
+                        : conversation.state === "speaking"
+                        ? "text-blue-300/90"
+                        : "text-white/40"
+                    }`}
+                    style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}
+                  >
+                    {conversation.state === "listening" && "Listening..."}
+                    {conversation.state === "thinking" && "Thinking..."}
+                    {conversation.state === "speaking" && "Speaking..."}
+                    {conversation.state === "idle" && "Idle"}
+                  </span>
+                </div>
+              )}
 
               {/* Subtitle */}
               <AnimatePresence mode="wait">
@@ -383,17 +502,18 @@ export default function TeacherPage() {
                   >
                     <Typewriter text={subtitle} />
                   </motion.p>
-                ) : streamBuffer ? (
+                ) : !conversationMode && (isProcessing || conversation.isThinking) ? (
                   <motion.p
-                    key="stream"
+                    key="thinking"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="max-w-[500px] text-center text-white/20 text-xs font-mono px-6 leading-relaxed"
+                    className="text-white/40 text-sm tracking-wide animate-pulse"
+                    style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}
                   >
-                    {streamBuffer.slice(-120)}
+                    Thinking…
                   </motion.p>
-                ) : (
+                ) : !conversationMode || ai.status === "idle" ? (
                   <motion.p
                     key="hint"
                     initial={{ opacity: 0 }}
@@ -404,7 +524,7 @@ export default function TeacherPage() {
                   >
                     {ai.status === "idle" ? "Initialising…" : "Ask me anything."}
                   </motion.p>
-                )}
+                ) : null}
               </AnimatePresence>
             </motion.div>
 
@@ -429,31 +549,35 @@ export default function TeacherPage() {
                   }}
                 >
                   {/* Mic */}
-                  <button
-                    type="button"
-                    onClick={listening ? stopMic : startMic}
-                    disabled={isProcessing}
-                    className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200"
-                    style={{
-                      color:      listening ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
-                      background: listening ? "rgba(255,255,255,0.12)" : "transparent",
-                    }}
-                  >
-                    {listening ? <MicOff size={16} strokeWidth={2} /> : <Mic size={16} strokeWidth={2} />}
-                  </button>
+                  {!conversationMode && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={listening ? stopMic : startMic}
+                        disabled={isProcessing}
+                        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200"
+                        style={{
+                          color:      listening ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
+                          background: listening ? "rgba(255,255,255,0.12)" : "transparent",
+                        }}
+                      >
+                        {listening ? <MicOff size={16} strokeWidth={2} /> : <Mic size={16} strokeWidth={2} />}
+                      </button>
 
-                  {/* Mic pulse ring */}
-                  <AnimatePresence>
-                    {listening && (
-                      <motion.div
-                        className="absolute left-[18px] top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full border border-white/30 pointer-events-none"
-                        initial={{ scale: 1, opacity: 0.6 }}
-                        animate={{ scale: 2.4, opacity: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut" }}
-                      />
-                    )}
-                  </AnimatePresence>
+                      {/* Mic pulse ring */}
+                      <AnimatePresence>
+                        {listening && (
+                          <motion.div
+                            className="absolute left-[18px] top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full border border-white/30 pointer-events-none"
+                            initial={{ scale: 1, opacity: 0.6 }}
+                            animate={{ scale: 2.4, opacity: 0 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 1.2, repeat: Infinity, ease: "easeOut" }}
+                          />
+                        )}
+                      </AnimatePresence>
+                    </>
+                  )}
 
                   {/* Text input */}
                   <input
@@ -493,9 +617,13 @@ export default function TeacherPage() {
               </form>
 
               {/* Badge */}
-              <div className="flex justify-center mt-3 gap-3 items-center">
+              <div className="flex justify-center mt-3 gap-2 items-center">
+                <ModelOverrideMenu
+                  currentLabel={ai.modelLabel}
+                  onSelectModel={ai.loadCustomModel}
+                />
                 <span className="text-white/15 text-[11px] font-mono tracking-wide">
-                  {ai.modelLabel} · {ai.tier ?? "detecting"} tier · local
+                  · {ai.tier ?? "detecting"} tier · local
                 </span>
                 {ai.isFastConnection === false && (
                   <span className="flex items-center gap-1 text-yellow-400/30 text-[11px]">
