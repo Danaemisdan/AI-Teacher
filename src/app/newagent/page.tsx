@@ -7,30 +7,63 @@ import { useAITeacher, ChatMessage, TeacherResponse, TeachingContext } from "@/h
 import { LLM_MODELS } from "@/lib/llm-config";
 import { useTTS } from "@/hooks/use-tts";
 import { useConversationController, conversationMode } from "@/hooks/use-conversation-controller";
-import { Mic, MicOff, ArrowUp, RefreshCw, WifiOff } from "lucide-react";
+import { Mic, MicOff, ArrowUp, RefreshCw, WifiOff, Volume2 } from "lucide-react";
+import { logPipeline, setPipelineContext } from "@/lib/logger";
+import { useVAD } from "@/hooks/use-vad";
 
 // ── Speech recognition hook ────────────────────────────────────────────────────
 function useSpeechRecognition(onResult: (text: string) => void) {
   const [listening, setListening] = useState(false);
   const recRef = useRef<any>(null);
 
+  // Keep latest callback in a ref to avoid stale closures during active listening
+  const onResultRef = useRef(onResult);
+  useEffect(() => {
+    onResultRef.current = onResult;
+  }, [onResult]);
+
+  const isStartingRef = useRef(false);
+
   const start = useCallback(() => {
+    if (listening || isStartingRef.current) return;
+    isStartingRef.current = true;
+    
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) return;
+    if (!SR) {
+      isStartingRef.current = false;
+      return;
+    }
     const rec = new SR();
     rec.continuous = false;
     rec.interimResults = false;
     rec.lang = "en-US";
+    
     rec.onresult = (e: any) => {
       const text = e.results[0]?.[0]?.transcript ?? "";
-      if (text) onResult(text);
+      if (text) onResultRef.current(text);
     };
-    rec.onend  = () => setListening(false);
-    rec.onerror = () => setListening(false);
+    
+    rec.onend = () => {
+      logPipeline("SpeechRecognition stopped");
+      setListening(false);
+      isStartingRef.current = false;
+    };
+    
+    rec.onerror = (e: any) => {
+      setListening(false);
+      isStartingRef.current = false;
+    };
+    
     recRef.current = rec;
-    rec.start();
-    setListening(true);
-  }, [onResult]);
+    
+    try {
+      rec.start();
+      logPipeline("SpeechRecognition started");
+      setListening(true);
+    } catch (err: any) {
+      isStartingRef.current = false;
+    }
+  }, [listening]);
 
   const stop = useCallback(() => {
     recRef.current?.stop();
@@ -107,7 +140,7 @@ function SlowConnectionWarning({ modelLabel, sizeLabel, onProceed, onDowngrade, 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-50 bg-[#070708] px-8"
     >
-      <AgentFace state="thinking" size={100} />
+      <AgentFace state="thinking" size={56} />
       <div className="flex flex-col items-center gap-4 max-w-sm text-center">
         <div className="flex items-center gap-2 text-yellow-400/80">
           <WifiOff size={16} />
@@ -157,7 +190,7 @@ function LoadingOverlay({ progress, text, modelLabel, sizeLabel }: {
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-50 bg-[#070708]"
     >
-      <AgentFace state="sleeping" size={120} />
+      <AgentFace state="sleeping" size={68} />
       <div className="flex flex-col items-center gap-3 w-64">
         <div className="flex items-center justify-between w-full text-xs text-white/40 font-mono">
           <span>{modelLabel}</span>
@@ -201,7 +234,7 @@ function ErrorOverlay({ errorMessage, onRetry, onDowngrade, onCustomModel }: {
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="absolute inset-0 flex flex-col items-center justify-center gap-6 z-50 bg-[#070708] px-8 overflow-y-auto"
     >
-      <AgentFace state="error" size={80} />
+      <AgentFace state="error" size={45} />
       <div className="flex flex-col items-center gap-3 max-w-sm text-center">
         <p className="text-white/50 text-sm leading-relaxed">
           Couldn&apos;t load the model.
@@ -309,55 +342,189 @@ export default function TeacherPage() {
   }, [ai]);
 
   // ── Mic ───────────────────────────────────────────────────────────────────
-  const handleMicResult = useCallback((text: string) => {
-    setInput(text);
-    setTimeout(() => inputRef.current?.form?.requestSubmit(), 10);
-  }, []);
-  const { listening, start: startMic, stop: stopMic } = useSpeechRecognition(handleMicResult);
+  const handleSubmitRef = useRef<((e?: React.FormEvent, overrideText?: string) => void) | null>(null);
+
+  const { startVAD, isSpeechDetected } = useVAD();
+
+  useEffect(() => {
+    // Start VAD in the background for Phase 1 testing
+    startVAD();
+  }, [startVAD]);
+
+  useEffect(() => {
+    setPipelineContext(conversation.state, ai.status, conversationMode);
+  }, [conversation.state, ai.status, conversationMode]);
+
+  const prevStateRef = useRef(conversation.state);
+  useEffect(() => {
+    if (prevStateRef.current !== conversation.state) {
+      logPipeline(`Conversation state: ${conversation.state.charAt(0).toUpperCase() + conversation.state.slice(1)}`);
+      prevStateRef.current = conversation.state;
+    }
+  }, [conversation.state]);
+
+  // ── True Conversational Interruption (Phase 2) ────────────────────────────
+  const interruptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Track current states in refs to avoid dependency loops in the timeout
+  const currentStateRef = useRef(conversation.state);
+  useEffect(() => { currentStateRef.current = conversation.state; }, [conversation.state]);
+
+  // ── Phase 3: Smart Turn-Taking (VAD 2-Second Silence Threshold) ───────────
+  const VAD_SILENCE_TIMEOUT_MS = 2000;
+  const turnTakingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const accumulatedInputRef = useRef(input);
+  useEffect(() => { accumulatedInputRef.current = input; }, [input]);
+
+  const { listening, start: startMic, stop: stopMic } = useSpeechRecognition((newText) => {
+    setInput(prev => {
+      if (!prev) logPipeline("First transcript received");
+      logPipeline("Transcript updated");
+      return prev ? `${prev} ${newText}` : newText;
+    });
+  });
+
+  const isListeningRef = useRef(listening);
+  useEffect(() => { isListeningRef.current = listening; }, [listening]);
+
+  useEffect(() => {
+    if (isSpeechDetected) {
+      if (currentStateRef.current === "speaking" || currentStateRef.current === "thinking") {
+        // Require ~200ms of sustained speech to reduce false triggers from clicks/coughs
+        interruptTimeoutRef.current = setTimeout(() => {
+          logPipeline("VAD detected speech");
+          logPipeline("Interruption triggered");
+          
+          stopTTS();
+          ai.abort();
+          logPipeline("LLM aborted");
+          
+          // CRITICAL FIX: Rollback the unanswered user message from history to prevent consecutive user roles!
+          setHistory(prev => {
+             if (prev.length > 0 && prev[prev.length - 1].role === "user") {
+                return prev.slice(0, -1);
+             }
+             return prev;
+          });
+          
+          conversation.enterListening();
+          
+          if (!isListeningRef.current) {
+            try { startMic(); } catch(e) {}
+          }
+        }, 200);
+      } else if (currentStateRef.current === "idle") {
+        // Wake word / Wake up from idle
+        interruptTimeoutRef.current = setTimeout(() => {
+          conversation.enterListening();
+          
+          if (!isListeningRef.current) {
+            try { startMic(); } catch(e) {}
+          }
+        }, 200);
+      }
+    } else {
+      // If VAD misfires or speech ends before 200ms, cancel the interruption
+      if (interruptTimeoutRef.current) {
+        clearTimeout(interruptTimeoutRef.current);
+        interruptTimeoutRef.current = null;
+      }
+    }
+
+    return () => {
+      if (interruptTimeoutRef.current) {
+        clearTimeout(interruptTimeoutRef.current);
+      }
+    };
+  }, [isSpeechDetected, stopTTS, ai, conversation, startMic]);
+
+  // Phase 3: Silence Threshold Submission
+  useEffect(() => {
+    if (isSpeechDetected) {
+      // User is speaking! Cancel any pending submission timers!
+      if (turnTakingTimeoutRef.current) {
+         clearTimeout(turnTakingTimeoutRef.current);
+         turnTakingTimeoutRef.current = null;
+         logPipeline("Silence timer cancelled");
+      }
+    } else {
+      // Speech ended. If we are currently accumulating text, start the silence countdown!
+      if (currentStateRef.current === "listening" && accumulatedInputRef.current.trim().length > 0) {
+        logPipeline("Silence timer started");
+        turnTakingTimeoutRef.current = setTimeout(() => {
+          logPipeline("Transcript submitted");
+          handleSubmitRef.current?.(undefined, accumulatedInputRef.current);
+        }, VAD_SILENCE_TIMEOUT_MS);
+      }
+    }
+    
+    return () => {
+      if (turnTakingTimeoutRef.current) clearTimeout(turnTakingTimeoutRef.current);
+    };
+  }, [isSpeechDetected]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
-  const handleSubmit = useCallback((e?: React.FormEvent) => {
+  const handleSubmit = useCallback((e?: React.FormEvent, overrideText?: string) => {
     e?.preventDefault();
-    const text = input.trim();
-    if (!text || isProcessing || ai.status !== "ready") return;
+    const text = overrideText !== undefined ? overrideText.trim() : input.trim();
+    
+    logPipeline("Submit Attempt", { text, isVoice: overrideText !== undefined });
+    
+    if (!text || ai.status !== "ready") {
+      logPipeline("Submit Aborted", { reason: "empty or not ready" });
+      return;
+    }
 
-    setInput("");
+    setInput(""); // Always clear input so it doesn't look like a pending message!
+    
     stopTTS();
     setStreamBuffer("");
     conversation.enterThinking();
     setSubtitle("");
 
+    logPipeline("Appending User Message to History");
     const newHistory: ChatMessage[] = [...history, { role: "user", content: text }];
     setHistory(newHistory);
-    const updatedContext = { ...context, topic: context.topic || text };
-    if (!context.topic) setContext(updatedContext);
+    // Topic is dynamically updated to the newest user request, so the AI follows the student's attention!
+    const updatedContext = { ...context, topic: text };
+    setContext(updatedContext);
 
+    logPipeline("LLM started");
     ai.chat(
       text,
       updatedContext,
       newHistory,
       // onChunk — live stream preview
       (partial) => {
-        setStreamBuffer(partial);
+        // We do not render the partial stream buffer because it contains raw JSON,
+        // which looks broken/messy to the user. Just keep status as "Thinking..."
       },
       // onDone — structured response
       (response: TeacherResponse) => {
+        logPipeline("LLM completed");
         setStreamBuffer("");
         setSubtitle(response.speech);
         setContext(prev => ({ ...prev, phase: response.phase as TeachingContext["phase"] }));
         setHistory(prev => [...prev, { role: "assistant", content: response.speech }]);
         conversation.enterSpeaking();
+        
+        logPipeline("Starting TTS Playback");
         speak(response.speech, () => {
+          logPipeline("TTS Playback Finished");
           setSubtitle(response.question || "");
           if (conversationMode) {
             conversation.enterListening();
             try {
+              logPipeline("recognition.start() requested after TTS");
               startMic();
             } catch (err) {
               console.error("[startMic error]", err);
-              conversation.enterIdle();
+              logPipeline("restart failed", err);
+              // Do NOT enter idle. Force it to stay in listening state.
+              conversation.enterListening();
             }
           } else {
+            logPipeline("TTS Finished, Entering Idle (Push to Talk)");
             conversation.enterIdle();
           }
         });
@@ -365,22 +532,59 @@ export default function TeacherPage() {
       // onError
       (err) => {
         console.error("[chat error]", err);
+        logPipeline("Generation error", err);
         setChatError(true);
+        // Rollback the un-answered user message to prevent consecutive user roles crashing the LLM on next turn
+        logPipeline("Rolling back user history");
+        setHistory(prev => prev.slice(0, -1));
+        
         conversation.enterIdle();
         setSubtitle("Couldn't generate a response.");
-        setTimeout(() => { setChatError(false); setSubtitle(""); }, 3000);
+        setTimeout(() => { 
+          setChatError(false); 
+          setSubtitle(""); 
+          
+          // Bug 2: Conversation Loop Recovery
+          if (conversationMode && ai.status === "ready") {
+            try {
+              logPipeline("Restart requested");
+              conversation.enterListening();
+              startMic();
+            } catch (e) {
+              console.error("[startMic error during recovery]", e);
+              logPipeline("restart failed", e);
+              conversation.enterIdle();
+            }
+          }
+        }, 3000);
       }
     );
-  }, [input, isProcessing, ai, context, history, speak, stopTTS, conversation, startMic]);
+  }, [input, isProcessing, ai, context, history, speak, stopTTS, conversation, startMic, conversationMode]);
+
+  // Keep handleSubmitRef synced with the latest handleSubmit
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  }, [handleSubmit]);
 
   // ── Sync conversation state with listening ──────────────────────────────
   useEffect(() => {
     if (listening) {
-      conversation.enterListening();
-    } else if (conversation.isListening) {
-      conversation.enterIdle();
+      if (conversation.state === "idle") {
+        conversation.enterListening();
+      }
+    } else {
+      // If the mic drops (e.g. browser timed it out) but the AI is just sitting there (idle or listening),
+      // we instantly restart the mic to achieve TRUE continuous conversation. No more idle state!
+      if (conversation.state === "listening" || conversation.state === "idle") {
+        conversation.enterListening();
+        try {
+          startMic();
+        } catch (e) {
+          // ignore
+        }
+      }
     }
-  }, [listening, conversation]);
+  }, [listening, conversation, startMic]);
 
   // ── Auto-start microphone once when ready in Conversation Mode ────────────
   useEffect(() => {
@@ -451,7 +655,7 @@ export default function TeacherPage() {
               transition={{ type: "spring", stiffness: 200, damping: 28 }}
               className="flex flex-col items-center gap-8"
             >
-              <AgentFace state={chatError ? "error" : conversation.agentState} size={220} isVoiceMode={listening} />
+              <AgentFace state={chatError ? "error" : conversation.agentState} size={124} isVoiceMode={listening} />
 
               {/* Conversation Status Indicator (Conversation Mode Only) */}
               {conversationMode && ai.status === "ready" && (
@@ -487,6 +691,24 @@ export default function TeacherPage() {
                   </span>
                 </div>
               )}
+
+              {/* Phase 1 Temporary VAD Indicator */}
+              <AnimatePresence>
+                {isSpeechDetected && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute top-4 right-4 flex items-center gap-2 bg-white/5 backdrop-blur-md border border-white/10 text-white/80 px-4 py-1.5 rounded-full text-xs font-medium tracking-wide shadow-[0_4px_24px_rgba(0,0,0,0.2)]"
+                  >
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Hearing you...
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Subtitle */}
               <AnimatePresence mode="wait">
@@ -554,7 +776,7 @@ export default function TeacherPage() {
                       <button
                         type="button"
                         onClick={listening ? stopMic : startMic}
-                        disabled={isProcessing}
+                        disabled={ai.status !== "ready"}
                         className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full transition-all duration-200"
                         style={{
                           color:      listening ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.3)",
@@ -590,7 +812,7 @@ export default function TeacherPage() {
                       : ai.status !== "ready" ? "Model loading…"
                       : "What do you want to learn?"
                     }
-                    disabled={isProcessing || listening || ai.status !== "ready"}
+                    disabled={listening || ai.status !== "ready"}
                     className="flex-1 bg-transparent outline-none text-white placeholder:text-white/25 text-[15px] tracking-[-0.01em] disabled:opacity-40"
                     style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}
                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) handleSubmit(); }}
@@ -606,7 +828,7 @@ export default function TeacherPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.7 }}
                         transition={{ duration: 0.15 }}
-                        disabled={isProcessing}
+                        disabled={ai.status !== "ready"}
                         className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-white text-black disabled:opacity-40 transition-opacity"
                       >
                         <ArrowUp size={15} strokeWidth={2.5} />

@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import type { TeachingContext } from "@/lib/llm-config";
 import { buildSystemPrompt } from "@/lib/llm-config";
 import { cleanSpeech } from "@/lib/clean-speech";
+import { logPipeline } from "@/lib/logger";
 
 export type LLMStatus = "idle" | "loading" | "ready" | "error";
 
@@ -48,9 +49,13 @@ let _abortController: AbortController | null = null;
 function extractJSON(raw: string): TeacherResponse | null {
   const start = raw.indexOf("{");
   const end   = raw.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return null;
+  if (start === -1 || end === -1 || end <= start) {
+    logPipeline("JSON parse failed", { reason: "No JSON object found in response" });
+    return null;
+  }
   try {
     const obj = JSON.parse(raw.slice(start, end + 1));
+    logPipeline("JSON parsed successfully");
     return {
       speech:         typeof obj.speech         === "string" ? cleanSpeech(obj.speech)         : cleanSpeech(raw),
       face_state:     typeof obj.face_state      === "string" ? obj.face_state     : "speaking",
@@ -59,7 +64,10 @@ function extractJSON(raw: string): TeacherResponse | null {
       phase:          typeof obj.phase           === "string" ? obj.phase          : "hook",
       question:       typeof obj.question        === "string" ? cleanSpeech(obj.question)       : "",
     };
-  } catch { return null; }
+  } catch (err) {
+    logPipeline("JSON parse failed", { error: err });
+    return null;
+  }
 }
 
 function fallback(raw: string, ctx: TeachingContext): TeacherResponse {
@@ -193,11 +201,20 @@ export function useWebLLM(
       ];
 
       let accumulated = "";
+      let isFirstToken = true;
       (async () => {
         try {
           const stream = await _engine.chat.completions.create({ messages, stream: true, temperature: 0.7, max_tokens: 384 });
           for await (const chunk of stream) {
-            if (_abortController?.signal.aborted) break;
+            if (_abortController?.signal.aborted) {
+              const err = new Error("Generation aborted");
+              err.name = "AbortError";
+              throw err;
+            }
+            if (isFirstToken && chunk.choices?.[0]?.delta?.content) {
+              logPipeline("First token generated");
+              isFirstToken = false;
+            }
             accumulated += chunk.choices?.[0]?.delta?.content ?? "";
             onChunk(cleanSpeech(accumulated));
           }

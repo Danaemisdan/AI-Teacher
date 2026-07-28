@@ -13,6 +13,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { DEFAULT_VOICE } from '@/lib/tts-voices';
+import { logPipeline } from "@/lib/logger";
 
 interface UseTTSOptions {
   voice?: string;
@@ -77,23 +78,31 @@ export function useTTS({
           audio.onended = () => {
             URL.revokeObjectURL(url);
             setIsSpeaking(false);
+            logPipeline("TTS stopped");
             onEnd?.();
           };
 
           audio.onerror = () => {
+            logPipeline("playback error", { error: "audio.onerror fired" });
             URL.revokeObjectURL(url);
             setIsSpeaking(false);
+            logPipeline("TTS stopped");
             onEnd?.();
           };
 
-          audio.play().catch(() => {
+          audio.play().then(() => {
+            logPipeline("TTS started");
+          }).catch((err) => {
+            logPipeline("playback error", { error: err.message || err.toString() });
             setIsSpeaking(false);
+            logPipeline("TTS stopped");
             onEnd?.();
           });
         })
         .catch((err) => {
           if (err.name === 'AbortError') return; // intentional stop
           console.error('[useTTS] fetch error:', err);
+          logPipeline("playback error", { error: "fetch error " + err.message });
           setIsSpeaking(false);
           onEnd?.();
         });

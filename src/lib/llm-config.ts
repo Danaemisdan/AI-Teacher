@@ -31,10 +31,10 @@ export const LLM_MODELS: Record<DeviceTier, LLMModel> = {
     note: 'Best quality. 16GB+ RAM / 100Mbps+ WiFi.',
   },
   mid: {
-    // SmolLM2 1.7B — decent teacher quality, reasonable download
-    id: 'SmolLM2-1.7B-Instruct-q4f16_1-MLC',
-    label: 'SmolLM2 1.7B',
-    sizeLabel: '~1 GB',
+    // SmolLM2 360M — decent teacher quality, very fast download
+    id: 'SmolLM2-360M-Instruct-q4f16_1-MLC',
+    label: 'SmolLM2 360M',
+    sizeLabel: '~220 MB',
     contextLength: 4096,
     note: 'Good balance. 8GB+ RAM / 50Mbps+.',
   },

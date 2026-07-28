@@ -77,18 +77,31 @@ export function AgentFace({ state, isShuttered = false, isVoiceMode = false, cla
   const eyeGap = size * 0.18; // Gap is proportional to size
 
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden flex items-center justify-center bg-[#070708] border-[3px] border-[#1c1c1e]",
-        className
-      )}
-      style={{
-        width: size, 
-        height: size, // Perfect square aspect ratio
-        borderRadius: size * 0.18, // Clean rounded-square look matching screenshot
-        boxShadow: "0 0 80px rgba(255,255,255,0.07), 0 30px 60px rgba(0,0,0,0.6), inset 0 0 60px rgba(0,0,0,0.9)",
-      }}
-    >
+    <div className={cn("relative flex items-center justify-center", className)} style={{ width: size, height: size }}>
+      
+      {/* ── True Backlight Halo & Ground Bloom ── */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          borderRadius: size * 0.18,
+          // Layer 1: Core backlight (dense, centered)
+          // Layer 2: Wide diffuse halo
+          // Layer 3: Ground bloom (shifted down)
+          boxShadow: "0 0 50px 15px rgba(168, 85, 247, 0.35), 0 0 120px 40px rgba(168, 85, 247, 0.15), 0 60px 80px 10px rgba(168, 85, 247, 0.2)",
+        }}
+      />
+      
+      {/* ── Main Face Container ── */}
+      <div
+        className="relative w-full h-full overflow-hidden flex items-center justify-center bg-[#070708]"
+        style={{
+          borderRadius: size * 0.18, 
+          // Replaces the purple border with a very subtle dark edge to give the avatar physical presence
+          border: "1px solid rgba(255, 255, 255, 0.04)",
+          // Deep inner shadow for matte look, plus a subtle top highlight for 3D depth
+          boxShadow: "inset 0 2px 15px rgba(255, 255, 255, 0.04), inset 0 -20px 40px rgba(0,0,0,0.8), inset 0 0 60px rgba(0,0,0,0.95)",
+        }}
+      >
       {/* ── Glass Sheen ── */}
       <div className="absolute inset-x-0 top-0 h-[38%] bg-gradient-to-b from-white/[0.07] to-transparent pointer-events-none -translate-y-3 scale-x-110" />
       {/* Noise Texture */}
@@ -142,6 +155,7 @@ export function AgentFace({ state, isShuttered = false, isVoiceMode = false, cla
           </>
         )}
       </AnimatePresence>
+      </div>
     </div>
   );
 }
