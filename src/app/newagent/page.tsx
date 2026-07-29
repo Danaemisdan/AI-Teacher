@@ -387,11 +387,14 @@ export default function TeacherPage() {
   const isListeningRef = useRef(listening);
   useEffect(() => { isListeningRef.current = listening; }, [listening]);
 
+  const [userSpeechConfirmed, setUserSpeechConfirmed] = useState(false);
+
   useEffect(() => {
     if (isSpeechDetected) {
       if (currentStateRef.current === "speaking" || currentStateRef.current === "thinking") {
         // Require ~200ms of sustained speech to reduce false triggers from clicks/coughs
         interruptTimeoutRef.current = setTimeout(() => {
+          setUserSpeechConfirmed(true);
           logPipeline("VAD detected speech");
           logPipeline("Interruption triggered");
           
@@ -399,13 +402,9 @@ export default function TeacherPage() {
           ai.abort();
           logPipeline("LLM aborted");
           
-          // CRITICAL FIX: Rollback the unanswered user message from history to prevent consecutive user roles!
-          setHistory(prev => {
-             if (prev.length > 0 && prev[prev.length - 1].role === "user") {
-                return prev.slice(0, -1);
-             }
-             return prev;
-          });
+          // Note: We no longer rollback the history here.
+          // By leaving the unanswered user message in the history, handleSubmit will naturally
+          // merge the new interrupted speech into it using a system tag!
           
           conversation.enterListening();
           
@@ -416,14 +415,19 @@ export default function TeacherPage() {
       } else if (currentStateRef.current === "idle") {
         // Wake word / Wake up from idle
         interruptTimeoutRef.current = setTimeout(() => {
+          setUserSpeechConfirmed(true);
           conversation.enterListening();
           
           if (!isListeningRef.current) {
             try { startMic(); } catch(e) {}
           }
         }, 200);
+      } else {
+        // If already listening, there is no TTS bleed risk. Confirm immediately for responsive UI.
+        setUserSpeechConfirmed(true);
       }
     } else {
+      setUserSpeechConfirmed(false);
       // If VAD misfires or speech ends before 200ms, cancel the interruption
       if (interruptTimeoutRef.current) {
         clearTimeout(interruptTimeoutRef.current);
@@ -483,7 +487,19 @@ export default function TeacherPage() {
     setSubtitle("");
 
     logPipeline("Appending User Message to History");
-    const newHistory: ChatMessage[] = [...history, { role: "user", content: text }];
+    
+    // Merge consecutive user messages to prevent LLM schema errors while retaining interruption context!
+    let newHistory: ChatMessage[] = [...history];
+    if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === "user") {
+      const last = newHistory.pop()!;
+      newHistory.push({
+        role: "user",
+        content: `${last.content}\n\n[User interrupted the previous response to add:]\n\n${text}`
+      });
+    } else {
+      newHistory.push({ role: "user", content: text });
+    }
+    
     setHistory(newHistory);
     // Topic is dynamically updated to the newest user request, so the AI follows the student's attention!
     const updatedContext = { ...context, topic: text };
@@ -694,7 +710,7 @@ export default function TeacherPage() {
 
               {/* Phase 1 Temporary VAD Indicator */}
               <AnimatePresence>
-                {isSpeechDetected && (
+                {userSpeechConfirmed && (
                   <motion.div
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}

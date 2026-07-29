@@ -71,7 +71,26 @@ function extractJSON(raw: string): TeacherResponse | null {
 }
 
 function fallback(raw: string, ctx: TeachingContext): TeacherResponse {
-  return { speech: cleanSpeech(raw).slice(0, 400), face_state: "speaking", canvas_action: "none", canvas_content: "", phase: ctx.phase, question: "" };
+  // Attempt to recover valid speech from a broken/incomplete JSON string
+  let recoveredSpeech = "";
+  
+  // Try to match the "speech": "..." value even if the closing brace is missing
+  const speechMatch = raw.match(/"speech"\s*:\s*"([^"]*)/);
+  if (speechMatch && speechMatch[1]) {
+    recoveredSpeech = speechMatch[1];
+  } else {
+    // If regex fails, blindly strip JSON syntax as a last resort so UI isn't polluted
+    recoveredSpeech = raw.replace(/[{}"\\]/g, "").replace(/speech\s*:/, "").replace(/face_state.*/, "");
+  }
+
+  return { 
+    speech: cleanSpeech(recoveredSpeech).trim() || "I lost my train of thought...", 
+    face_state: "speaking", 
+    canvas_action: "none", 
+    canvas_content: "", 
+    phase: ctx.phase, 
+    question: "" 
+  };
 }
 
 /**
@@ -204,7 +223,8 @@ export function useWebLLM(
       let isFirstToken = true;
       (async () => {
         try {
-          const stream = await _engine.chat.completions.create({ messages, stream: true, temperature: 0.7, max_tokens: 384 });
+          // Increased max_tokens to 1024 to accommodate full JSON objects (speech, canvas data, questions)
+          const stream = await _engine.chat.completions.create({ messages, stream: true, temperature: 0.7, max_tokens: 1024 });
           for await (const chunk of stream) {
             if (_abortController?.signal.aborted) {
               const err = new Error("Generation aborted");
