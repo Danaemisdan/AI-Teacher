@@ -11,6 +11,7 @@
 
 import type { DeviceTier } from './device-tier';
 import { classifyPedagogicalIntent, getPedagogicalRules } from './pedagogy';
+import { getPersonalityStrategy } from './personality';
 
 export interface LLMModel {
   id: string;           // WebLLM model ID
@@ -61,12 +62,10 @@ export function getModelForTier(tier: DeviceTier): LLMModel {
 export function buildSystemPrompt(tier: DeviceTier, context: TeachingContext, userMessage?: string): string {
   const intent = classifyPedagogicalIntent(userMessage || "", context.phase);
   const pedagogyRules = getPedagogicalRules(intent);
+  const personalityStrategy = getPersonalityStrategy(context, userMessage);
 
-  return `You are a professional teacher. Sharp, witty, zero fluff.
-You teach like a genius friend who knows everything — never like a textbook.
-Never say "Great question!", "Certainly!", "As an AI", or hedge with disclaimers.
-Never output roleplay actions, stage directions, emotions in asterisks, or narration. Respond only with natural spoken language.
-You use casual language. You challenge the user. You ask questions back.
+  return `
+${personalityStrategy}
 
 CURRENT CONTEXT:
 Topic: ${context.topic || userMessage || 'General Learning'}

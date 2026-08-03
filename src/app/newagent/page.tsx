@@ -85,7 +85,22 @@ function Typewriter({ text }: { text: string }) {
     }, 22);
     return () => clearInterval(iv);
   }, [text]);
-  return <>{shown}</>;
+  const sentences = shown.split(/([.?!]+\s+)/).reduce((acc: string[], val, i) => {
+    if (i % 2 === 0) {
+      acc.push(val);
+    } else {
+      acc[acc.length - 1] += val;
+    }
+    return acc;
+  }, []).filter(s => s.trim().length > 0);
+
+  return (
+    <span className="flex flex-col gap-2 text-left items-center w-full">
+      {sentences.map((sentence, i) => (
+        <span key={i} className="block w-full">{sentence.trim()}</span>
+      ))}
+    </span>
+  );
 }
 
 // ── Modular Model Selector / Override ─────────────────────────────────────────
@@ -735,7 +750,7 @@ export default function TeacherPage() {
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                     exit={{ opacity: 0, y: -6, filter: "blur(4px)" }}
                     transition={{ duration: 0.4 }}
-                    className="max-w-[500px] text-center text-white/70 text-[15px] leading-relaxed px-6"
+                    className="max-w-[600px] text-white/80 text-[16px] leading-relaxed px-6"
                     style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif" }}
                   >
                     <Typewriter text={subtitle} />
